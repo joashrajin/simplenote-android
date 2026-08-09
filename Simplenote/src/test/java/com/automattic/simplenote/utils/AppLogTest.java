@@ -1,6 +1,7 @@
 package com.automattic.simplenote.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.automattic.simplenote.utils.AppLog.Type;
@@ -16,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class AppLogTest {
     private static final int LOG_MAX = 100;
@@ -61,7 +63,7 @@ public class AppLogTest {
             }
             do {
                 assertCompleteSnapshot();
-            } while (writersDoneLatch.getCount() > 0);
+            } while (writersDoneLatch.getCount() > 0 && !Thread.currentThread().isInterrupted());
             return null;
         });
 
@@ -74,7 +76,9 @@ public class AppLogTest {
                 readyLatch.countDown();
                 startLatch.await();
                 try {
-                    for (int entry = 0; entry < entriesPerWriter; entry++) {
+                    for (int entry = 0;
+                            entry < entriesPerWriter && !Thread.currentThread().isInterrupted();
+                            entry++) {
                         AppLog.add(Type.ACCOUNT, "concurrent-" + writerIndex + "-" + entry);
                         if (entry == 0) {
                             firstWritesDoneLatch.countDown();
@@ -97,6 +101,7 @@ public class AppLogTest {
             readerFuture.get(5, TimeUnit.SECONDS);
         } finally {
             executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
         }
 
         List<String> entries = getEntries();
@@ -104,6 +109,41 @@ public class AppLogTest {
         assertEquals(LOG_MAX, entries.size());
         assertEquals(entries.size(), new HashSet<>(entries).size());
         assertEquals(expectedEntries, new HashSet<>(entries));
+    }
+
+    @Test(timeout = 10_000)
+    public void getUsesAppLogSynchronizationBoundary() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        CountDownLatch readerStartedLatch = new CountDownLatch(1);
+        AtomicReference<Thread> readerThread = new AtomicReference<>();
+        Future<String> readerFuture;
+
+        try {
+            synchronized (AppLog.class) {
+                readerFuture = executor.submit(() -> {
+                    readerThread.set(Thread.currentThread());
+                    readerStartedLatch.countDown();
+                    return AppLog.get();
+                });
+
+                assertTrue(readerStartedLatch.await(5, TimeUnit.SECONDS));
+
+                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+                while (!readerFuture.isDone()
+                        && readerThread.get().getState() != Thread.State.BLOCKED
+                        && System.nanoTime() < deadline) {
+                    Thread.yield();
+                }
+
+                assertFalse(readerFuture.isDone());
+                assertEquals(Thread.State.BLOCKED, readerThread.get().getState());
+            }
+
+            readerFuture.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
     }
 
     @Test

@@ -183,15 +183,23 @@ class TestQuery<T : BucketObject>(private val objects: MutableList<T>) : Query<T
     }
 
     private fun filterObjects(): MutableList<T> {
-        return conditions.fold(objects, { currentObjects: MutableList<T>, condition: Condition ->
+        return conditions.fold(objects) { currentObjects: MutableList<T>, condition: Condition ->
             when (condition.comparisonType) {
-                ComparisonType.EQUAL_TO -> objects.filter { compare(it.properties.get(condition.key), condition.subject) }
-                ComparisonType.NOT_EQUAL_TO -> objects.filter { !compare(it.properties.get(condition.key), condition.subject) }
-                ComparisonType.LIKE -> objects.filter { compareLike(it.properties.get(condition.key), (condition.subject)) }
-                ComparisonType.NOT_LIKE -> objects.filter { !compareLike(it.properties.get(condition.key), (condition.subject.toString())) }
+                ComparisonType.EQUAL_TO -> currentObjects.filter {
+                    compare(it.properties.get(condition.key), condition.subject)
+                }.toMutableList()
+                ComparisonType.NOT_EQUAL_TO -> currentObjects.filter {
+                    !compare(it.properties.get(condition.key), condition.subject)
+                }.toMutableList()
+                ComparisonType.LIKE -> currentObjects.filter {
+                    compareLike(it.properties.get(condition.key), condition.subject)
+                }.toMutableList()
+                ComparisonType.NOT_LIKE -> currentObjects.filter {
+                    !compareLike(it.properties.get(condition.key), condition.subject.toString())
+                }.toMutableList()
                 else -> currentObjects // The rest of comparison types are not used in the app
-            } as MutableList
-        })
+            }
+        }
     }
 
     private fun compare(left: Any, right: Any): Boolean {

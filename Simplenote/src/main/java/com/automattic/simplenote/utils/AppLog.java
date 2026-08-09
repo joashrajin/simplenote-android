@@ -1,20 +1,14 @@
 package com.automattic.simplenote.utils;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
 import java.util.Date;
-import java.util.LinkedHashMap;
+import java.util.Deque;
 import java.util.Locale;
-import java.util.Map;
 
 public class AppLog {
     private static final int LOG_MAX = 100;
-
-    private static final LinkedHashMap<Integer, String> mQueue  = new LinkedHashMap<Integer, String>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<Integer, String> eldest) {
-            return this.size() > LOG_MAX;
-        }
-    };
+    private static final Deque<String> mQueue = new ArrayDeque<>(LOG_MAX);
 
     public enum Type {
         ACCOUNT,
@@ -29,7 +23,7 @@ public class AppLog {
         EDITOR
     }
 
-    public static void add(Type type, String message) {
+    public static synchronized void add(Type type, String message) {
         String log;
 
         if (type == Type.ACCOUNT || type == Type.DEVICE) {
@@ -39,14 +33,17 @@ public class AppLog {
             log = timestamp + " - " + type.toString() + ": " + message + "\n";
         }
 
-        mQueue.put(mQueue.size(), log);
+        if (mQueue.size() == LOG_MAX) {
+            mQueue.removeFirst();
+        }
+        mQueue.addLast(log);
     }
 
-    public static String get() {
+    public static synchronized String get() {
         StringBuilder queue = new StringBuilder();
 
-        for (Map.Entry<Integer, String> entry : mQueue.entrySet()) {
-            queue.append(entry.getValue());
+        for (String entry : mQueue) {
+            queue.append(entry);
         }
 
         return queue.toString();

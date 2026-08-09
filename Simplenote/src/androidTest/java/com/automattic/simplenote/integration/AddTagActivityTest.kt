@@ -75,7 +75,7 @@ class AddTagActivityTest : BaseUITest() {
     fun addTagWithSpace() {
         assertEquals(tagsBucket.count(), 0)
 
-        val activityScenario = ActivityScenario.launch(AddTagActivity::class.java)
+        val activityScenario = ActivityScenario.launchActivityForResult(AddTagActivity::class.java)
 
         onView(withId(R.id.button_positive)).check(matches(not(isEnabled())))
 
@@ -94,7 +94,7 @@ class AddTagActivityTest : BaseUITest() {
     fun addTagEmpty() {
         assertEquals(tagsBucket.count(), 0)
 
-        val activityScenario = ActivityScenario.launch(AddTagActivity::class.java)
+        val activityScenario = ActivityScenario.launchActivityForResult(AddTagActivity::class.java)
 
         onView(withId(R.id.button_positive)).check(matches(not(isEnabled())))
 
@@ -117,7 +117,7 @@ class AddTagActivityTest : BaseUITest() {
     fun addTagCancel() {
         assertEquals(tagsBucket.count(), 0)
 
-        val activityScenario = ActivityScenario.launch(AddTagActivity::class.java)
+        val activityScenario = ActivityScenario.launchActivityForResult(AddTagActivity::class.java)
 
         onView(withId(R.id.button_positive)).check(matches(not(isEnabled())))
 
@@ -135,7 +135,7 @@ class AddTagActivityTest : BaseUITest() {
         createTag("tag5")
         assertEquals(tagsBucket.count(), 1)
 
-        val activityScenario = ActivityScenario.launch(AddTagActivity::class.java)
+        val activityScenario = ActivityScenario.launchActivityForResult(AddTagActivity::class.java)
 
         onView(withId(R.id.button_positive)).check(matches(not(isEnabled())))
 

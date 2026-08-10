@@ -31,7 +31,7 @@ public class NoteListWidgetFactory implements RemoteViewsFactory {
     }
 
 	@Override
-	public int getCount() {
+	public synchronized int getCount() {
 		// Defensively check if the cursor is null or closed.
 		// This prevents a NullPointerException if getCount() is called before
 		// onDataSetChanged() has finished initializing the cursor.
@@ -52,11 +52,11 @@ public class NoteListWidgetFactory implements RemoteViewsFactory {
     }
 
     @Override
-    public RemoteViews getViewAt(int position) {
+    public synchronized RemoteViews getViewAt(int position) {
         @LayoutRes int layout = PrefUtils.getLayoutWidgetListItem(mContext, mIsLight);
         RemoteViews views = new RemoteViews(mContext.getPackageName(), layout);
 
-        if (mCursor.moveToPosition(position)) {
+        if (mCursor != null && !mCursor.isClosed() && mCursor.moveToPosition(position)) {
             Note note = mCursor.getObject();
 
             views.setTextViewText(R.id.note_title, note.getTitle());
@@ -102,7 +102,7 @@ public class NoteListWidgetFactory implements RemoteViewsFactory {
     }
 
     @Override
-    public void onDataSetChanged() {
+    public synchronized void onDataSetChanged() {
         if (mCursor != null) {
             mCursor.close();
         }
@@ -115,9 +115,10 @@ public class NoteListWidgetFactory implements RemoteViewsFactory {
     }
 
     @Override
-    public void onDestroy() {
+    public synchronized void onDestroy() {
         if (mCursor != null) {
             mCursor.close();
+            mCursor = null;
         }
     }
 }

@@ -588,10 +588,15 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
             mRefreshListTask.cancel(true);
         }
 
+        Context context = getContext();
+        if (context == null) {
+            return;
+        }
+
         mRefreshListTask = new RefreshListTask(this);
         mRefreshListTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, fromNav);
 
-        WidgetUtils.updateNoteWidgets(requireActivity().getApplicationContext());
+        WidgetUtils.updateNoteWidgets(context.getApplicationContext());
     }
 
     private void refreshListForSearch() {

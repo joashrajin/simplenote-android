@@ -94,7 +94,7 @@ public class NoteListWidgetFactory implements RemoteViewsFactory {
 
     @Override
     public boolean hasStableIds() {
-        return true;
+        return false;
     }
 
     @Override

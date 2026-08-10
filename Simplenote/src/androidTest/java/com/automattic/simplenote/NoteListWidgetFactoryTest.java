@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 @RunWith(AndroidJUnit4.class)
@@ -53,5 +54,15 @@ public class NoteListWidgetFactoryTest {
         } finally {
             application.setUseTestBucket(false);
         }
+    }
+
+    @Test
+    public void positionItemIdsAreReportedAsUnstable() {
+        Context context = ApplicationProvider.getApplicationContext();
+        NoteListWidgetFactory factory = new NoteListWidgetFactory(context, new Intent());
+
+        assertEquals(0L, factory.getItemId(0));
+        assertEquals(7L, factory.getItemId(7));
+        assertFalse(factory.hasStableIds());
     }
 }

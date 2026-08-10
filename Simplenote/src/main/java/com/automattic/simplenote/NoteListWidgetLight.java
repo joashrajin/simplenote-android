@@ -7,9 +7,10 @@ import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIS
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIST_WIDGET_LAST_DELETED;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIST_WIDGET_SIGN_IN_TAPPED;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIST_WIDGET_TAPPED;
-import static com.automattic.simplenote.utils.WidgetUtils.KEY_LIST_WIDGET_CLICK;
 import static com.automattic.simplenote.utils.WidgetUtils.MINIMUM_HEIGHT_FOR_BUTTON;
 import static com.automattic.simplenote.utils.WidgetUtils.MINIMUM_WIDTH_FOR_BUTTON;
+import static com.automattic.simplenote.utils.WidgetUtils.getNoteListWidgetButtonPendingIntent;
+import static com.automattic.simplenote.utils.WidgetUtils.getNoteListWidgetLayoutPendingIntent;
 
 import android.annotation.SuppressLint;
 import android.app.PendingIntent;
@@ -23,7 +24,6 @@ import android.widget.RemoteViews;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
-import com.automattic.simplenote.utils.IntentUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
@@ -113,15 +113,16 @@ public class NoteListWidgetLight extends AppWidgetProvider {
 
         if (user.getStatus().equals(User.Status.NOT_AUTHORIZED)) {
             // Create intent to navigate to notes activity which redirects to login on widget click
-            Intent intent = IntentUtils.maybeAliasedIntent(context);
-            intent.putExtra(KEY_LIST_WIDGET_CLICK, NOTE_LIST_WIDGET_SIGN_IN_TAPPED);
-            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent, PendingIntent.FLAG_IMMUTABLE);
-            views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
+            views.setOnClickPendingIntent(
+                R.id.widget_layout,
+                getNoteListWidgetLayoutPendingIntent(context, appWidgetId, NOTE_LIST_WIDGET_SIGN_IN_TAPPED)
+            );
 
             // Reset intent to navigate to note editor on note list add button click to navigate to notes activity, which redirects to login/signup
-            Intent intentButton = IntentUtils.maybeAliasedIntent(context);
-            views.setOnClickPendingIntent(R.id.widget_button, PendingIntent.getActivity(context, appWidgetId, intentButton, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE));
+            views.setOnClickPendingIntent(
+                R.id.widget_button,
+                getNoteListWidgetButtonPendingIntent(context, appWidgetId, null)
+            );
 
             views.setTextViewText(R.id.widget_text, context.getResources().getString(R.string.log_in_use_widget));
             views.setTextColor(R.id.widget_text, context.getResources().getColor(R.color.text_title_light, context.getTheme()));
@@ -135,11 +136,10 @@ public class NoteListWidgetLight extends AppWidgetProvider {
             PrefUtils.sortNoteQuery(query, context, true);
             if (query.count() > 0) {
                 // Create intent to navigate to notes activity on widget click while loading
-                Intent intentLoading = IntentUtils.maybeAliasedIntent(context);
-                intentLoading.putExtra(KEY_LIST_WIDGET_CLICK, NOTE_LIST_WIDGET_TAPPED);
-                intentLoading.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                PendingIntent pendingIntentLoading = PendingIntent.getActivity(context, appWidgetId, intentLoading, PendingIntent.FLAG_IMMUTABLE);
-                views.setOnClickPendingIntent(R.id.widget_layout, pendingIntentLoading);
+                views.setOnClickPendingIntent(
+                    R.id.widget_layout,
+                    getNoteListWidgetLayoutPendingIntent(context, appWidgetId, NOTE_LIST_WIDGET_TAPPED)
+                );
 
                 // Create intent for note list widget service
                 Intent intent = new Intent(context, NoteListWidgetLightService.class);
@@ -158,11 +158,10 @@ public class NoteListWidgetLight extends AppWidgetProvider {
                 views.setPendingIntentTemplate(R.id.widget_list, pendingIntentItem);
 
                 // Create intent to navigate to note editor on note list add button click
-                Intent intentButton = IntentUtils.maybeAliasedIntent(context);
-                intentButton.putExtra(KEY_LIST_WIDGET_CLICK, NOTE_LIST_WIDGET_BUTTON_TAPPED);
-                intentButton.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                PendingIntent pendingIntentButton = PendingIntent.getActivity(context, appWidgetId, intentButton, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                views.setOnClickPendingIntent(R.id.widget_button, pendingIntentButton);
+                views.setOnClickPendingIntent(
+                    R.id.widget_button,
+                    getNoteListWidgetButtonPendingIntent(context, appWidgetId, NOTE_LIST_WIDGET_BUTTON_TAPPED)
+                );
 
                 views.setEmptyView(R.id.widget_list, R.id.widget_text);
                 views.setTextColor(R.id.widget_text, context.getResources().getColor(R.color.text_title_light, context.getTheme()));
@@ -171,18 +170,16 @@ public class NoteListWidgetLight extends AppWidgetProvider {
                 views.setViewVisibility(R.id.widget_list, View.VISIBLE);
             } else {
                 // Create intent to navigate to notes activity on widget click
-                Intent intent = IntentUtils.maybeAliasedIntent(context);
-                intent.putExtra(KEY_LIST_WIDGET_CLICK, NOTE_LIST_WIDGET_TAPPED);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                PendingIntent pendingIntent = PendingIntent.getActivity(context, appWidgetId, intent, PendingIntent.FLAG_IMMUTABLE);
-                views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);
+                views.setOnClickPendingIntent(
+                    R.id.widget_layout,
+                    getNoteListWidgetLayoutPendingIntent(context, appWidgetId, NOTE_LIST_WIDGET_TAPPED)
+                );
 
                 // Create intent to navigate to note editor on note list add button click
-                Intent intentButton = IntentUtils.maybeAliasedIntent(context);
-                intentButton.putExtra(KEY_LIST_WIDGET_CLICK, NOTE_LIST_WIDGET_BUTTON_TAPPED);
-                intentButton.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                PendingIntent pendingIntentButton = PendingIntent.getActivity(context, appWidgetId, intentButton, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-                views.setOnClickPendingIntent(R.id.widget_button, pendingIntentButton);
+                views.setOnClickPendingIntent(
+                    R.id.widget_button,
+                    getNoteListWidgetButtonPendingIntent(context, appWidgetId, NOTE_LIST_WIDGET_BUTTON_TAPPED)
+                );
 
                 views.setTextColor(R.id.widget_text, context.getResources().getColor(R.color.text_title_light, context.getTheme()));
                 views.setTextViewText(R.id.widget_text, context.getResources().getString(R.string.empty_notes_widget));

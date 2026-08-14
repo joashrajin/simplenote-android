@@ -6,6 +6,7 @@ import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.NotesRepository
+import com.automattic.simplenote.repositories.PreferencesRepository
 import com.automattic.simplenote.repositories.TagsRepository
 import com.simperium.Simperium
 import com.simperium.client.Bucket
@@ -31,6 +32,9 @@ object ScreenshotDataModule {
 
     @Provides
     fun providesNotesRepository(): NotesRepository = ScreenshotNotesRepository()
+
+    @Provides
+    fun providesPreferencesRepository(): PreferencesRepository = ScreenshotPreferencesRepository()
 
     @Provides
     fun providesMagicLinkRepository(): MagicLinkRepository = ScreenshotMagicLinkRepository()

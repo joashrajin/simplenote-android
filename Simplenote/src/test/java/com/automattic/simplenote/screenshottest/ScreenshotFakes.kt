@@ -11,6 +11,7 @@ import com.automattic.simplenote.repositories.NoteChange
 import com.automattic.simplenote.repositories.NoteQueryResult
 import com.automattic.simplenote.repositories.NoteReference
 import com.automattic.simplenote.repositories.NotesRepository
+import com.automattic.simplenote.repositories.PreferencesRepository
 import com.automattic.simplenote.repositories.RevisionsResult
 import com.automattic.simplenote.repositories.TagsRepository
 import com.automattic.simplenote.search.NoteSearchRequest
@@ -71,6 +72,17 @@ class ScreenshotNotesRepository : NotesRepository {
     override suspend fun setPublished(key: String, published: Boolean) = Unit
     override suspend fun getRevisions(key: String, max: Int): RevisionsResult = RevisionsResult.Failure
     override fun noteChanges(): Flow<NoteChange> = emptyFlow()
+}
+
+class ScreenshotPreferencesRepository : PreferencesRepository {
+    override suspend fun isAnalyticsEnabled(): Boolean = false
+    override suspend fun setAnalyticsEnabled(enabled: Boolean) = Unit
+    override fun analyticsEnabledSnapshot(): Boolean = false
+    override suspend fun recentSearches(): List<String> = emptyList()
+    override suspend fun addRecentSearch(query: String, index: Int) = Unit
+    override suspend fun removeRecentSearch(query: String) = Unit
+    override fun preferencesChanged(): Flow<Unit> = emptyFlow()
+    override suspend fun sortOrder(): SortOrder = SortOrder.MODIFIED_DESC
 }
 
 class ScreenshotMagicLinkRepository : MagicLinkRepository {

@@ -1,20 +1,20 @@
 package com.automattic.simplenote.utils;
 
+import androidx.annotation.VisibleForTesting;
+
 import java.text.SimpleDateFormat;
+import java.util.ArrayDeque;
 import java.util.Date;
+import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 
 public class AppLog {
     private static final int LOG_MAX = 100;
-
-    private static final LinkedHashMap<Integer, String> mQueue  = new LinkedHashMap<Integer, String>() {
-        @Override
-        protected boolean removeEldestEntry(Map.Entry<Integer, String> eldest) {
-            return this.size() > LOG_MAX;
-        }
-    };
+    private static final Object LOCK = new Object();
+    private static final Map<Type, String> mHeaders = new LinkedHashMap<>();
+    private static final Deque<String> mQueue = new ArrayDeque<>(LOG_MAX);
 
     public enum Type {
         ACCOUNT,
@@ -29,6 +29,14 @@ public class AppLog {
         EDITOR
     }
 
+    // Headers hold per-process context (device and account blocks) that must survive rotation,
+    // so shared diagnostics keep their context after the 100-entry window turns over.
+    public static void addHeader(Type type, String message) {
+        synchronized (LOCK) {
+            mHeaders.put(type, message + "\n");
+        }
+    }
+
     public static void add(Type type, String message) {
         String log;
 
@@ -39,16 +47,35 @@ public class AppLog {
             log = timestamp + " - " + type.toString() + ": " + message + "\n";
         }
 
-        mQueue.put(mQueue.size(), log);
+        synchronized (LOCK) {
+            if (mQueue.size() == LOG_MAX) {
+                mQueue.removeFirst();
+            }
+            mQueue.addLast(log);
+        }
     }
 
     public static String get() {
         StringBuilder queue = new StringBuilder();
 
-        for (Map.Entry<Integer, String> entry : mQueue.entrySet()) {
-            queue.append(entry.getValue());
+        synchronized (LOCK) {
+            for (String header : mHeaders.values()) {
+                queue.append(header);
+            }
+
+            for (String entry : mQueue) {
+                queue.append(entry);
+            }
         }
 
         return queue.toString();
+    }
+
+    @VisibleForTesting
+    static void clearForTesting() {
+        synchronized (LOCK) {
+            mHeaders.clear();
+            mQueue.clear();
+        }
     }
 }

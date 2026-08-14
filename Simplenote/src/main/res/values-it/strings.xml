@@ -323,13 +323,11 @@ Language: it
     <string name="restore">Ripristina</string>
     <string name="edit">Modifica</string>
     <string name="tags">Tag</string>
-    <string name="noted">Nota creata</string>
     <string name="font_size_extra_large">Molto grande</string>
     <string name="font_size_large">Grande</string>
     <string name="font_size_normal">Normale</string>
     <string name="font_size_small">Piccolo</string>
     <string name="font_size_extra_small">Molto piccolo</string>
-    <string name="note_added">Nota aggiunta</string>
     <string name="unpublish_error">Non è stato possibile annullare la pubblicazione della nota</string>
     <string name="publish_error">Non è stato possibile pubblicare la nota</string>
     <string name="published">Pubblicata</string>

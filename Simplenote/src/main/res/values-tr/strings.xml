@@ -323,13 +323,11 @@ Language: tr
     <string name="restore">Geri Yükle</string>
     <string name="edit">Düzenle</string>
     <string name="tags">Etiketler</string>
-    <string name="noted">Not alındı</string>
     <string name="font_size_extra_large">Çok büyük</string>
     <string name="font_size_large">Büyük</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_small">Küçük</string>
     <string name="font_size_extra_small">Çok küçük</string>
-    <string name="note_added">Not eklendi</string>
     <string name="unpublish_error">Not yayından kaldırılamadı</string>
     <string name="publish_error">Not yayınlanamadı</string>
     <string name="published">Yayınlandı</string>

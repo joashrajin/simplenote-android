@@ -323,13 +323,11 @@ Language: zh_CN
     <string name="restore">恢复</string>
     <string name="edit">编辑</string>
     <string name="tags">标签</string>
-    <string name="noted">已添加笔记</string>
     <string name="font_size_extra_large">超大</string>
     <string name="font_size_large">大</string>
     <string name="font_size_normal">中</string>
     <string name="font_size_small">小</string>
     <string name="font_size_extra_small">极小</string>
-    <string name="note_added">笔记已添加</string>
     <string name="unpublish_error">无法取消发布笔记</string>
     <string name="publish_error">无法发布笔记</string>
     <string name="published">已发布</string>

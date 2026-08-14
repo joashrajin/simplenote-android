@@ -323,13 +323,11 @@ Language: es
     <string name="restore">Restaurar</string>
     <string name="edit">Editar</string>
     <string name="tags">Etiquetas</string>
-    <string name="noted">Anotado</string>
     <string name="font_size_extra_large">Muy grande</string>
     <string name="font_size_large">Grande</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_small">Pequeño</string>
     <string name="font_size_extra_small">Muy pequeño</string>
-    <string name="note_added">Se ha añadido una nota</string>
     <string name="unpublish_error">No publicar</string>
     <string name="publish_error">No publicar</string>
     <string name="published">Publicado</string>

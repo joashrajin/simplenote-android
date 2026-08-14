@@ -323,13 +323,11 @@ Language: ko_KR
     <string name="restore">복구</string>
     <string name="edit">편집</string>
     <string name="tags">태그</string>
-    <string name="noted">메모가 작성됨</string>
     <string name="font_size_extra_large">더 크게</string>
     <string name="font_size_large">크게</string>
     <string name="font_size_normal">보통</string>
     <string name="font_size_small">작게</string>
     <string name="font_size_extra_small">더 작게</string>
-    <string name="note_added">메모가 추가됨</string>
     <string name="unpublish_error">메모 게시를 취소할 수 없습니다.</string>
     <string name="publish_error">메모를 게시할 수 없습니다.</string>
     <string name="published">게시됨</string>

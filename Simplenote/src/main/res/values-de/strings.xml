@@ -323,13 +323,11 @@ Language: de
     <string name="restore">Wiederherstellen</string>
     <string name="edit">Bearbeiten</string>
     <string name="tags">Schlagwörter</string>
-    <string name="noted">Notiert</string>
     <string name="font_size_extra_large">Sehr groß</string>
     <string name="font_size_large">Groß</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_small">Klein</string>
     <string name="font_size_extra_small">Sehr klein</string>
-    <string name="note_added">Notiz hinzugefügt</string>
     <string name="unpublish_error">Veröffentlichung von Notiz konnte nicht rückgängig gemacht werden</string>
     <string name="publish_error">Notiz konnte nicht veröffentlicht werden</string>
     <string name="published">Veröffentlicht</string>

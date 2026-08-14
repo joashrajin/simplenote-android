@@ -323,13 +323,11 @@ Language: sv_SE
     <string name="restore">Återställ</string>
     <string name="edit">Redigera</string>
     <string name="tags">Etiketter</string>
-    <string name="noted">Antecknad</string>
     <string name="font_size_extra_large">Extra stor</string>
     <string name="font_size_large">Stor</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_small">Liten</string>
     <string name="font_size_extra_small">Extra liten</string>
-    <string name="note_added">Anteckning tillagd</string>
     <string name="unpublish_error">Kunde inte ta bort publicerad anteckning</string>
     <string name="publish_error">Kunde inte publicera anteckning</string>
     <string name="published">Publicerad</string>

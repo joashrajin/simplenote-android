@@ -323,13 +323,11 @@ Language: pt_BR
     <string name="restore">Restaurar</string>
     <string name="edit">Editar</string>
     <string name="tags">Tags</string>
-    <string name="noted">Anotado</string>
     <string name="font_size_extra_large">Extragrande</string>
     <string name="font_size_large">Grande</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_small">Pequeno</string>
     <string name="font_size_extra_small">Extrapequeno</string>
-    <string name="note_added">Anotação adicionada</string>
     <string name="unpublish_error">Não foi possível cancelar a publicação da anotação</string>
     <string name="publish_error">Não foi possível publicar a anotação</string>
     <string name="published">Publicado</string>

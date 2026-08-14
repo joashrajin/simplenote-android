@@ -323,13 +323,11 @@ Language: he_IL
     <string name="restore">שחזור</string>
     <string name="edit">עריכה</string>
     <string name="tags">תגיות</string>
-    <string name="noted">נוסף פתק</string>
     <string name="font_size_extra_large">גדול מאוד</string>
     <string name="font_size_large">גדול</string>
     <string name="font_size_normal">רגיל</string>
     <string name="font_size_small">קטן</string>
     <string name="font_size_extra_small">קטן מאוד</string>
-    <string name="note_added">הפתק נוסף</string>
     <string name="unpublish_error">לא ניתן לבטל את פרסום הפתק</string>
     <string name="publish_error">לא ניתן לפרסם את הפתק</string>
     <string name="published">פורסם</string>

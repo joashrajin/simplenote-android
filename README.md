@@ -24,12 +24,6 @@ sdk.dir=/Applications/Android Studio.app/sdk
 
 _Note: Simplenote API features such as sharing and publishing will not work with development builds._
 
-## Android Wear
-
-To properly install the wear app, run `./gradlew assembleRelease` to package up the app and then `adb install` with the generated .apk to the host device.
-
-If you want to debug the Wear app, simply connect the device to adb and then run the `Wear` project from Android Studio.
-
 ## Tests
 
 To run the test suite, execute the following `gradle` command:

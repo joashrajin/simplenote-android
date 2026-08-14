@@ -25,6 +25,8 @@ interface NotesRepository {
 }
 
 sealed class NoteQueryResult {
+    // The cursor is live and filled on the IO dispatcher; ownership transfers to the caller,
+    // who must close it.
     data class Notes(val cursor: Bucket.ObjectCursor<Note>, val searchSnapshot: String?) : NoteQueryResult()
     object InvalidQuery : NoteQueryResult()
 }

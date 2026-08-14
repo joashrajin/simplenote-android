@@ -25,6 +25,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.Calendar
@@ -81,6 +82,7 @@ class SimperiumNotesRepositoryTest {
         val notes = result as NoteQueryResult.Notes
         assertSame(cursor, notes.cursor)
         assertEquals("hello", notes.searchSnapshot)
+        verify(cursor, never()).close()
     }
 
     @Test
@@ -225,6 +227,13 @@ class SimperiumNotesRepositoryTest {
 
         assertTrue(repository.hasUnsyncedNotes())
         verify(allCursor).close()
+    }
+
+    @Test
+    fun hasUnsyncedNotesWhenANoteIsNewButUnmodified() = runTest {
+        allObjectsCursor(noteMock(isNew = true))
+
+        assertTrue(repository.hasUnsyncedNotes())
     }
 
     @Test

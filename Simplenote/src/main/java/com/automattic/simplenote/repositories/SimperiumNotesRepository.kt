@@ -12,7 +12,9 @@ import com.automattic.simplenote.utils.SimplenoteLinkify.SIMPLENOTE_LINK_PREFIX
 import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectMissingException
 import com.simperium.client.Query
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -28,11 +30,15 @@ class SimperiumNotesRepository @Inject constructor(
             cursor = searchQueryBuilder.build(notesBucket, request).execute()
             // The cursor fills lazily, so an invalid Query.FullTextMatch term surfaces on the first count.
             cursor.count
+            ensureActive()
             NoteQueryResult.Notes(cursor, request.rawSearch)
         } catch (exception: SQLiteException) {
             Log.e(Simplenote.TAG, "Invalid SQL statement", exception)
             cursor?.close()
             NoteQueryResult.InvalidQuery
+        } catch (exception: CancellationException) {
+            cursor?.close()
+            throw exception
         }
     }
 
@@ -57,7 +63,16 @@ class SimperiumNotesRepository @Inject constructor(
             query.where(Note.TITLE_INDEX_NAME, Query.ComparisonType.LIKE, "%$titleFilter%")
             query.order(Note.PINNED_INDEX_NAME, Query.SortType.DESCENDING)
             applySortOrder(query, sort)
-            NoteQueryResult.Notes(query.execute(), null)
+            val cursor = query.execute()
+            try {
+                // Fill on the IO dispatcher, matching the legacy background filter thread.
+                cursor.count
+                ensureActive()
+                NoteQueryResult.Notes(cursor, null)
+            } catch (exception: CancellationException) {
+                cursor.close()
+                throw exception
+            }
         }
 
     override suspend fun referencesTo(key: String): List<NoteReference> = withContext(ioDispatcher) {

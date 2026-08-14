@@ -1,6 +1,5 @@
 package com.automattic.simplenote;
 
-import static com.automattic.simplenote.models.Preferences.PREFERENCES_OBJECT_KEY;
 import static com.simperium.android.AsyncAuthClient.USER_ACCESS_TOKEN_PREFERENCE;
 import static com.simperium.android.AsyncAuthClient.USER_EMAIL_PREFERENCE;
 
@@ -37,6 +36,7 @@ import com.automattic.simplenote.models.NoteCountIndexer;
 import com.automattic.simplenote.models.NoteTagger;
 import com.automattic.simplenote.models.Preferences;
 import com.automattic.simplenote.models.Tag;
+import com.automattic.simplenote.repositories.PreferencesRepository;
 import com.automattic.simplenote.utils.AccountVerificationWatcher;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
@@ -48,9 +48,13 @@ import com.simperium.android.AndroidClient;
 import com.simperium.android.WebSocketManager;
 import com.simperium.client.Bucket;
 import com.simperium.client.BucketNameInvalid;
-import com.simperium.client.BucketObjectMissingException;
 import com.simperium.client.ChannelProvider.HeartbeatListener;
 import com.simperium.client.User;
+
+import dagger.hilt.EntryPoint;
+import dagger.hilt.InstallIn;
+import dagger.hilt.android.EntryPointAccessors;
+import dagger.hilt.components.SingletonComponent;
 
 import org.wordpress.passcodelock.AppLockManager;
 
@@ -82,6 +86,10 @@ public class Simplenote extends Application implements HeartbeatListener {
 
     private Activity mCurrentActivity;
 
+    // The application instance lives for the whole process, so the static reference cannot leak.
+    @SuppressLint("StaticFieldLeak")
+    private static volatile Simplenote sInstance;
+
     private static Bucket<Account> mAccountBucket;
     private static Bucket<Preferences> mPreferencesBucket;
 
@@ -99,6 +107,7 @@ public class Simplenote extends Application implements HeartbeatListener {
 
     public void onCreate() {
         super.onCreate();
+        sInstance = this;
         crashLogging.initialize();
 
         SimplenoteAppLock appLock = new SimplenoteAppLock(this);
@@ -167,16 +176,22 @@ public class Simplenote extends Application implements HeartbeatListener {
     }
 
     public static boolean analyticsIsEnabled() {
-        if (mPreferencesBucket == null) {
+        // Static callers can run before onCreate creates the buckets (or, in unit tests, without an
+        // application at all). Preserve the legacy pre-init default of enabled analytics.
+        Simplenote app = sInstance;
+        if (app == null || mPreferencesBucket == null) {
             return true;
         }
 
-        try {
-            Preferences prefs = mPreferencesBucket.get(PREFERENCES_OBJECT_KEY);
-            return prefs.getAnalyticsEnabled();
-        } catch (BucketObjectMissingException e) {
-            return true;
-        }
+        return EntryPointAccessors.fromApplication(app, PreferencesEntryPoint.class)
+                .preferencesRepository()
+                .analyticsEnabledSnapshot();
+    }
+
+    @EntryPoint
+    @InstallIn(SingletonComponent.class)
+    interface PreferencesEntryPoint {
+        PreferencesRepository preferencesRepository();
     }
 
     private String getAccountInfo() {

@@ -323,13 +323,11 @@ Language: id
     <string name="restore">Pulihkan</string>
     <string name="edit">Sunting</string>
     <string name="tags">Tag</string>
-    <string name="noted">Dicatat</string>
     <string name="font_size_extra_large">Ekstra besar</string>
     <string name="font_size_large">Besar</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_small">Kecil</string>
     <string name="font_size_extra_small">Ekstra kecil</string>
-    <string name="note_added">Penambahan catatan</string>
     <string name="unpublish_error">Tidak dapat batal menerbitkan catatan</string>
     <string name="publish_error">Tidak dapat menerbitkan catatan</string>
     <string name="published">Diterbitkan</string>

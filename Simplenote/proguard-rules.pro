@@ -23,6 +23,9 @@
 # JSR 305 annotations are for embedding nullability information.
 -dontwarn javax.annotation.**
 
+# Error Prone annotations reference compiler-only JDK model types.
+-dontwarn javax.lang.model.element.Modifier
+
 # A resource is loaded with a relative path so the package of this class must be preserved.
 -keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
 

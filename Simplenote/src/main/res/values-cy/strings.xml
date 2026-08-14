@@ -27,13 +27,11 @@ Language: cy_GB
     <string name="restore">Adfer</string>
     <string name="history">Hanes</string>
     <string name="error_history">Methu estyn yr hanes</string>
-    <string name="note_added">Ychwanegwyd nodyn</string>
     <string name="font_size_extra_small">Bach iawn</string>
     <string name="font_size_small">Bach</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_large">Mawr</string>
     <string name="font_size_extra_large">Mawr iawn</string>
-    <string name="noted">Crëwyd nodyn</string>
     <string name="tags">Tagiau</string>
     <string name="edit">Golygu</string>
     <string name="publish">Cyhoeddi</string>

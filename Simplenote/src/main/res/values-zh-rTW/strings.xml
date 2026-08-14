@@ -323,13 +323,11 @@ Language: zh_TW
     <string name="restore">還原</string>
     <string name="edit">編輯</string>
     <string name="tags">標籤</string>
-    <string name="noted">已記下</string>
     <string name="font_size_extra_large">加大</string>
     <string name="font_size_large">大</string>
     <string name="font_size_normal">一般</string>
     <string name="font_size_small">小</string>
     <string name="font_size_extra_small">超小</string>
-    <string name="note_added">已新增筆記</string>
     <string name="unpublish_error">無法取消發表筆記</string>
     <string name="publish_error">無法發表筆記</string>
     <string name="published">已發表</string>

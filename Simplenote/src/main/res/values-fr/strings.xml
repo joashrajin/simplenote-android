@@ -323,13 +323,11 @@ Language: fr
     <string name="restore">Restaurer</string>
     <string name="edit">Modifier</string>
     <string name="tags">Mots-clés</string>
-    <string name="noted">Avec note</string>
     <string name="font_size_extra_large">Très grand</string>
     <string name="font_size_large">Grand</string>
     <string name="font_size_normal">Normal</string>
     <string name="font_size_small">Petit</string>
     <string name="font_size_extra_small">Très petite</string>
-    <string name="note_added">Note ajoutée</string>
     <string name="unpublish_error">Echec de publication</string>
     <string name="publish_error">Echec de publication</string>
     <string name="published">Publié</string>

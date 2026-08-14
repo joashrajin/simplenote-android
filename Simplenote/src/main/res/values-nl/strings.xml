@@ -323,13 +323,11 @@ Language: nl
     <string name="restore">Herstellen</string>
     <string name="edit">Bewerken</string>
     <string name="tags">Tags</string>
-    <string name="noted">Met notitie</string>
     <string name="font_size_extra_large">Extra groot</string>
     <string name="font_size_large">Groot</string>
     <string name="font_size_normal">Normaal</string>
     <string name="font_size_small">Klein</string>
     <string name="font_size_extra_small">Extra klein</string>
-    <string name="note_added">Notitie toegevoegd</string>
     <string name="unpublish_error">Kan notitie niet verwijderen</string>
     <string name="publish_error">Kan notitie niet publiceren</string>
     <string name="published">Gepubliceerd</string>

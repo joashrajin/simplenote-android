@@ -323,13 +323,11 @@ Language: ar
     <string name="restore">استعادة</string>
     <string name="edit">تحرير</string>
     <string name="tags">وسوم</string>
-    <string name="noted">تمت الملاحظة</string>
     <string name="font_size_extra_large">كبير جدًا</string>
     <string name="font_size_large">كبير</string>
     <string name="font_size_normal">عادي</string>
     <string name="font_size_small">صغير</string>
     <string name="font_size_extra_small">صغير جدًا</string>
-    <string name="note_added">تمت إضافة ملاحظة</string>
     <string name="unpublish_error">تعذر إلغاء نشر الملاحظة</string>
     <string name="publish_error">تعذر نشر الملاحظة</string>
     <string name="published">منشور</string>

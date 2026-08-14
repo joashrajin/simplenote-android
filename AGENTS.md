@@ -20,7 +20,6 @@ This file provides guidance to coding agents when working with code in this repo
 
 ```
 :Simplenote       — Main application (com.automattic.simplenote)
-:Wear             — Android Wear companion app
 :PasscodeLock     — Passcode lock library (org.wordpress.passcodelock)
 ```
 
@@ -75,7 +74,6 @@ Based on recent merged PRs:
 
 # Build individual modules
 ./gradlew :Simplenote:assembleDebug
-./gradlew :Wear:assembleDebug
 ./gradlew :PasscodeLock:assembleDebug
 
 # Install on device
@@ -86,7 +84,6 @@ Based on recent merged PRs:
 
 # Lint (individual modules)
 ./gradlew :Simplenote:lintDebug
-./gradlew :Wear:lintDebug
 
 # Unit tests (all modules)
 ./gradlew --stacktrace testDebugUnitTest

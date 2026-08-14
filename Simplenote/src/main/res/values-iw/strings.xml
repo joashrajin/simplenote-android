@@ -31,13 +31,11 @@
     <string name="search">חיפוש פתקים</string>
     <string name="edit">עריכה</string>
     <string name="tags">תגיות</string>
-    <string name="noted">נוסף פתק</string>
     <string name="font_size_extra_large">גדול מאוד</string>
     <string name="font_size_large">גדול</string>
     <string name="font_size_normal">רגיל</string>
     <string name="font_size_small">קטן</string>
     <string name="font_size_extra_small">קטן מאוד</string>
-    <string name="note_added">הפתק נוסף</string>
     <string name="published">פורסם</string>
     <string name="publish">לפרסם</string>
     <string name="version">גרסה</string>

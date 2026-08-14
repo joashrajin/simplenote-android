@@ -323,13 +323,11 @@ Language: ru
     <string name="restore">Восстановить</string>
     <string name="edit">Правка</string>
     <string name="tags">Метки</string>
-    <string name="noted">Записано</string>
     <string name="font_size_extra_large">Очень большой</string>
     <string name="font_size_large">Большой</string>
     <string name="font_size_normal">Средний</string>
     <string name="font_size_small">Маленький</string>
     <string name="font_size_extra_small">Очень маленький</string>
-    <string name="note_added">Добавлена заметка</string>
     <string name="unpublish_error">Не получилось отменить публикацию</string>
     <string name="publish_error">Не получилось опубликовать заметку</string>
     <string name="published">Опубликовано</string>

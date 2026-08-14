@@ -30,4 +30,20 @@ public class NoteUtilsTest {
     public void contentWithoutTitlePreservesWhitespaceAndCrLfHandling() {
         assertEquals("Body", NoteUtils.getContentWithoutTitle("  Title  \r\nBody", "Title"));
     }
+
+    @Test
+    public void contentWithoutTitleMatchesLiterallyForRegexMetacharacterTitles() {
+        String title = "Budget (2026";
+        String content = title + "\nSpent " + title + " already\n" + title;
+
+        assertEquals(
+            "Spent Budget (2026 already\nBudget (2026",
+            NoteUtils.getContentWithoutTitle(content, title)
+        );
+    }
+
+    @Test
+    public void contentWithoutTitleFallsBackToFirstLineStripForAbsentTitle() {
+        assertEquals("Body", NoteUtils.getContentWithoutTitle("Header\nBody", "Missing"));
+    }
 }

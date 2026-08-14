@@ -1,5 +1,12 @@
 2.39
 -----
+* Fixed nested bullet lists so pressing Enter on an empty nested bullet outdents one level instead of deleting the bullet [#5](https://github.com/joashrajin/simplenote-android/pull/5)
+* Fixed a potential note-list widget crash when Android requests a row before widget data finishes loading [#6](https://github.com/joashrajin/simplenote-android/pull/6)
+* Fixed a resource leak when refreshing light and dark note-list widgets [#7](https://github.com/joashrajin/simplenote-android/pull/7)
+* Separated note-list widget background and add-button click routing [#9](https://github.com/joashrajin/simplenote-android/pull/9)
+* Fixed repeated note-title text disappearing from single-note widget bodies [#10](https://github.com/joashrajin/simplenote-android/pull/10)
+* Fixed a crash when a queued note-list refresh ran after leaving the screen [#11](https://github.com/joashrajin/simplenote-android/pull/11)
+* Updated Android backup rules to exclude the Simperium session preferences file [#13](https://github.com/joashrajin/simplenote-android/pull/13)
 
 2.38
 -----

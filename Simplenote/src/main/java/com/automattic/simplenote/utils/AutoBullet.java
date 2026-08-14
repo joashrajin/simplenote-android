@@ -48,8 +48,11 @@ public class AutoBullet {
             if (metadata.isBullet) {
                 if (!metadata.isEmptyBullet) {
                     editable.insert(newCursorPosition, buildBullet(metadata));
-                } else {
+                } else if (metadata.leadingWhitespace.isEmpty()) {
                     editable.replace(prevParagraphStart, newCursorPosition, "");
+                } else {
+                    metadata.leadingWhitespace = metadata.leadingWhitespace.substring(1);
+                    editable.replace(prevParagraphStart, newCursorPosition, buildBullet(metadata));
                 }
             }
         }

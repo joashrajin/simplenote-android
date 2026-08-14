@@ -14,11 +14,12 @@ import com.simperium.client.BucketObjectMissingException
 import com.simperium.client.Query
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
-import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
@@ -144,6 +145,9 @@ class SimperiumNotesRepository @Inject constructor(
     override suspend fun setTrashed(keys: List<String>, trashed: Boolean) = withContext(ioDispatcher) {
         for (key in keys) {
             val note = getOrSkip(key) ?: continue
+            if (note.isDeleted == trashed) {
+                continue
+            }
             note.isDeleted = trashed
             note.modificationDate = Calendar.getInstance()
             note.save()
@@ -204,8 +208,8 @@ class SimperiumNotesRepository @Inject constructor(
     }
 
     override fun noteChanges(): Flow<NoteChange> = callbackFlow {
-        val networkListener = Bucket.OnNetworkChangeListener<Note> { _, _, _ ->
-            trySend(NoteChange.NetworkChanged)
+        val networkListener = Bucket.OnNetworkChangeListener<Note> { _, type, key ->
+            trySend(NoteChange.NetworkChanged(type, key))
         }
         val saveListener = Bucket.OnSaveObjectListener<Note> { _, note ->
             trySend(NoteChange.Saved(note.simperiumKey))
@@ -221,7 +225,9 @@ class SimperiumNotesRepository @Inject constructor(
             notesBucket.removeOnSaveObjectListener(saveListener)
             notesBucket.removeOnDeleteObjectListener(deleteListener)
         }
-    }.conflate().flowOn(ioDispatcher)
+        // Keyed events must not be dropped under backpressure: legacy consumers act per
+        // callback, so the stream buffers losslessly instead of conflating.
+    }.buffer(Channel.UNLIMITED).flowOn(ioDispatcher)
 
     private fun getOrSkip(key: String): Note? = try {
         notesBucket.get(key)

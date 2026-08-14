@@ -317,7 +317,11 @@ class SimperiumNotesRepositoryWritesTest {
         runCurrent()
 
         assertEquals(
-            listOf(NoteChange.Saved("saved"), NoteChange.Deleted("deleted"), NoteChange.NetworkChanged),
+            listOf(
+                NoteChange.Saved("saved"),
+                NoteChange.Deleted("deleted"),
+                NoteChange.NetworkChanged(Bucket.ChangeType.INDEX, "changed"),
+            ),
             events
         )
         job.cancel()

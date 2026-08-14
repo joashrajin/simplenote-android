@@ -14,9 +14,18 @@ import com.simperium.client.BucketObjectMissingException
 import com.simperium.client.Query
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.util.Calendar
 import javax.inject.Inject
+import kotlin.coroutines.resume
 
 class SimperiumNotesRepository @Inject constructor(
     private val notesBucket: Bucket<Note>,
@@ -113,6 +122,111 @@ class SimperiumNotesRepository @Inject constructor(
             }
             notes
         }
+    }
+
+    override suspend fun createNote(content: String, key: String?): Note = withContext(ioDispatcher) {
+        val note = if (key == null) notesBucket.newObject() else notesBucket.newObject(key)
+        note.creationDate = Calendar.getInstance()
+        note.modificationDate = note.creationDate
+        note.setContent(content)
+        if (key != null) {
+            // The welcome-note path primes the lazy title before the first save.
+            note.title
+        }
+        note.save()
+        note
+    }
+
+    override suspend fun saveNote(note: Note) = withContext(ioDispatcher) {
+        note.save()
+    }
+
+    override suspend fun setTrashed(keys: List<String>, trashed: Boolean) = withContext(ioDispatcher) {
+        for (key in keys) {
+            val note = getOrSkip(key) ?: continue
+            note.isDeleted = trashed
+            note.modificationDate = Calendar.getInstance()
+            note.save()
+        }
+    }
+
+    override suspend fun emptyTrash() = withContext(ioDispatcher) {
+        Note.allDeleted(notesBucket).execute().use { cursor ->
+            while (cursor.moveToNext()) {
+                cursor.getObject().delete()
+            }
+        }
+    }
+
+    override suspend fun setPinned(keys: List<String>, pinned: Boolean) = withContext(ioDispatcher) {
+        for (key in keys) {
+            val note = getOrSkip(key) ?: continue
+            if (note.isPinned == pinned) {
+                continue
+            }
+            note.isPinned = pinned
+            note.modificationDate = Calendar.getInstance()
+            note.save()
+        }
+    }
+
+    override suspend fun setPreviewEnabled(key: String, enabled: Boolean) = withContext(ioDispatcher) {
+        val note = getOrSkip(key) ?: return@withContext
+        note.isPreviewEnabled = enabled
+        note.save()
+    }
+
+    override suspend fun setPublished(key: String, published: Boolean) = withContext(ioDispatcher) {
+        val note = getOrSkip(key) ?: return@withContext
+        note.isPublished = published
+        note.save()
+    }
+
+    override suspend fun getRevisions(key: String, max: Int): RevisionsResult = withContext(ioDispatcher) {
+        val note = getOrSkip(key) ?: return@withContext RevisionsResult.Failure
+        suspendCancellableCoroutine<RevisionsResult> { continuation ->
+            notesBucket.getRevisions(note, max, object : Bucket.RevisionsRequestCallbacks<Note> {
+                override fun onComplete(revisionsMap: MutableMap<Int, Note>) {
+                    if (continuation.isActive) {
+                        continuation.resume(RevisionsResult.Success(revisionsMap.values.toList()))
+                    }
+                }
+
+                override fun onRevision(key: String, version: Int, payload: JSONObject) = Unit
+
+                override fun onError(exception: Throwable) {
+                    if (continuation.isActive) {
+                        continuation.resume(RevisionsResult.Failure)
+                    }
+                }
+            })
+        }
+    }
+
+    override fun noteChanges(): Flow<NoteChange> = callbackFlow {
+        val networkListener = Bucket.OnNetworkChangeListener<Note> { _, _, _ ->
+            trySend(NoteChange.NetworkChanged)
+        }
+        val saveListener = Bucket.OnSaveObjectListener<Note> { _, note ->
+            trySend(NoteChange.Saved(note.simperiumKey))
+        }
+        val deleteListener = Bucket.OnDeleteObjectListener<Note> { _, note ->
+            trySend(NoteChange.Deleted(note.simperiumKey))
+        }
+        notesBucket.addOnNetworkChangeListener(networkListener)
+        notesBucket.addOnSaveObjectListener(saveListener)
+        notesBucket.addOnDeleteObjectListener(deleteListener)
+        awaitClose {
+            notesBucket.removeOnNetworkChangeListener(networkListener)
+            notesBucket.removeOnSaveObjectListener(saveListener)
+            notesBucket.removeOnDeleteObjectListener(deleteListener)
+        }
+    }.conflate().flowOn(ioDispatcher)
+
+    private fun getOrSkip(key: String): Note? = try {
+        notesBucket.get(key)
+    } catch (exception: BucketObjectMissingException) {
+        null
     }
 
     private fun applySortOrder(query: Query<Note>, sort: SortOrder) {

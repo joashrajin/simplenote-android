@@ -153,6 +153,8 @@ public class NoteListWidgetLight extends AppWidgetProvider {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
                     pendingIntentItem = PendingIntent.getActivity(context, appWidgetId, intentItem, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_MUTABLE);
                 } else {
+                    // Pre-S PendingIntents are mutable by default, which this template requires so each
+                    // row's fillInIntent can merge; FLAG_MUTABLE cannot be passed below API 31.
                     pendingIntentItem = PendingIntent.getActivity(context, appWidgetId, intentItem, PendingIntent.FLAG_UPDATE_CURRENT);
                 }
                 views.setPendingIntentTemplate(R.id.widget_list, pendingIntentItem);

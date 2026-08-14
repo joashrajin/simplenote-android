@@ -6,7 +6,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 
 import com.automattic.simplenote.NoteListWidgetDark;
 import com.automattic.simplenote.NoteListWidgetLight;
@@ -22,8 +24,12 @@ public class WidgetUtils {
     private static final String ACTION_NOTE_LIST_WIDGET_LAYOUT = ".action.NOTE_LIST_WIDGET_LAYOUT";
     private static final String ACTION_NOTE_LIST_WIDGET_BUTTON = ".action.NOTE_LIST_WIDGET_BUTTON";
 
-    public static PendingIntent getNoteListWidgetLayoutPendingIntent(Context context, int appWidgetId, Stat click) {
-        return getNoteListWidgetPendingIntent(context, appWidgetId, ACTION_NOTE_LIST_WIDGET_LAYOUT, click);
+    public static PendingIntent getNoteListWidgetLayoutPendingIntent(
+        Context context,
+        int appWidgetId,
+        @NonNull Stat click
+    ) {
+        return getNoteListWidgetPendingIntent(context, appWidgetId, buildNoteListWidgetLayoutIntent(context, click));
     }
 
     public static PendingIntent getNoteListWidgetButtonPendingIntent(
@@ -31,21 +37,30 @@ public class WidgetUtils {
         int appWidgetId,
         @Nullable Stat click
     ) {
-        return getNoteListWidgetPendingIntent(context, appWidgetId, ACTION_NOTE_LIST_WIDGET_BUTTON, click);
+        return getNoteListWidgetPendingIntent(context, appWidgetId, buildNoteListWidgetButtonIntent(context, click));
     }
 
-    private static PendingIntent getNoteListWidgetPendingIntent(
-        Context context,
-        int appWidgetId,
-        String action,
-        @Nullable Stat click
-    ) {
+    @VisibleForTesting
+    static Intent buildNoteListWidgetLayoutIntent(Context context, @NonNull Stat click) {
+        return buildNoteListWidgetIntent(context, ACTION_NOTE_LIST_WIDGET_LAYOUT, click);
+    }
+
+    @VisibleForTesting
+    static Intent buildNoteListWidgetButtonIntent(Context context, @Nullable Stat click) {
+        return buildNoteListWidgetIntent(context, ACTION_NOTE_LIST_WIDGET_BUTTON, click);
+    }
+
+    private static Intent buildNoteListWidgetIntent(Context context, String action, @Nullable Stat click) {
         Intent intent = IntentUtils.maybeAliasedIntent(context);
         intent.setAction(context.getPackageName() + action);
         if (click != null) {
             intent.putExtra(KEY_LIST_WIDGET_CLICK, click);
         }
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        return intent;
+    }
+
+    private static PendingIntent getNoteListWidgetPendingIntent(Context context, int appWidgetId, Intent intent) {
         return PendingIntent.getActivity(
             context,
             appWidgetId,

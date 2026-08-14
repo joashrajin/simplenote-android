@@ -12,6 +12,10 @@ class NoteMarkdownFragmentTest {
         val remoteStylesheet = Regex("""<link\b[^>]*href=["']https?://""", RegexOption.IGNORE_CASE)
 
         assertFalse(
+            "Generated preview HTML must not reference Google Fonts",
+            html.contains("fonts.googleapis.com", ignoreCase = true)
+        )
+        assertFalse(
             "Generated preview HTML must not inject remote stylesheet links",
             remoteStylesheet.containsMatchIn(html)
         )

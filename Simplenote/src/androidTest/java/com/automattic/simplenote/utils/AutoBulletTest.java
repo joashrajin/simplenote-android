@@ -292,6 +292,32 @@ public class AutoBulletTest {
     }
 
     @Test
+    public void testEmptyTabIndentedBulletKeepsTabType() {
+        String source = "- first\n\t- second\n\t- \n";
+        String target = "- first\n\t- second\n- ";
+        int oldPos = source.length() - 1;
+        int newPos = source.length();
+
+        Editable editable = buildEditable(source);
+        AutoBullet.apply(editable, oldPos, newPos);
+
+        assertThat(editable.toString(), is(target));
+    }
+
+    @Test
+    public void testEmptyMultiSpaceBulletOutdentsOneCharacterPerBreak() {
+        String source = "- first\n  - second\n  - \n";
+        String target = "- first\n  - second\n - ";
+        int oldPos = source.length() - 1;
+        int newPos = source.length();
+
+        Editable editable = buildEditable(source);
+        AutoBullet.apply(editable, oldPos, newPos);
+
+        assertThat(editable.toString(), is(target));
+    }
+
+    @Test
     public void testBulletNoSpace() {
         String source = "-first\n";
         String target = "-first\n";

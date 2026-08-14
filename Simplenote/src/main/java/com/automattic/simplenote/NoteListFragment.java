@@ -613,9 +613,11 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
     }
 
     public ObjectCursor<Note> queryNotes() {
-        if (!isAdded()) return null;
+        NotesActivity notesActivity = (NotesActivity) getActivity();
+        if (!isAdded() || notesActivity == null) {
+            return null;
+        }
 
-        NotesActivity notesActivity = (NotesActivity) requireActivity();
         Query<Note> query = notesActivity.getSelectedTag().query();
 
         String searchString = mSearchString;
@@ -633,16 +635,17 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         }
 
         query.include(Note.PINNED_INDEX_NAME);
-        PrefUtils.sortNoteQuery(query, requireContext(), true);
+        PrefUtils.sortNoteQuery(query, notesActivity, true);
         return query.execute();
     }
 
     private ObjectCursor<Note> queryNotesForSearch() {
-        if (!isAdded()) {
+        NotesActivity notesActivity = (NotesActivity) getActivity();
+        if (!isAdded() || notesActivity == null) {
             return null;
         }
 
-        Query<Note> query = Note.all(((Simplenote) requireActivity().getApplication()).getNotesBucket());
+        Query<Note> query = Note.all(((Simplenote) notesActivity.getApplication()).getNotesBucket());
         String searchString = mSearchString;
 
         if (hasSearchQuery()) {
@@ -659,7 +662,7 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
             query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
         }
 
-        PrefUtils.sortNoteQuery(query, requireContext(), false);
+        PrefUtils.sortNoteQuery(query, notesActivity, false);
         return query.execute();
     }
 

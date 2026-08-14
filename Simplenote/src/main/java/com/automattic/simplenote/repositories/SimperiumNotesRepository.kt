@@ -3,7 +3,7 @@ package com.automattic.simplenote.repositories
 import android.database.sqlite.SQLiteException
 import android.util.Log
 import com.automattic.simplenote.Simplenote
-import com.automattic.simplenote.di.IO_THREAD
+import com.automattic.simplenote.di.IoDispatcher
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SearchQueryBuilder
@@ -15,12 +15,11 @@ import com.simperium.client.Query
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import javax.inject.Named
 
 class SimperiumNotesRepository @Inject constructor(
     private val notesBucket: Bucket<Note>,
     private val searchQueryBuilder: SearchQueryBuilder,
-    @Named(IO_THREAD) private val ioDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : NotesRepository {
 
     override suspend fun search(request: NoteSearchRequest): NoteQueryResult = withContext(ioDispatcher) {

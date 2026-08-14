@@ -1,0 +1,3 @@
+# Roborazzi diff artifacts written next to the goldens on verify/compare failures.
+*_compare.png
+*_actual.png

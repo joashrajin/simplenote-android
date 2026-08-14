@@ -2,7 +2,7 @@ package com.automattic.simplenote.repositories
 
 import android.util.Log
 import com.automattic.simplenote.Simplenote
-import com.automattic.simplenote.di.IO_THREAD
+import com.automattic.simplenote.di.IoDispatcher
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.models.TagItem
@@ -12,20 +12,17 @@ import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectNameInvalid
 import com.simperium.client.Query
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import javax.inject.Named
 
-@ExperimentalCoroutinesApi
 class SimperiumTagsRepository @Inject constructor(
     private val tagsBucket: Bucket<Tag>,
     private val notesBucket: Bucket<Note>,
-    @Named(IO_THREAD) private val ioDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : TagsRepository {
     override fun saveTag(tagName: String): Boolean {
         return try {

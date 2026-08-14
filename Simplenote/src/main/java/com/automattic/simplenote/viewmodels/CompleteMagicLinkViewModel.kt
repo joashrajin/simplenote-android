@@ -8,7 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.automattic.simplenote.R
 import com.automattic.simplenote.authentication.magiclink.MagicLinkAuthError
-import com.automattic.simplenote.di.IO_THREAD
+import com.automattic.simplenote.di.IoDispatcher
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.MagicLinkResponseResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,12 +16,11 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
-import javax.inject.Named
 
 @HiltViewModel
 class CompleteMagicLinkViewModel @Inject constructor(
     private val magicLinkRepository: MagicLinkRepository,
-    @Named(IO_THREAD) private val ioDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
     ) : ViewModel() {
     private val _magicLinkUiState = MutableLiveData<MagicLinkUiState>(MagicLinkUiState.Waiting)
     val magicLinkUiState: LiveData<MagicLinkUiState> get() = _magicLinkUiState

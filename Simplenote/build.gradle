@@ -150,7 +150,6 @@ dependencies {
 
     // Dagger Hilt dependencies
     implementation "com.google.dagger:hilt-android:$google_dagger"
-    annotationProcessor "com.google.dagger:hilt-compiler:$google_dagger"
     kapt "com.google.dagger:hilt-compiler:$google_dagger"
 
     implementation project(':PasscodeLock')

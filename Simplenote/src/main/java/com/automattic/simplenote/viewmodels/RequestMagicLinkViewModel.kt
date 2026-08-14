@@ -7,7 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.automattic.simplenote.R
-import com.automattic.simplenote.di.IO_THREAD
+import com.automattic.simplenote.di.IoDispatcher
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.MagicLinkResponseResult
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,14 +15,13 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
-import javax.inject.Named
 
 const val TAG = "RequestMagicLinkViewModel"
 
 @HiltViewModel
 class RequestMagicLinkViewModel @Inject constructor(
     private val magicLinkRepository: MagicLinkRepository,
-    @Named(IO_THREAD) private val ioDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
     private val _magicLinkRequestUiState = MutableLiveData<MagicLinkRequestUiState>(MagicLinkRequestUiState.Waiting)
     val magicLinkRequestUiState: LiveData<MagicLinkRequestUiState> get() = _magicLinkRequestUiState

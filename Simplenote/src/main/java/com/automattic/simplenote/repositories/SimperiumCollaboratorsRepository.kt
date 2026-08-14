@@ -1,25 +1,22 @@
 package com.automattic.simplenote.repositories
 
-import com.automattic.simplenote.di.IO_THREAD
+import com.automattic.simplenote.di.IoDispatcher
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.utils.Either
 import com.automattic.simplenote.utils.StrUtils.isEmail
 import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectMissingException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
-import javax.inject.Named
 
-@ExperimentalCoroutinesApi
 class SimperiumCollaboratorsRepository @Inject constructor(
     private val notesBucket: Bucket<Note>,
-    @Named(IO_THREAD) private val ioDispatcher: CoroutineDispatcher,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : CollaboratorsRepository {
 
     /**

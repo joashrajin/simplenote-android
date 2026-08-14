@@ -9,6 +9,7 @@ import com.automattic.android.tracks.crashlogging.PerformanceMonitoringConfig
 import com.automattic.android.tracks.crashlogging.ReleaseName
 import com.automattic.simplenote.BuildConfig
 import com.automattic.simplenote.Simplenote
+import com.automattic.simplenote.repositories.PreferencesRepository
 import com.automattic.simplenote.utils.locale.LocaleProvider
 import com.simperium.client.User
 import kotlinx.coroutines.flow.Flow
@@ -17,10 +18,12 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flow
 import java.util.Locale
 import javax.inject.Inject
+import javax.inject.Provider
 
 class SimplenoteCrashLoggingDataProvider @Inject constructor(
     private val app: Simplenote,
     private val localeProvider: LocaleProvider,
+    private val preferencesRepository: Provider<PreferencesRepository>,
 ) : CrashLoggingDataProvider {
 
     override val buildType = BuildConfig.BUILD_TYPE
@@ -49,7 +52,15 @@ class SimplenoteCrashLoggingDataProvider @Inject constructor(
             return false
         }
 
-        return Simplenote.analyticsIsEnabled()
+        // This provider is built during application field injection, before Simplenote.onCreate
+        // creates the buckets, so the repository (a Provider: the binding is unscoped, and a cached
+        // instance would freeze the snapshot) can only be resolved once the bucket exists. Until
+        // then, preserve the legacy pre-init default of enabled analytics.
+        if (app.preferencesBucket == null) {
+            return true
+        }
+
+        return preferencesRepository.get().analyticsEnabledSnapshot()
     }
 
     override fun extraKnownKeys(): List<ExtraKnownKey> {

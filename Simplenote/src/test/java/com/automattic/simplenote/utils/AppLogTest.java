@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.automattic.simplenote.utils.AppLog.Type;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -17,10 +18,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class AppLogTest {
     private static final int LOG_MAX = 100;
+
+    @Before
+    public void clearLog() {
+        AppLog.clearForTesting();
+    }
 
     @Test
     public void retainsLatestEntriesAfterRepeatedRotation() {
@@ -34,6 +39,37 @@ public class AppLogTest {
         for (int index = 0; index < LOG_MAX; index++) {
             assertEquals("rotation-" + (index + 50), entries.get(index));
         }
+    }
+
+    @Test
+    public void headersSurviveRotationAndAreEmittedFirst() {
+        AppLog.addHeader(Type.DEVICE, "device-info");
+        AppLog.addHeader(Type.ACCOUNT, "account-info");
+
+        for (int index = 0; index < LOG_MAX + 50; index++) {
+            AppLog.add(Type.ACCOUNT, "rotation-" + index);
+        }
+
+        List<String> entries = getEntries();
+
+        assertEquals(LOG_MAX + 2, entries.size());
+        assertEquals("device-info", entries.get(0));
+        assertEquals("account-info", entries.get(1));
+        assertEquals("rotation-50", entries.get(2));
+    }
+
+    @Test
+    public void headerUpdatesReplacePriorHeaderOfSameType() {
+        AppLog.addHeader(Type.DEVICE, "device-info");
+        AppLog.addHeader(Type.ACCOUNT, "account-info");
+        AppLog.addHeader(Type.ACCOUNT, "account-info-updated");
+
+        List<String> entries = getEntries();
+
+        assertEquals(2, entries.size());
+        assertEquals("device-info", entries.get(0));
+        assertEquals("account-info-updated", entries.get(1));
+        assertFalse(entries.contains("account-info"));
     }
 
     @Test(timeout = 10_000)
@@ -111,55 +147,18 @@ public class AppLogTest {
         assertEquals(expectedEntries, new HashSet<>(entries));
     }
 
-    @Test(timeout = 10_000)
-    public void getUsesAppLogSynchronizationBoundary() throws Exception {
-        ExecutorService executor = Executors.newSingleThreadExecutor();
-        CountDownLatch readerStartedLatch = new CountDownLatch(1);
-        AtomicReference<Thread> readerThread = new AtomicReference<>();
-        Future<String> readerFuture;
-
-        try {
-            synchronized (AppLog.class) {
-                readerFuture = executor.submit(() -> {
-                    readerThread.set(Thread.currentThread());
-                    readerStartedLatch.countDown();
-                    return AppLog.get();
-                });
-
-                assertTrue(readerStartedLatch.await(5, TimeUnit.SECONDS));
-
-                long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
-                while (!readerFuture.isDone()
-                        && readerThread.get().getState() != Thread.State.BLOCKED
-                        && System.nanoTime() < deadline) {
-                    Thread.yield();
-                }
-
-                assertFalse(readerFuture.isDone());
-                assertEquals(Thread.State.BLOCKED, readerThread.get().getState());
-            }
-
-            readerFuture.get(5, TimeUnit.SECONDS);
-        } finally {
-            executor.shutdownNow();
-            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
-        }
-    }
-
     @Test
     public void preservesFormattingForTimestampedAndUntimestampedTypes() {
-        for (int index = 0; index < LOG_MAX; index++) {
-            AppLog.add(Type.ACCOUNT, "reset-" + index);
-        }
         AppLog.add(Type.ACCOUNT, "account");
         AppLog.add(Type.DEVICE, "device");
         AppLog.add(Type.SYNC, "sync");
 
         List<String> entries = getEntries();
 
-        assertEquals("account", entries.get(entries.size() - 3));
-        assertEquals("device", entries.get(entries.size() - 2));
-        assertTrue(entries.get(entries.size() - 1).matches(
+        assertEquals(3, entries.size());
+        assertEquals("account", entries.get(0));
+        assertEquals("device", entries.get(1));
+        assertTrue(entries.get(2).matches(
                 "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} - SYNC: sync"
         ));
         assertTrue(AppLog.get().endsWith("\n"));

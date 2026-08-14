@@ -23,16 +23,15 @@
         <item name="colorAccent">@color/item_default_dark</item>
         <item name="colorPrimary">@color/blue</item>
         <item name="colorPrimaryDark">@color/background_dark</item>
-        <item name="dividerColor">@color/divider_dark</item>
         <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
         <item name="drawerBackgroundColor">@color/background_dark_16</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_dark</item>
+        <item name="editorHintTextColor">@color/text_title_disabled</item>
         <item name="editorSearchHighlightBackgroundColor">@color/simplenote_blue_60</item>
         <item name="editorSearchHighlightForegroundColor">@color/simplenote_blue_5</item>
         <item name="emptyImageColor">@color/empty_dark</item>
         <item name="fabColor">@color/item_default_dark</item>
         <item name="fabIconColor">@color/gray_100</item>
-        <item name="hintTextColor">@color/text_title_disabled</item>
         <item name="iconTintColor">@color/item_default_dark</item>
         <item name="isLightTheme">false</item>
         <item name="keyBackgroundColor">@color/gray_40</item>
@@ -42,14 +41,11 @@
         <item name="listSearchHighlightForegroundColor">@color/simplenote_blue_5</item>
         <item name="mainBackgroundColor">@color/background_dark</item>
         <item name="noteEditorTextColor">@android:color/white</item>
-        <item name="notePinColor">@android:color/white</item>
         <item name="notePreviewColor">@color/text_content_dark</item>
         <item name="noteTitleColor">@android:color/white</item>
-        <item name="tagChipShadowColor">@color/background_dark</item>
-        <item name="pinIconSelector">@drawable/bg_pin_selector_dark</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
-        <item name="settingsTextColor">@android:color/white</item>
         <item name="sheetBackgroundColor">@color/background_dark_8</item>
+        <item name="simplenoteDividerColor">@color/divider_dark</item>
         <item name="toolbarColor">@color/background_dark_4</item>
         <item name="toolbarIconColor">@color/gray_20</item>
         <item name="toolbarPopupTheme">@style/ToolbarTheme.Popup</item>
@@ -213,7 +209,6 @@
         <item name="mainBackgroundColor">@android:color/black</item>
         <item name="noteEditorTextColor">@color/gray_0</item>
         <item name="sheetBackgroundColor">@color/background_dark_black_8</item>
-        <item name="tagChipShadowColor">@android:color/black</item>
         <item name="toolbarColor">@color/background_dark_0</item>
     </style>
 

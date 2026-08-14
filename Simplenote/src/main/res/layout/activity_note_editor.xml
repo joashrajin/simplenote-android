@@ -139,7 +139,7 @@
             </ImageButton>
 
             <View
-                android:background="?attr/dividerColor"
+                android:background="?attr/simplenoteDividerColor"
                 android:layout_height="@dimen/divider_height"
                 android:layout_width="match_parent">
             </View>

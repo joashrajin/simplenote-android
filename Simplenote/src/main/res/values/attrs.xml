@@ -3,16 +3,14 @@
 <resources>
 
     <attr name="drawerBackgroundSelector" format="reference"/>
-    <attr name="notePinColor" format="reference|color"/>
     <attr name="noteTitleColor" format="reference|color"/>
     <attr name="notePreviewColor" format="reference|color"/>
     <attr name="noteEditorTextColor" format="reference|color"/>
     <attr name="mainBackgroundColor" format="reference|color"/>
     <attr name="sheetBackgroundColor" format="reference|color"/>
-    <attr name="dividerColor" format="reference|color"/>
+    <attr name="simplenoteDividerColor" format="reference|color"/>
     <attr name="iconTintColor" format="reference|color"/>
-    <attr name="hintTextColor" format="reference|color"/>
-    <attr name="tagChipShadowColor" format="reference|color"/>
+    <attr name="editorHintTextColor" format="reference|color"/>
     <attr name="listDividerDrawable" format="reference"/>
     <attr name="listBackgroundSelector" format="reference"/>
     <attr name="listSearchHighlightForegroundColor" format="reference|color"/>
@@ -24,7 +22,6 @@
     <attr name="chipCheckedOnBackgroundColor" format="reference"/>
     <attr name="chipTextColor" format="reference"/>
     <attr name="keyBackgroundColor" format="reference"/>
-    <attr name="pinIconSelector" format="reference"/>
 
     <attr name="toolbarColor" format="reference|color"/>
     <attr name="toolbarIconColor" format="reference|color"/>
@@ -33,8 +30,6 @@
     <attr name="actionBarTextColor" format="reference|color"/>
     <attr name="actionModeTextColor" format="reference|color"/>
     <attr name="actionModeBackgroundColor" format="reference|color"/>
-
-    <attr name="settingsTextColor" format="reference|color"/>
 
     <attr name="fabColor" format="reference"/>
     <attr name="fabIconColor" format="reference"/>

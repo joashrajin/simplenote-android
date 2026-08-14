@@ -23,6 +23,7 @@ import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.utils.ChecklistUtils;
 import com.automattic.simplenote.utils.IntentUtils;
+import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
@@ -148,9 +149,7 @@ public class NoteWidgetDark extends AppWidgetProvider {
 
                     // Remove title from content
                     String title = updatedNote.getTitle();
-                    String contentWithoutTitle = updatedNote.getContent().replace(title, "");
-                    int indexOfNewline = contentWithoutTitle.indexOf("\n") + 1;
-                    String content = contentWithoutTitle.substring(indexOfNewline < contentWithoutTitle.length() ? indexOfNewline : 0);
+                    String content = NoteUtils.getContentWithoutTitle(updatedNote.getContent(), title);
 
                     // Set widget content
                     views.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);

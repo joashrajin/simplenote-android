@@ -32,6 +32,7 @@ import androidx.preference.PreferenceManager;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.utils.ChecklistUtils;
+import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.ThemeUtils;
 import com.simperium.Simperium;
@@ -207,9 +208,7 @@ public class NoteWidgetDarkConfigureActivity extends AppCompatActivity {
 
                     // Remove title from content
                     String title = note.getTitle();
-                    String contentWithoutTitle = note.getContent().replace(title, "");
-                    int indexOfNewline = contentWithoutTitle.indexOf("\n") + 1;
-                    String content = contentWithoutTitle.substring(indexOfNewline < contentWithoutTitle.length() ? indexOfNewline : 0);
+                    String content = NoteUtils.getContentWithoutTitle(note.getContent(), title);
 
                     // Set widget content
                     mRemoteViews.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);

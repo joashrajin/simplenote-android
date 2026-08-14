@@ -61,6 +61,15 @@ public class NoteUtils {
         return NumberFormat.getInstance().format(words);
     }
 
+    public static String getContentWithoutTitle(String content, String title) {
+        int titleIndex = content.indexOf(title);
+        String contentWithoutTitle = titleIndex >= 0
+            ? content.substring(0, titleIndex) + content.substring(titleIndex + title.length())
+            : content;
+        int indexOfNewline = contentWithoutTitle.indexOf("\n") + 1;
+        return contentWithoutTitle.substring(indexOfNewline < contentWithoutTitle.length() ? indexOfNewline : 0);
+    }
+
     public static void showDialogDeletePermanently(final Activity activity, final Note note) {
         new AlertDialog.Builder(new ContextThemeWrapper(activity, R.style.Dialog))
             .setTitle(R.string.delete_dialog_title)

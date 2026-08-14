@@ -2,11 +2,16 @@
 
 <resources>
 
-    <style name="Base.Theme.Simplestyle" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Base.Theme.Simplestyle" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:alertDialogTheme">@style/Dialog</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:colorBackground">@color/sn_surface</item>
         <item name="android:navigationBarColor">@color/background_dark</item>
         <item name="android:spinnerDropDownItemStyle">@style/SpinnerDropDownItem.Simplestyle</item>
         <item name="android:spinnerItemStyle">@style/SpinnerItem.Simplestyle</item>
+        <item name="android:textColorHint">@color/abc_hint_foreground_material_dark</item>
+        <item name="android:textColorPrimary">@color/abc_primary_text_material_dark</item>
+        <item name="android:textColorSecondary">@color/abc_secondary_text_material_dark</item>
         <item name="android:windowBackground">@color/background_dark</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="actionBarTextColor">@color/text_title_dark</item>
@@ -20,9 +25,20 @@
         <item name="chipCheckedOnBackgroundColor">@color/background_dark_24</item>
         <item name="chipCheckedOffBackgroundColor">@color/background_dark_8</item>
         <item name="chipTextColor">@color/text_chip_dark</item>
-        <item name="colorAccent">@color/item_default_dark</item>
-        <item name="colorPrimary">@color/blue</item>
+        <item name="colorAccent">@color/sn_primary</item>
+        <item name="colorOnPrimary">@color/sn_on_primary</item>
+        <item name="colorOnSurface">@color/sn_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/sn_on_surface_variant</item>
+        <item name="colorOutlineVariant">@color/sn_outline_variant</item>
+        <item name="colorPrimary">@color/sn_primary</item>
         <item name="colorPrimaryDark">@color/background_dark</item>
+        <item name="colorSecondary">@color/sn_primary</item>
+        <item name="colorSecondaryContainer">@color/sn_secondary_container</item>
+        <item name="colorSurface">@color/sn_surface</item>
+        <item name="colorSurfaceContainer">@color/sn_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/sn_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/sn_surface_container_highest</item>
+        <item name="colorSurfaceContainerLow">@color/sn_surface_container_low</item>
         <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
         <item name="drawerBackgroundColor">@color/background_dark_16</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_dark</item>
@@ -50,6 +66,40 @@
         <item name="toolbarIconColor">@color/gray_20</item>
         <item name="toolbarPopupTheme">@style/ToolbarTheme.Popup</item>
         <item name="windowActionModeOverlay">true</item>
+
+        <!-- Material 2 pins: keep every component's current appearance under the Material 3
+             parent. Each pin is retired by the Phase 3 PR that deliberately restyles it. -->
+        <item name="appBarLayoutStyle">@style/Widget.Simplenote.AppBarLayout</item>
+        <item name="borderlessButtonStyle">@style/Widget.MaterialComponents.Button.TextButton</item>
+        <item name="chipGroupStyle">@style/Widget.MaterialComponents.ChipGroup</item>
+        <item name="chipStandaloneStyle">@style/Widget.MaterialComponents.Chip.Entry</item>
+        <item name="chipStyle">@style/Widget.MaterialComponents.Chip.Action</item>
+        <item name="floatingActionButtonStyle">@style/Widget.MaterialComponents.FloatingActionButton</item>
+        <item name="listPopupWindowStyle">@style/Widget.MaterialComponents.PopupMenu.ListPopupWindow</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.MaterialComponents.Button.OutlinedButton</item>
+        <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button</item>
+        <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
+        <item name="navigationViewStyle">@style/Widget.MaterialComponents.NavigationView</item>
+        <item name="popupMenuStyle">@style/Widget.MaterialComponents.PopupMenu</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.MaterialComponents.LargeComponent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.MaterialComponents.MediumComponent</item>
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.MaterialComponents.SmallComponent</item>
+        <item name="tabStyle">@style/Widget.MaterialComponents.TabLayout</item>
+        <item name="textAppearanceBody1">@style/TextAppearance.MaterialComponents.Body1</item>
+        <item name="textAppearanceBody2">@style/TextAppearance.MaterialComponents.Body2</item>
+        <item name="textAppearanceButton">@style/TextAppearance.MaterialComponents.Button</item>
+        <item name="textAppearanceCaption">@style/TextAppearance.MaterialComponents.Caption</item>
+        <item name="textAppearanceHeadline1">@style/TextAppearance.MaterialComponents.Headline1</item>
+        <item name="textAppearanceHeadline2">@style/TextAppearance.MaterialComponents.Headline2</item>
+        <item name="textAppearanceHeadline3">@style/TextAppearance.MaterialComponents.Headline3</item>
+        <item name="textAppearanceHeadline4">@style/TextAppearance.MaterialComponents.Headline4</item>
+        <item name="textAppearanceHeadline5">@style/TextAppearance.MaterialComponents.Headline5</item>
+        <item name="textAppearanceHeadline6">@style/TextAppearance.MaterialComponents.Headline6</item>
+        <item name="textAppearanceOverline">@style/TextAppearance.MaterialComponents.Overline</item>
+        <item name="textAppearanceSubtitle1">@style/TextAppearance.MaterialComponents.Subtitle1</item>
+        <item name="textAppearanceSubtitle2">@style/TextAppearance.MaterialComponents.Subtitle2</item>
+        <item name="textInputStyle">@style/Widget.MaterialComponents.TextInputLayout.FilledBox</item>
+        <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar</item>
     </style>
 
     <style name="CloseButtonStyle" parent="Widget.AppCompat.ActionButton.CloseMode">
@@ -193,7 +243,7 @@
         <item name="chipCheckedOnBackgroundColor">@color/background_dark_24</item>
         <item name="chipCheckedOffBackgroundColor">@color/background_dark_8</item>
         <item name="colorAccent">@color/item_black_dark</item>
-        <item name="colorPrimary">@android:color/black</item>
+        <item name="colorPrimary">@color/item_black_dark</item>
         <item name="colorPrimaryDark">@android:color/black</item>
         <item name="drawerBackgroundColor">@color/background_dark_0</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_dark</item>
@@ -216,7 +266,7 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_classic_dark</item>
         <item name="colorAccent">@color/item_classic_dark</item>
-        <item name="colorPrimary">@color/blue_50</item>
+        <item name="colorPrimary">@color/item_classic_dark</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_accent</item>
         <item name="editorSearchHighlightBackgroundColor">@color/blue_60</item>
         <item name="editorSearchHighlightForegroundColor">@color/blue_5</item>
@@ -237,7 +287,7 @@
         <item name="actionModeTextColor">@color/item_matrix_dark</item>
         <item name="alertDialogTheme">@style/Dialog.Black</item>
         <item name="colorAccent">@color/item_matrix_dark</item>
-        <item name="colorPrimary">@color/green</item>
+        <item name="colorPrimary">@color/item_matrix_dark</item>
         <item name="colorPrimaryDark">@color/background_dark_matrix</item>
         <item name="drawerBackgroundColor">@color/background_dark_0</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_dark</item>
@@ -260,7 +310,7 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_mono_dark</item>
         <item name="colorAccent">@color/item_mono_dark</item>
-        <item name="colorPrimary">@color/gray</item>
+        <item name="colorPrimary">@color/item_mono_dark</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_dark</item>
         <item name="editorSearchHighlightBackgroundColor">@color/gray_60</item>
         <item name="editorSearchHighlightForegroundColor">@color/gray_5</item>
@@ -277,7 +327,7 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_publication_dark</item>
         <item name="colorAccent">@color/item_publication_dark</item>
-        <item name="colorPrimary">@color/red</item>
+        <item name="colorPrimary">@color/item_publication_dark</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_dark</item>
         <item name="editorSearchHighlightBackgroundColor">@color/red_60</item>
         <item name="editorSearchHighlightForegroundColor">@color/red_5</item>
@@ -301,7 +351,7 @@
         <item name="chipCheckedOnBackgroundColor">@color/background_dark_sepia_24</item>
         <item name="chipCheckedOffBackgroundColor">@color/background_dark_sepia_8</item>
         <item name="colorAccent">@color/item_sepia_dark</item>
-        <item name="colorPrimary">@color/orange</item>
+        <item name="colorPrimary">@color/item_sepia_dark</item>
         <item name="colorPrimaryDark">@color/background_dark_sepia_1</item>
         <item name="drawerBackgroundColor">@color/background_dark_sepia_1</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_accent</item>

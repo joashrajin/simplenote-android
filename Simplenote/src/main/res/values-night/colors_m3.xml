@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Night forks of the sn_* semantic tokens. The dark surface ladder maps 1:1 onto the M3
+     container ladder: surface = background_dark, containerLow = dark_4, container = dark_8,
+     containerHigh = dark_16, containerHighest = dark_24. -->
+<resources>
+
+    <color name="sn_primary">@color/item_default_dark</color>
+    <color name="sn_on_primary">@color/gray_100</color>
+    <color name="sn_secondary_container">@color/background_dark_24</color>
+    <color name="sn_surface">@color/background_dark</color>
+    <color name="sn_surface_container">@color/background_dark_8</color>
+    <color name="sn_surface_container_low">@color/background_dark_4</color>
+    <color name="sn_surface_container_high">@color/background_dark_16</color>
+    <color name="sn_surface_container_highest">@color/background_dark_24</color>
+    <color name="sn_on_surface">@android:color/white</color>
+    <color name="sn_on_surface_variant">@color/text_content_dark</color>
+    <color name="sn_outline_variant">@color/divider_dark</color>
+
+</resources>

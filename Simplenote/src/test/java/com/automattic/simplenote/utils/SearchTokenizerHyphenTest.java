@@ -35,4 +35,14 @@ public class SearchTokenizerHyphenTest {
     public void testQuotedMultipleHyphensRemainUnchanged() {
         assertEquals("\"state-of-the-art\"", new SearchTokenizer("\"state-of-the-art\"").toString());
     }
+
+    @Test
+    public void testConsecutiveHyphensUseSinglePhrase() {
+        assertEquals("\"a--b*\"", new SearchTokenizer("a--b").toString());
+    }
+
+    @Test
+    public void testTrailingHyphenRetainsPhraseQuery() {
+        assertEquals("\"a-*\"", new SearchTokenizer("a-").toString());
+    }
 }

@@ -39,10 +39,11 @@ public class AuthUtils {
         // Resets analytics user back to 'anon' type
         AnalyticsTracker.refreshMetadata(null);
 
-        // Remove wp.com token
-        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(application).edit();
-        editor.remove(PrefUtils.PREF_WP_TOKEN);
+        if (!WordPressTokenStore.from(application).clearTokenWithRetry()) {
+            AppLog.add(Type.AUTH, "Unable to clear WordPress token during logout");
+        }
 
+        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(application).edit();
         // Remove WordPress sites
         editor.remove(PrefUtils.PREF_WORDPRESS_SITES);
         editor.apply();

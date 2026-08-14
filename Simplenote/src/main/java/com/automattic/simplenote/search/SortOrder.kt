@@ -19,6 +19,9 @@ enum class SortOrder(val dateField: String?) {
             PrefUtils.DATE_CREATED_ASCENDING -> CREATED_ASC
             PrefUtils.ALPHABETICAL_ASCENDING -> CONTENT_ASC
             PrefUtils.ALPHABETICAL_DESCENDING -> CONTENT_DESC
+            // Deviation from the legacy switch, which has no default: a corrupted stored
+            // preference produced no date sorter and a null date field. Unset prefs read 0,
+            // so this fallback only differs for pathological values.
             else -> MODIFIED_DESC
         }
     }

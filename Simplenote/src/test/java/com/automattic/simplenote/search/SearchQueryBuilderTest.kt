@@ -226,7 +226,7 @@ class SearchQueryBuilderTest {
     fun tagPrefixIsCaseSensitive() {
         val query = build(rawSearch = "TAG:work", pinnedFirst = false)
 
-        assertEquals(listOf("deleted NOT_EQUAL_TO true", "null MATCH ${SearchTokenizer("TAG:work")}"), conditionsOf(query))
+        assertEquals(listOf("deleted NOT_EQUAL_TO true", fullTextMatch("TAG:work")), conditionsOf(query))
     }
 
     // Sort clauses, as PrefUtils.sortNoteQuery emits them.

@@ -7,10 +7,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 
 import com.automattic.simplenote.R;
-import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Tag;
-import com.simperium.client.Bucket;
-import com.simperium.client.Query;
+import com.automattic.simplenote.search.NoteFilter;
 
 import java.util.List;
 
@@ -25,38 +23,21 @@ public class TagsAdapter extends BaseAdapter {
     private static final int mMinimumItemsPrimary = new int[] {R.string.all_notes, R.string.trash}.length;
     private static final int mMinimumItemsSecondary = new int[] {R.string.untagged_notes}.length;
 
-    private Bucket<Note> mNotesBucket;
     private Context mContext;
     private List<Tag> tags;
     private TagMenuItem mAllNotesItem;
     private TagMenuItem mTrashItem;
     private TagMenuItem mUntaggedNotesItem;
 
-    public TagsAdapter(Context context, Bucket<Note> notesBucket) {
-        this(context, notesBucket, null);
+    public TagsAdapter(Context context) {
+        this(context, null);
     }
 
-    private TagsAdapter(Context context, Bucket<Note> notesBucket, List<Tag> tags) {
+    private TagsAdapter(Context context, List<Tag> tags) {
         mContext = context;
-        mNotesBucket = notesBucket;
-        mAllNotesItem = new TagMenuItem(ALL_NOTES_ID, R.string.all_notes) {
-            @Override
-            public Query<Note> query() {
-                return Note.all(mNotesBucket);
-            }
-        };
-        mTrashItem = new TagMenuItem(TRASH_ID, R.string.trash) {
-            @Override
-            public Query<Note> query() {
-                return Note.allDeleted(mNotesBucket);
-            }
-        };
-        mUntaggedNotesItem = new TagMenuItem(UNTAGGED_NOTES_ID, R.string.untagged_notes) {
-            @Override
-            public Query<Note> query() {
-                return Note.allWithNoTag(mNotesBucket);
-            }
-        };
+        mAllNotesItem = new TagMenuItem(ALL_NOTES_ID, R.string.all_notes, NoteFilter.AllNotes.INSTANCE);
+        mTrashItem = new TagMenuItem(TRASH_ID, R.string.trash, NoteFilter.Trash.INSTANCE);
+        mUntaggedNotesItem = new TagMenuItem(UNTAGGED_NOTES_ID, R.string.untagged_notes, NoteFilter.Untagged.INSTANCE);
 
         submitList(tags);
     }
@@ -137,18 +118,25 @@ public class TagsAdapter extends BaseAdapter {
     public class TagMenuItem {
         public String name;
         public long id;
+        private final NoteFilter filter;
 
         private TagMenuItem(long id, String name) {
+            // Every non-special drawer item maps to the tag query the old query() override built.
+            this(id, name, new NoteFilter.InTag(name));
+        }
+
+        private TagMenuItem(long id, String name, NoteFilter filter) {
             this.id = id;
             this.name = name;
+            this.filter = filter;
         }
 
-        private TagMenuItem(long id, int resourceId) {
-            this(id, mContext.getResources().getString(resourceId));
+        private TagMenuItem(long id, int resourceId, NoteFilter filter) {
+            this(id, mContext.getResources().getString(resourceId), filter);
         }
 
-        public Query<Note> query() {
-            return Note.allInTag(mNotesBucket, this.name);
+        public NoteFilter getFilter() {
+            return filter;
         }
     }
 }

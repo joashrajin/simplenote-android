@@ -505,7 +505,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         mNavigationMenu.add(GROUP_PRIMARY, ALL_NOTES_ID, Menu.NONE, getString(R.string.all_notes)).setIcon(R.drawable.ic_notes_24dp).setCheckable(true);
         mNavigationMenu.add(GROUP_PRIMARY, TRASH_ID, Menu.NONE, getString(R.string.trash)).setIcon(R.drawable.ic_trash_24dp).setCheckable(true);
         mNavigationMenu.add(GROUP_PRIMARY, SETTINGS_ID, Menu.NONE, getString(R.string.settings)).setIcon(R.drawable.ic_settings_24dp).setCheckable(false);
-        mTagsAdapter = new TagsAdapter(this, mNotesBucket);
+        mTagsAdapter = new TagsAdapter(this);
 
         if (mSelectedTag == null) {
             mSelectedTag = mTagsAdapter.getDefaultItem();

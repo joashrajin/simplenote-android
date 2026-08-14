@@ -100,6 +100,37 @@ class NoteListViewModelTest {
     }
 
     @Test
+    fun replacingAnUnconsumedDeliveryClosesItsCursor() {
+        val firstCursor = mock<Bucket.ObjectCursor<Note>>()
+        notesRepository.results.add(NoteQueryResult.Notes(firstCursor, null))
+        viewModel.refreshList(NoteFilter.AllNotes, null, false)
+        advanceUntilIdle()
+
+        val secondCursor = mock<Bucket.ObjectCursor<Note>>()
+        notesRepository.results.add(NoteQueryResult.Notes(secondCursor, null))
+        viewModel.refreshList(NoteFilter.AllNotes, null, false)
+        advanceUntilIdle()
+
+        verify(firstCursor).close()
+        verify(secondCursor, never()).close()
+    }
+
+    @Test
+    fun replacingAConsumedDeliveryLeavesItsCursorToTheAdapter() {
+        val firstCursor = mock<Bucket.ObjectCursor<Note>>()
+        notesRepository.results.add(NoteQueryResult.Notes(firstCursor, null))
+        viewModel.refreshList(NoteFilter.AllNotes, null, false)
+        advanceUntilIdle()
+        requireNotNull(viewModel.noteList.value).consumeSideEffects()
+
+        notesRepository.results.add(NoteQueryResult.Notes(mock<Bucket.ObjectCursor<Note>>(), null))
+        viewModel.refreshList(NoteFilter.AllNotes, null, false)
+        advanceUntilIdle()
+
+        verify(firstCursor, never()).close()
+    }
+
+    @Test
     fun aNewerRefreshCancelsTheSuspendedOneAndOnlyTheNewerResultArrives() {
         val gate = CompletableDeferred<NoteQueryResult>()
         notesRepository.gates.add(gate)

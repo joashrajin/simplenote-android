@@ -492,8 +492,24 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
     private void onNoteListUpdated(NoteListUpdate update) {
         int count;
 
+        // Reproduces the legacy onPostExecute suppression: no swap or side effects while the
+        // activity is gone or finishing. An unconsumed update's cursor is closed by the model.
+        if (getActivity() == null || getActivity().isFinishing()) {
+            return;
+        }
+
         if (update.getResult() instanceof NoteQueryResult.Notes) {
-            mNotesAdapter.changeCursor(((NoteQueryResult.Notes) update.getResult()).getCursor());
+            Bucket.ObjectCursor<Note> cursor = ((NoteQueryResult.Notes) update.getResult()).getCursor();
+
+            // The search path still swaps its own cursors through the adapter, which closes
+            // ours; a sticky redelivery after view recreation must not hand the adapter a
+            // closed cursor. Request a fresh refresh instead.
+            if (cursor.isClosed()) {
+                refreshList();
+                return;
+            }
+
+            mNotesAdapter.changeCursor(cursor);
             count = mNotesAdapter.getCount();
         } else {
             mNotesAdapter.changeCursor(null);

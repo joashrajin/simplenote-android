@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -62,8 +63,17 @@ class NoteListViewModel @Inject constructor(
                 (result as? NoteQueryResult.Notes)?.cursor?.close()
                 return@launch
             }
-            _noteList.value = NoteListUpdate(result, fromNavSelect)
+            deliver(NoteListUpdate(result, fromNavSelect))
         }
+    }
+
+    // A replaced update that never reached the adapter still owns its cursor.
+    private fun deliver(update: NoteListUpdate) {
+        val previous = _noteList.value
+        if (previous != null && previous.sideEffectsPending) {
+            (previous.result as? NoteQueryResult.Notes)?.cursor?.close()
+        }
+        _noteList.value = update
     }
 
     /**
@@ -78,7 +88,9 @@ class NoteListViewModel @Inject constructor(
                 notesRepository.setPinned(notesToPin, true)
                 notesRepository.setPinned(notesToUnpin, false)
             }
-            onComplete.run()
+            if (isActive) {
+                onComplete.run()
+            }
         }
     }
 
@@ -92,7 +104,9 @@ class NoteListViewModel @Inject constructor(
                 notesRepository.setTrashed(notesToTrash, true)
                 notesRepository.setTrashed(notesToRestore, false)
             }
-            onComplete.run()
+            if (isActive) {
+                onComplete.run()
+            }
         }
     }
 
@@ -111,6 +125,9 @@ class NoteListViewModel @Inject constructor(
  */
 class NoteListUpdate(val result: NoteQueryResult, val isFromNavSelect: Boolean) {
     private val sideEffectsConsumed = AtomicBoolean(false)
+
+    val sideEffectsPending: Boolean
+        get() = !sideEffectsConsumed.get()
 
     fun consumeSideEffects(): Boolean = !sideEffectsConsumed.getAndSet(true)
 }

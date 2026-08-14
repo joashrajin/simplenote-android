@@ -120,6 +120,7 @@ class SimperiumNotesRepositoryWritesTest {
     @Test
     fun setTrashedWithFalseRestoresTheNote() = runTest {
         val note = mock<Note>()
+        whenever(note.isDeleted).thenReturn(true)
         whenever(notesBucket.get("key1")).thenReturn(note)
 
         repository.setTrashed(listOf("key1"), false)
@@ -130,6 +131,18 @@ class SimperiumNotesRepositoryWritesTest {
             verify(note).setModificationDate(any())
             verify(note).save()
         }
+    }
+
+    @Test
+    fun setTrashedSkipsNotesAlreadyAtTheTargetState() = runTest {
+        val note = mock<Note>()
+        whenever(note.isDeleted).thenReturn(true)
+        whenever(notesBucket.get("key1")).thenReturn(note)
+
+        repository.setTrashed(listOf("key1"), true)
+
+        verify(note, never()).setDeleted(any())
+        verify(note, never()).save()
     }
 
     @Test

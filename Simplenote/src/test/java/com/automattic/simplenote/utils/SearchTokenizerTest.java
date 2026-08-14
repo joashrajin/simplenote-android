@@ -1,16 +1,10 @@
 package com.automattic.simplenote.utils;
 
-import androidx.test.filters.SmallTest;
-import androidx.test.runner.AndroidJUnit4;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-import static androidx.test.espresso.matcher.ViewMatchers.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-
-@RunWith(AndroidJUnit4.class)
-@SmallTest
 public class SearchTokenizerTest {
 
     @Test

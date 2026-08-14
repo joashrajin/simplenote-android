@@ -17,7 +17,7 @@ interface PreferencesRepository {
 
     suspend fun recentSearches(): List<String>
 
-    suspend fun addRecentSearch(query: String)
+    suspend fun addRecentSearch(query: String, index: Int = 0)
 
     suspend fun removeRecentSearch(query: String)
 

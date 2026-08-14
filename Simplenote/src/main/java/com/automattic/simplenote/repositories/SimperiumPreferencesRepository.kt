@@ -38,6 +38,7 @@ class SimperiumPreferencesRepository @Inject constructor(
         try {
             readAnalyticsEnabled()
         } catch (exception: RuntimeException) {
+            Log.w(Simplenote.TAG, "Unable to read the analytics preference; defaulting to enabled", exception)
             DEFAULT_ANALYTICS_ENABLED
         }
     )
@@ -59,13 +60,12 @@ class SimperiumPreferencesRepository @Inject constructor(
         getOrCreatePreferences()?.recentSearches ?: emptyList()
     }
 
-    override suspend fun addRecentSearch(query: String) = withContext(ioDispatcher) {
+    override suspend fun addRecentSearch(query: String, index: Int) = withContext(ioDispatcher) {
         val preferences = getOrCreatePreferences() ?: return@withContext
         val recents = preferences.recentSearches
         recents.remove(query)
-        recents.add(0, query)
-        // Trim recent searches to MAX_RECENT_SEARCHES (currently 5) if size is greater than MAX_RECENT_SEARCHES.
-        preferences.setRecentSearches(recents.subList(0, if (recents.size > MAX_RECENT_SEARCHES) MAX_RECENT_SEARCHES else recents.size))
+        recents.add(index.coerceIn(0, recents.size), query)
+        preferences.setRecentSearches(recents.take(MAX_RECENT_SEARCHES))
         preferences.save()
     }
 

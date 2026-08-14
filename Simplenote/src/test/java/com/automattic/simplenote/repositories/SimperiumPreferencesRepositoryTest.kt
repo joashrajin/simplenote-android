@@ -166,6 +166,26 @@ class SimperiumPreferencesRepositoryTest {
     }
 
     @Test
+    fun addRecentSearchRestoresAtTheGivenIndexForUndo() = runTest {
+        val preferences = storedPreferences()
+        preferences.setRecentSearches(listOf("alpha", "gamma"))
+
+        repository().addRecentSearch("beta", 1)
+
+        assertEquals(listOf("alpha", "beta", "gamma"), preferences.recentSearches)
+    }
+
+    @Test
+    fun addRecentSearchClampsAnOutOfRangeIndex() = runTest {
+        val preferences = storedPreferences()
+        preferences.setRecentSearches(listOf("alpha"))
+
+        repository().addRecentSearch("beta", 9)
+
+        assertEquals(listOf("alpha", "beta"), preferences.recentSearches)
+    }
+
+    @Test
     fun addRecentSearchTrimsToTheMaximum() = runTest {
         val preferences = storedPreferences()
         preferences.setRecentSearches(listOf("one", "two", "three", "four", "five"))

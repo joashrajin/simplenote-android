@@ -52,10 +52,14 @@ class SimplenoteCrashLoggingDataProvider @Inject constructor(
             return false
         }
 
-        // This provider is built during application field injection, before Simplenote.onCreate
-        // creates the buckets, so the repository (a Provider: the binding is unscoped, and a cached
-        // instance would freeze the snapshot) can only be resolved once the bucket exists. Until
-        // then, preserve the legacy pre-init default of enabled analytics.
+        return analyticsEnabledForCrashLogging()
+    }
+
+    // This provider is built during application field injection, before Simplenote.onCreate
+    // creates the buckets, so the repository (a Provider: the binding is unscoped, and a cached
+    // instance would freeze the snapshot) can only be resolved once the bucket exists. Until
+    // then, preserve the legacy pre-init default of enabled analytics.
+    internal fun analyticsEnabledForCrashLogging(): Boolean {
         if (app.preferencesBucket == null) {
             return true
         }

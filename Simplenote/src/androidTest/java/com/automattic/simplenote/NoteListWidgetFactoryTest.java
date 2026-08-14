@@ -32,4 +32,26 @@ public class NoteListWidgetFactoryTest {
         assertEquals(context.getPackageName(), views.getPackage());
         assertEquals(PrefUtils.getLayoutWidgetListItem(context, true), views.getLayoutId());
     }
+
+    @Test
+    public void getViewAtAfterDestroyReturnsEmptyRow() {
+        SimplenoteTest application = (SimplenoteTest) ApplicationProvider.getApplicationContext();
+        application.setUseTestBucket(true);
+
+        try {
+            NoteListWidgetFactory factory = new NoteListWidgetFactory(application, new Intent());
+            factory.onDataSetChanged();
+            factory.onDestroy();
+
+            assertEquals(0, factory.getCount());
+
+            RemoteViews views = factory.getViewAt(0);
+
+            assertNotNull(views);
+            assertEquals(application.getPackageName(), views.getPackage());
+            assertEquals(PrefUtils.getLayoutWidgetListItem(application, true), views.getLayoutId());
+        } finally {
+            application.setUseTestBucket(false);
+        }
+    }
 }

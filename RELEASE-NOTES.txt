@@ -1,5 +1,10 @@
 2.39
 -----
+* Updated Android backup rules to exclude the pending Tracks delivery queue [#14](https://github.com/joashrajin/simplenote-android/pull/14)
+* Retired the legacy Android Wear companion app [#15](https://github.com/joashrajin/simplenote-android/pull/15)
+* WordPress publishing authorization is no longer restored through Android backup or device transfer; restored users reconnect WordPress publishing [#16](https://github.com/joashrajin/simplenote-android/pull/16)
+* Markdown previews no longer include Simplenote's Google Fonts stylesheet [#17](https://github.com/joashrajin/simplenote-android/pull/17)
+* Fixed search query handling for dates and other terms containing multiple hyphens [#18](https://github.com/joashrajin/simplenote-android/pull/18)
 * Fixed nested bullet lists so pressing Enter on an empty nested bullet outdents one level instead of deleting the bullet [#5](https://github.com/joashrajin/simplenote-android/pull/5)
 * Fixed a potential note-list widget crash when Android requests a row before widget data finishes loading [#6](https://github.com/joashrajin/simplenote-android/pull/6)
 * Fixed a resource leak when refreshing light and dark note-list widgets [#7](https://github.com/joashrajin/simplenote-android/pull/7)

@@ -97,7 +97,7 @@
                         android:nextFocusLeft="@id/tag_input"
                         android:nextFocusUp="@id/note_editor"
                         android:textColor="?attr/noteEditorTextColor"
-                        android:textColorHint="?attr/hintTextColor"
+                        android:textColorHint="?attr/editorHintTextColor"
                         android:textSize="@dimen/text_tag"></com.automattic.simplenote.utils.TagsMultiAutoCompleteTextView>
 
                 </LinearLayout>

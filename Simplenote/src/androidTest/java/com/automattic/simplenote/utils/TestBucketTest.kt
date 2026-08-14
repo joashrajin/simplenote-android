@@ -45,6 +45,30 @@ class TestBucketTest {
         assertEquals(1, Note.allInTag(notesBucket, "target").count())
     }
 
+    @Test
+    fun executeSupportsNoTagQueries() {
+        createNote("untagged-active", "content", emptyList(), false)
+        createNote("tagged-active", "content", listOf("tag"), false)
+        createNote("untagged-deleted", "content", emptyList(), true)
+
+        val matchingKeys = mutableListOf<String>()
+        Note.allWithNoTag(notesBucket).execute().use { cursor ->
+            while (cursor.moveToNext()) {
+                matchingKeys.add(cursor.simperiumKey)
+            }
+        }
+
+        assertEquals(listOf("untagged-active"), matchingKeys)
+    }
+
+    @Test
+    fun queriesTreatMissingPropertiesAsAbsentValues() {
+        notesBucket.newObject("bare").setContent("needle")
+
+        assertEquals(1, Note.search(notesBucket, "needle").count())
+        assertEquals(1, Note.allWithNoTag(notesBucket).count())
+    }
+
     private fun createNote(key: String, content: String, tags: List<String>, deleted: Boolean) {
         notesBucket.newObject(key).apply {
             setContent(content)

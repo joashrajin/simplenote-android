@@ -186,10 +186,10 @@ class TestQuery<T : BucketObject>(private val objects: MutableList<T>) : Query<T
         return conditions.fold(objects) { currentObjects: MutableList<T>, condition: Condition ->
             when (condition.comparisonType) {
                 ComparisonType.EQUAL_TO -> currentObjects.filter {
-                    compare(it.properties.get(condition.key), condition.subject)
+                    compare(it.properties.opt(condition.key), condition.subject)
                 }.toMutableList()
                 ComparisonType.NOT_EQUAL_TO -> currentObjects.filter {
-                    !compare(it.properties.get(condition.key), condition.subject)
+                    !compare(it.properties.opt(condition.key), condition.subject)
                 }.toMutableList()
                 ComparisonType.LIKE -> currentObjects.filter {
                     compareLike(it.properties.get(condition.key), condition.subject)
@@ -202,8 +202,14 @@ class TestQuery<T : BucketObject>(private val objects: MutableList<T>) : Query<T
         }
     }
 
-    private fun compare(left: Any, right: Any): Boolean {
+    // A null subject matches objects without an indexed value, as Note.allWithNoTag() expects;
+    // a missing property behaves as an absent value instead of throwing.
+    private fun compare(left: Any?, right: Any?): Boolean {
         if (left is JSONArray) {
+            if (right == null) {
+                return left.length() == 0
+            }
+
             for (i in 0 until left.length()) {
                 val o = left.get(i)
                 if (o == right) {

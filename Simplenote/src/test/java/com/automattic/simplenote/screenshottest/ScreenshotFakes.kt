@@ -7,9 +7,11 @@ import com.automattic.simplenote.repositories.CollaboratorsActionResult
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.MagicLinkResponseResult
+import com.automattic.simplenote.repositories.NoteChange
 import com.automattic.simplenote.repositories.NoteQueryResult
 import com.automattic.simplenote.repositories.NoteReference
 import com.automattic.simplenote.repositories.NotesRepository
+import com.automattic.simplenote.repositories.RevisionsResult
 import com.automattic.simplenote.repositories.TagsRepository
 import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SortOrder
@@ -60,6 +62,15 @@ class ScreenshotNotesRepository : NotesRepository {
     override suspend fun referencesTo(key: String): List<NoteReference> = emptyList()
     override suspend fun hasUnsyncedNotes(): Boolean = false
     override suspend fun allNotesForExport(): List<Note> = emptyList()
+    override suspend fun createNote(content: String, key: String?): Note = Note(key ?: "screenshot-note")
+    override suspend fun saveNote(note: Note) = Unit
+    override suspend fun setTrashed(keys: List<String>, trashed: Boolean) = Unit
+    override suspend fun emptyTrash() = Unit
+    override suspend fun setPinned(keys: List<String>, pinned: Boolean) = Unit
+    override suspend fun setPreviewEnabled(key: String, enabled: Boolean) = Unit
+    override suspend fun setPublished(key: String, published: Boolean) = Unit
+    override suspend fun getRevisions(key: String, max: Int): RevisionsResult = RevisionsResult.Failure
+    override fun noteChanges(): Flow<NoteChange> = emptyFlow()
 }
 
 class ScreenshotMagicLinkRepository : MagicLinkRepository {

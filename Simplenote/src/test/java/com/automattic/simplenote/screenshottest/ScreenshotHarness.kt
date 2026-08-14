@@ -17,7 +17,8 @@ import org.wordpress.passcodelock.DefaultAppLock
 import java.time.Duration
 
 /**
- * The five user-facing app styles, mapped to the [PrefUtils.PREF_STYLE_INDEX] values that
+ * A harness subset of the user-facing app styles (Mono and Publication are omitted from the
+ * matrix), mapped to the [PrefUtils.PREF_STYLE_INDEX] values that
  * [ThemeUtils.getStyle] resolves to a full activity theme.
  */
 enum class AppStyle(val prefIndex: Int) {

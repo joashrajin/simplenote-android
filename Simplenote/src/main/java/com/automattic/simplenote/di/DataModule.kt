@@ -16,7 +16,6 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -32,12 +31,13 @@ abstract class DataModule {
         fun providesSimperium(simplenote: Simplenote): Simperium = simplenote.simperium
     }
 
+    // Repository binds stay unscoped until bucket ownership moves into DI: a singleton
+    // repository would freeze the SimplenoteTest.useTestBucket seam at first injection
+    // for the whole instrumentation process.
     @Binds
-    @Singleton
     abstract fun bindsTagsRepository(repository: SimperiumTagsRepository): TagsRepository
 
     @Binds
-    @Singleton
     abstract fun bindsCollaboratorsRepository(repository: SimperiumCollaboratorsRepository): CollaboratorsRepository
 
     @Binds

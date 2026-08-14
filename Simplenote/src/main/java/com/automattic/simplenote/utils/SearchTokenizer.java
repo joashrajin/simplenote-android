@@ -99,12 +99,14 @@ public class SearchTokenizer {
 
             if (current == HYPHEN && last != SPACE && position != 0) {
                 // If we have a hyphen character between two terms, with no space between them
-                String space = Character.toString(SPACE);
-                String lastCharacter = Character.toString(last);
-                int tokenStartIndex = query.lastIndexOf(space, query.indexOf(lastCharacter));
-                query.insert(Math.max(0, tokenStartIndex + 1), DOUBLE_QUOTE);
+                if (!hasHyphen) {
+                    String space = Character.toString(SPACE);
+                    String lastCharacter = Character.toString(last);
+                    int tokenStartIndex = query.lastIndexOf(space, query.indexOf(lastCharacter));
+                    query.insert(Math.max(0, tokenStartIndex + 1), DOUBLE_QUOTE);
+                    hasHyphen = true;
+                }
                 query.append(current);
-                hasHyphen = true;
                 continue;
             }
 

@@ -133,9 +133,7 @@ public class NoteListWidgetLight extends AppWidgetProvider {
             Query<Note> query = Note.all(notesBucket);
             query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
             PrefUtils.sortNoteQuery(query, context, true);
-            Bucket.ObjectCursor<Note> cursor = query.execute();
-
-            if (cursor.getCount() > 0) {
+            if (query.count() > 0) {
                 // Create intent to navigate to notes activity on widget click while loading
                 Intent intentLoading = IntentUtils.maybeAliasedIntent(context);
                 intentLoading.putExtra(KEY_LIST_WIDGET_CLICK, NOTE_LIST_WIDGET_TAPPED);

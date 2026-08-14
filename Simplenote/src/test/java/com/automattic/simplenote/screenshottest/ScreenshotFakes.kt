@@ -1,0 +1,71 @@
+package com.automattic.simplenote.screenshottest
+
+import com.automattic.simplenote.models.Note
+import com.automattic.simplenote.models.Tag
+import com.automattic.simplenote.models.TagItem
+import com.automattic.simplenote.repositories.CollaboratorsActionResult
+import com.automattic.simplenote.repositories.CollaboratorsRepository
+import com.automattic.simplenote.repositories.MagicLinkRepository
+import com.automattic.simplenote.repositories.MagicLinkResponseResult
+import com.automattic.simplenote.repositories.NoteQueryResult
+import com.automattic.simplenote.repositories.NoteReference
+import com.automattic.simplenote.repositories.NotesRepository
+import com.automattic.simplenote.repositories.TagsRepository
+import com.automattic.simplenote.search.NoteSearchRequest
+import com.automattic.simplenote.search.SortOrder
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+
+/**
+ * Deterministic in-memory repositories backing the screenshot surfaces. They replace the
+ * Simperium-bucket implementations so screenshot tests never touch buckets, the network, or the
+ * real [com.automattic.simplenote.Simplenote] application class.
+ */
+class ScreenshotTagsRepository : TagsRepository {
+    override fun saveTag(tagName: String): Boolean = true
+    override fun isTagValid(tagName: String): Boolean = true
+    override fun isTagMissing(tagName: String): Boolean = false
+    override fun isTagConflict(tagName: String, oldTagName: String): Boolean = false
+    override fun getCanonicalTagName(tagName: String): String = tagName
+    override fun renameTag(tagName: String, oldTag: Tag): Boolean = true
+    override suspend fun allTags(): List<TagItem> = ScreenshotHarness.SAMPLE_TAG_ITEMS
+    override suspend fun searchTags(query: String): List<TagItem> =
+        ScreenshotHarness.SAMPLE_TAG_ITEMS.filter { it.tag.name.contains(query, ignoreCase = true) }
+
+    override suspend fun deleteTag(tag: Tag) = Unit
+    override suspend fun tagsChanged(): Flow<Boolean> = emptyFlow()
+}
+
+class ScreenshotCollaboratorsRepository : CollaboratorsRepository {
+    override fun isValidCollaborator(collaborator: String): Boolean = false
+    override suspend fun getCollaborators(noteId: String): CollaboratorsActionResult =
+        CollaboratorsActionResult.CollaboratorsList(emptyList())
+
+    override suspend fun addCollaborator(noteId: String, collaborator: String): CollaboratorsActionResult =
+        CollaboratorsActionResult.CollaboratorsList(emptyList())
+
+    override suspend fun removeCollaborator(noteId: String, collaborator: String): CollaboratorsActionResult =
+        CollaboratorsActionResult.CollaboratorsList(emptyList())
+
+    override suspend fun collaboratorsChanged(noteId: String): Flow<Boolean> = emptyFlow()
+}
+
+class ScreenshotNotesRepository : NotesRepository {
+    override suspend fun search(request: NoteSearchRequest): NoteQueryResult = NoteQueryResult.InvalidQuery
+    override suspend fun getNote(key: String): Note? = null
+    override suspend fun trashedNoteCount(): Int = 0
+    override suspend fun interlinkSuggestions(titleFilter: String, sort: SortOrder): NoteQueryResult =
+        NoteQueryResult.InvalidQuery
+
+    override suspend fun referencesTo(key: String): List<NoteReference> = emptyList()
+    override suspend fun hasUnsyncedNotes(): Boolean = false
+    override suspend fun allNotesForExport(): List<Note> = emptyList()
+}
+
+class ScreenshotMagicLinkRepository : MagicLinkRepository {
+    override suspend fun completeLogin(username: String, authCode: String): MagicLinkResponseResult =
+        MagicLinkResponseResult.MagicLinkError(code = 0)
+
+    override suspend fun requestLogin(username: String): MagicLinkResponseResult =
+        MagicLinkResponseResult.MagicLinkError(code = 0)
+}

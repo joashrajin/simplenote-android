@@ -71,4 +71,8 @@ ext {
     androidxLifecycleVersion = '2.9.2'
 
     screengrabVersion = '2.1.1'
+
+    // Screenshot-test harness (JVM screenshot tests under Simplenote/src/test)
+    robolectricVersion = '4.16.1'
+    roborazziVersion = '1.72.0'
 }

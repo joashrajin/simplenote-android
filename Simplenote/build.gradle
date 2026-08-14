@@ -3,6 +3,9 @@ apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'kotlin-android'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'dagger.hilt.android.plugin'
+// Adds recordRoborazzi<Variant> / verifyRoborazzi<Variant> / compareRoborazzi<Variant> tasks for
+// the screenshot tests under src/test/java/com/automattic/simplenote/screenshottest.
+apply plugin: 'io.github.takahirom.roborazzi'
 
 def versionProperties = loadPropertiesFromFile(file("${rootDir}/version.properties"))
 
@@ -50,6 +53,14 @@ android {
 
     testOptions {
         unitTests.returnDefaultValues = true
+        // Required by the Robolectric screenshot tests (screenshottest package) to load real
+        // resources; inert for the plain-JVM suite, which keeps relying on returnDefaultValues
+        // because Robolectric replaces the stubbed android.jar with its own runtime.
+        unitTests.includeAndroidResources = true
+        unitTests.all {
+            // Robolectric's native graphics runtime needs more than the default 512m test heap.
+            maxHeapSize = "2g"
+        }
         // Disable animations in order to enter text in the text inputs in the
         // Espresso tests
         animationsDisabled = true
@@ -82,6 +93,7 @@ sentry {
 buildscript {
     dependencies {
         classpath "io.sentry:sentry-android-gradle-plugin:$sentryVersion"
+        classpath "io.github.takahirom.roborazzi:roborazzi-gradle-plugin:$roborazziVersion"
     }
 
     repositories {
@@ -115,6 +127,15 @@ dependencies {
 
     // Support for JsonObjects in unit tests since they are used by BucketObjects
     testImplementation 'org.json:json:20210307'
+
+    // Roborazzi screenshot tests (screenshottest package): Robolectric native-graphics rendering,
+    // ActivityScenario, and Hilt test components for launching @AndroidEntryPoint activities.
+    testImplementation "org.robolectric:robolectric:$robolectricVersion"
+    testImplementation "io.github.takahirom.roborazzi:roborazzi:$roborazziVersion"
+    testImplementation 'androidx.test:core:1.7.0'
+    testImplementation 'androidx.test.espresso:espresso-core:3.7.0'
+    testImplementation "com.google.dagger:hilt-android-testing:$google_dagger"
+    kaptTest "com.google.dagger:hilt-compiler:$google_dagger"
 
     // Fastlane screengrab for screenshots automation
     androidTestImplementation "tools.fastlane:screengrab:$screengrabVersion"

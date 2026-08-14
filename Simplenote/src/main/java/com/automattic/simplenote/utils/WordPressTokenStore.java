@@ -36,7 +36,7 @@ public final class WordPressTokenStore {
         synchronized (TOKEN_LOCK) {
             String token = getString(mPreferences, TOKEN_KEY);
             if (getBoolean(mPreferences, MIGRATION_COMPLETE_KEY)) {
-                removeLegacyToken();
+                persistStateBeforeRemovingLegacyToken(token);
                 return token;
             }
 
@@ -74,7 +74,7 @@ public final class WordPressTokenStore {
     public boolean prepareForBackup() {
         synchronized (TOKEN_LOCK) {
             if (getBoolean(mPreferences, MIGRATION_COMPLETE_KEY)) {
-                return removeLegacyToken();
+                return persistStateBeforeRemovingLegacyToken(getString(mPreferences, TOKEN_KEY));
             }
 
             String token = getString(mPreferences, TOKEN_KEY);
@@ -89,6 +89,14 @@ public final class WordPressTokenStore {
         boolean stateCommitted = commitState("");
         boolean legacyRemoved = removeLegacyToken();
         return stateCommitted && legacyRemoved;
+    }
+
+    private boolean persistStateBeforeRemovingLegacyToken(String token) {
+        if (!mLegacyPreferences.contains(LEGACY_TOKEN_KEY)) {
+            return true;
+        }
+
+        return commitState(token) && removeLegacyToken();
     }
 
     private boolean commitState(String token) {

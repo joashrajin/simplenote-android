@@ -9,6 +9,7 @@ import org.mockito.InOrder;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.automattic.simplenote.utils.WordPressTokenStore.LEGACY_TOKEN_KEY;
@@ -75,6 +76,20 @@ public class WordPressTokenStoreTest {
         assertEquals("legacy-token", mStore.getToken());
 
         verify(mLegacyPreferences, never()).edit();
+    }
+
+    @Test
+    public void getTokenRetriesFailedInMemoryMigrationBeforeDeletingLegacyToken() {
+        FailedCommitState state = configureFailedCommitState();
+
+        assertEquals("legacy-token", mStore.getToken());
+        assertFalse(state.migrationPersisted.get());
+        assertTrue(state.legacyTokenPresent.get());
+
+        assertEquals("legacy-token", mStore.getToken());
+        assertEquals("legacy-token", state.persistedToken.get());
+        assertTrue(state.migrationPersisted.get());
+        assertFalse(state.legacyTokenPresent.get());
     }
 
     @Test
@@ -267,6 +282,20 @@ public class WordPressTokenStoreTest {
     }
 
     @Test
+    public void prepareForBackupRetriesFailedInMemoryMigrationBeforeDeletingLegacyToken() {
+        FailedCommitState state = configureFailedCommitState();
+
+        assertEquals("legacy-token", mStore.getToken());
+        assertFalse(state.migrationPersisted.get());
+        assertTrue(state.legacyTokenPresent.get());
+
+        assertTrue(mStore.prepareForBackup());
+        assertEquals("legacy-token", state.persistedToken.get());
+        assertTrue(state.migrationPersisted.get());
+        assertFalse(state.legacyTokenPresent.get());
+    }
+
+    @Test
     public void prepareForBackupFailsWhenTombstonedLegacyTokenCannotBeDeleted() {
         setStoredState("", true, "legacy-token");
         when(mLegacyEditor.commit()).thenReturn(false);
@@ -292,6 +321,50 @@ public class WordPressTokenStoreTest {
         when(mPreferences.getBoolean(MIGRATION_COMPLETE_KEY, false)).thenReturn(migrationComplete);
         when(mLegacyPreferences.getString(LEGACY_TOKEN_KEY, "")).thenReturn(legacyToken);
         when(mLegacyPreferences.contains(LEGACY_TOKEN_KEY)).thenReturn(true);
+    }
+
+    private FailedCommitState configureFailedCommitState() {
+        FailedCommitState state = new FailedCommitState();
+        AtomicReference<String> inMemoryToken = new AtomicReference<>("");
+        AtomicBoolean inMemoryMigrationComplete = new AtomicBoolean();
+        AtomicInteger commitCount = new AtomicInteger();
+
+        when(mPreferences.getString(TOKEN_KEY, "")).thenAnswer(invocation -> inMemoryToken.get());
+        when(mPreferences.getBoolean(MIGRATION_COMPLETE_KEY, false)).thenAnswer(
+                invocation -> inMemoryMigrationComplete.get());
+        when(mEditor.putString(TOKEN_KEY, "legacy-token")).thenAnswer(invocation -> {
+            inMemoryToken.set("legacy-token");
+            return mEditor;
+        });
+        when(mEditor.putBoolean(MIGRATION_COMPLETE_KEY, true)).thenAnswer(invocation -> {
+            inMemoryMigrationComplete.set(true);
+            return mEditor;
+        });
+        when(mEditor.commit()).thenAnswer(invocation -> {
+            if (commitCount.getAndIncrement() == 0) {
+                return false;
+            }
+
+            state.persistedToken.set(inMemoryToken.get());
+            state.migrationPersisted.set(inMemoryMigrationComplete.get());
+            return true;
+        });
+        when(mLegacyPreferences.getString(LEGACY_TOKEN_KEY, "")).thenAnswer(
+                invocation -> state.legacyTokenPresent.get() ? "legacy-token" : "");
+        when(mLegacyPreferences.contains(LEGACY_TOKEN_KEY)).thenAnswer(
+                invocation -> state.legacyTokenPresent.get());
+        when(mLegacyEditor.commit()).thenAnswer(invocation -> {
+            state.legacyTokenPresent.set(false);
+            return true;
+        });
+
+        return state;
+    }
+
+    private static class FailedCommitState {
+        private final AtomicBoolean legacyTokenPresent = new AtomicBoolean(true);
+        private final AtomicBoolean migrationPersisted = new AtomicBoolean();
+        private final AtomicReference<String> persistedToken = new AtomicReference<>("");
     }
 
     private static Thread.State waitForBlockedOrTerminated(Thread thread) {

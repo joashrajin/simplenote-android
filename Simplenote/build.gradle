@@ -100,7 +100,6 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.7.0'
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.4.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
-    androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.7.0'
     androidTestImplementation('androidx.test.espresso:espresso-contrib:3.7.0') {
         // Necessary to avoid version conflicts
         exclude group: 'androidx', module: 'appcompat'

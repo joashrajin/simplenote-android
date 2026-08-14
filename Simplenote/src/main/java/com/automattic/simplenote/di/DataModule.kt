@@ -16,9 +16,8 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import javax.inject.Singleton
 
-@ExperimentalCoroutinesApi
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataModule {
@@ -34,9 +33,11 @@ abstract class DataModule {
     }
 
     @Binds
+    @Singleton
     abstract fun bindsTagsRepository(repository: SimperiumTagsRepository): TagsRepository
 
     @Binds
+    @Singleton
     abstract fun bindsCollaboratorsRepository(repository: SimperiumCollaboratorsRepository): CollaboratorsRepository
 
     @Binds

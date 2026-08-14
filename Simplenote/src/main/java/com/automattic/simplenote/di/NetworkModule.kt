@@ -8,6 +8,7 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import okhttp3.OkHttpClient
 import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
 
 private const val TIMEOUT_SECS = 30
 
@@ -15,11 +16,13 @@ private const val TIMEOUT_SECS = 30
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
     @Provides
+    @Singleton
     fun provideOkHttp(): OkHttpClient = OkHttpClient().newBuilder()
         .addInterceptor(HeadersInterceptor())
         .readTimeout(TIMEOUT_SECS.toLong(), TimeUnit.SECONDS)
         .build()
 
     @Provides
+    @Singleton
     fun provideSimpleHttp(okHttpClient: OkHttpClient): SimpleHttp = SimpleHttp(okHttpClient)
 }

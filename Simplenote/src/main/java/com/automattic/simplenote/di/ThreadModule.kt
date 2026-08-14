@@ -6,18 +6,24 @@ import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import javax.inject.Named
+import javax.inject.Qualifier
 
-const val IO_THREAD = "IO_THREAD"
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class IoDispatcher
+
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class MainDispatcher
 
 @Module
 @InstallIn(SingletonComponent::class)
-abstract class ThreadModule {
-    companion object {
-        @Provides
-        @Named(IO_THREAD)
-        fun provideIODispatcher(): CoroutineDispatcher {
-            return Dispatchers.IO
-        }
-    }
+object ThreadModule {
+    @Provides
+    @IoDispatcher
+    fun provideIoDispatcher(): CoroutineDispatcher = Dispatchers.IO
+
+    @Provides
+    @MainDispatcher
+    fun provideMainDispatcher(): CoroutineDispatcher = Dispatchers.Main
 }

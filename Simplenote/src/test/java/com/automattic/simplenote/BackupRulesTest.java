@@ -15,6 +15,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 public class BackupRulesTest {
     private static final String SIMPERIUM_PREFS = "simperium.xml";
+    private static final String WORDPRESS_PREFS = "wordpress_auth.xml";
     private static final String[] TRACKS_DATABASE_PATHS = {
         "tracks.db", "tracks.db-journal", "tracks.db-wal", "tracks.db-shm"
     };
@@ -36,6 +37,23 @@ public class BackupRulesTest {
             NodeList sections = rules.getElementsByTagName(transport);
             assertEquals(transport, 1, sections.getLength());
             assertTrue(transport, hasExclusion((Element) sections.item(0), "sharedpref", SIMPERIUM_PREFS));
+        }
+    }
+
+    @Test
+    public void legacyBackupRulesExcludeWordPressTokenStore() throws Exception {
+        Document rules = parse("src/main/res/xml/backup_rules.xml");
+
+        assertTrue(hasExclusion(rules.getDocumentElement(), "sharedpref", WORDPRESS_PREFS));
+    }
+
+    @Test
+    public void dataExtractionRulesExcludeWordPressTokenStoreFromBothTransports() throws Exception {
+        Document rules = parse("src/main/res/xml/data_extraction_rules.xml");
+
+        for (String transport : new String[]{"cloud-backup", "device-transfer"}) {
+            Element section = (Element) rules.getElementsByTagName(transport).item(0);
+            assertTrue(transport, hasExclusion(section, "sharedpref", WORDPRESS_PREFS));
         }
     }
 

@@ -107,10 +107,10 @@ public class WordPressUtils {
             return false;
         }
 
-        if (wpToken != null) {
-            if (!WordPressTokenStore.from(app).setToken(wpToken)) {
-                return false;
-            }
+        if (wpToken != null && !WordPressTokenStore.from(app).setToken(wpToken)) {
+            // A failed WordPress token persist must not block Simplenote sign-in;
+            // publishing reconnects on next use.
+            AppLog.add(AppLog.Type.AUTH, "WordPress token persist failed; continuing sign-in");
         }
 
         if (!shouldAuthSimperiumUser) {

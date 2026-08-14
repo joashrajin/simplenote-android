@@ -39,8 +39,7 @@ public class AuthUtils {
         // Resets analytics user back to 'anon' type
         AnalyticsTracker.refreshMetadata(null);
 
-        WordPressTokenStore tokenStore = WordPressTokenStore.from(application);
-        if (!tokenStore.clearToken() && !tokenStore.clearToken()) {
+        if (!WordPressTokenStore.from(application).clearTokenWithRetry()) {
             AppLog.add(Type.AUTH, "Unable to clear WordPress token during logout");
         }
 

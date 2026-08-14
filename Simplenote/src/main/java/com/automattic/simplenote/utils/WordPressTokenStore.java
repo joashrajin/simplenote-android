@@ -32,6 +32,9 @@ public final class WordPressTokenStore {
         mLegacyPreferences = legacyPreferences;
     }
 
+    // Migration and tombstone-scrub states commit synchronously so the result is trustworthy;
+    // steady state (tombstoned, no legacy key) is write-free, making this a one-time cost per
+    // transition even on main-thread callers.
     public String getToken() {
         synchronized (TOKEN_LOCK) {
             String token = getString(mPreferences, TOKEN_KEY);
@@ -69,6 +72,10 @@ public final class WordPressTokenStore {
         synchronized (TOKEN_LOCK) {
             return clearTokenLocked();
         }
+    }
+
+    public boolean clearTokenWithRetry() {
+        return clearToken() || clearToken();
     }
 
     public boolean prepareForBackup() {

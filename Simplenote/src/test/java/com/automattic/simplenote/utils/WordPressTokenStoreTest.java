@@ -19,11 +19,13 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +45,7 @@ public class WordPressTokenStoreTest {
 
         when(mPreferences.edit()).thenReturn(mEditor);
         when(mLegacyPreferences.edit()).thenReturn(mLegacyEditor);
-        when(mEditor.putBoolean(anyString(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(mEditor);
+        when(mEditor.putBoolean(anyString(), anyBoolean())).thenReturn(mEditor);
         when(mEditor.putString(anyString(), anyString())).thenReturn(mEditor);
         when(mEditor.remove(anyString())).thenReturn(mEditor);
         when(mLegacyEditor.remove(anyString())).thenReturn(mLegacyEditor);
@@ -227,7 +229,7 @@ public class WordPressTokenStoreTest {
         SharedPreferences.Editor secondEditor = mock(SharedPreferences.Editor.class);
         when(secondPreferences.edit()).thenReturn(secondEditor);
         when(secondEditor.remove(anyString())).thenReturn(secondEditor);
-        when(secondEditor.putBoolean(anyString(), org.mockito.ArgumentMatchers.anyBoolean())).thenReturn(secondEditor);
+        when(secondEditor.putBoolean(anyString(), anyBoolean())).thenReturn(secondEditor);
         when(secondEditor.commit()).thenReturn(true);
         WordPressTokenStore secondStore = new WordPressTokenStore(secondPreferences, secondLegacyPreferences);
         Thread migrationThread = new Thread(() -> {
@@ -314,6 +316,34 @@ public class WordPressTokenStoreTest {
 
         verify(mEditor).putBoolean(MIGRATION_COMPLETE_KEY, true);
         verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
+    public void setTokenWithNullOrEmptyClearsStoredTokenAndLegacyToken() {
+        setStoredState("existing-token", true, "legacy-token");
+
+        assertTrue(mStore.setToken(null));
+
+        verify(mEditor).remove(TOKEN_KEY);
+        verify(mEditor).putBoolean(MIGRATION_COMPLETE_KEY, true);
+        verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+
+        clearInvocations(mEditor, mLegacyEditor);
+
+        assertTrue(mStore.setToken(""));
+
+        verify(mEditor).remove(TOKEN_KEY);
+        verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
+    public void clearTokenWithRetryRetriesOnceAfterFailedCommit() {
+        setStoredState("existing-token", true, "legacy-token");
+        when(mEditor.commit()).thenReturn(false).thenReturn(true);
+
+        assertTrue(mStore.clearTokenWithRetry());
+
+        verify(mEditor, times(2)).commit();
     }
 
     private void setStoredState(String token, boolean migrationComplete, String legacyToken) {

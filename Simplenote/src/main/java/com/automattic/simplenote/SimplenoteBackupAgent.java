@@ -43,8 +43,7 @@ public class SimplenoteBackupAgent extends BackupAgent {
     public void onRestoreFinished() {
         super.onRestoreFinished();
 
-        WordPressTokenStore tokenStore = WordPressTokenStore.from(this);
-        if (!tokenStore.clearToken() && !tokenStore.clearToken()) {
+        if (!WordPressTokenStore.from(this).clearTokenWithRetry()) {
             Log.e(TAG, "Unable to clear the restored WordPress token");
         }
     }

@@ -69,12 +69,14 @@ class SimperiumPreferencesRepository @Inject constructor(
         preferences.save()
     }
 
-    override suspend fun removeRecentSearch(query: String) = withContext(ioDispatcher) {
-        val preferences = getOrCreatePreferences() ?: return@withContext
+    override suspend fun removeRecentSearch(query: String): Int = withContext(ioDispatcher) {
+        val preferences = getOrCreatePreferences() ?: return@withContext -1
         val recents = preferences.recentSearches
+        val removedIndex = recents.indexOf(query)
         recents.remove(query)
         preferences.setRecentSearches(recents)
         preferences.save()
+        removedIndex
     }
 
     override fun preferencesChanged(): Flow<Unit> = callbackFlow {

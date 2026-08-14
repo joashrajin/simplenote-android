@@ -27,13 +27,13 @@ public class NoteListFragmentTest {
     }
 
     /**
-     * Test to reproduce issue #142, issues refreshList async task a cursor then sets
-     * a search string so when the cursor returns the NoteCursorAdapter attempts to
-     * access the <code>match_offset</code> field.
+     * Test to reproduce issue #142: a non-search refresh delivers a cursor, then a search
+     * string is applied, and the NotesCursorAdapter must keep rendering the delivered cursor
+     * without reaching for the <code>match_offsets</code> field it never carried. The adapter
+     * now keys off the delivered search snapshot, so the live query text cannot desynchronize
+     * it from its cursor.
      * <p>
      * See: https://github.com/Simperium/simplenote-android/issues/142
-     * <p>
-     * Fails on Android 4.0.3 (android-15) amd emulator
      */
     @Test
     public void testNonSearchCursorReturnsAfterSearchApplied() {
@@ -43,7 +43,7 @@ public class NoteListFragmentTest {
         noteListFragment.refreshList();
 
         NoteListFragment.NotesCursorAdapter adapter = noteListFragment.mNotesAdapter;
-        noteListFragment.mSearchString = "welcome";
+        mActivity.runOnUiThread(() -> noteListFragment.searchNotes("welcome", false));
 
         assertThat(adapter.getCount(), is(1));
 

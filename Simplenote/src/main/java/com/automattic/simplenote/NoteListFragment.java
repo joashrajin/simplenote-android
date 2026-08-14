@@ -2,13 +2,10 @@ package com.automattic.simplenote;
 
 import static com.automattic.simplenote.analytics.AnalyticsTracker.CATEGORY_SEARCH;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.RECENT_SEARCH_TAPPED;
-import static com.automattic.simplenote.models.Note.TAGS_PROPERTY;
-import static com.automattic.simplenote.models.Preferences.MAX_RECENT_SEARCHES;
-import static com.automattic.simplenote.models.Preferences.PREFERENCES_OBJECT_KEY;
 import static com.automattic.simplenote.models.Suggestion.Type.HISTORY;
 import static com.automattic.simplenote.models.Suggestion.Type.QUERY;
 import static com.automattic.simplenote.models.Suggestion.Type.TAG;
-import static com.automattic.simplenote.models.Tag.NAME_PROPERTY;
+import static com.automattic.simplenote.search.SearchQueryBuilder.TAG_PREFIX;
 import static com.automattic.simplenote.utils.PrefUtils.ALPHABETICAL_ASCENDING;
 import static com.automattic.simplenote.utils.PrefUtils.ALPHABETICAL_DESCENDING;
 import static com.automattic.simplenote.utils.PrefUtils.DATE_CREATED_ASCENDING;
@@ -20,8 +17,6 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteException;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.SpannableString;
@@ -29,7 +24,6 @@ import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.AbsoluteSizeSpan;
 import android.text.style.TextAppearanceSpan;
-import android.util.Log;
 import android.util.SparseBooleanArray;
 import android.util.TypedValue;
 import android.view.ActionMode;
@@ -64,9 +58,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
-import com.automattic.simplenote.models.Preferences;
 import com.automattic.simplenote.models.Suggestion;
-import com.automattic.simplenote.models.Tag;
 import com.automattic.simplenote.repositories.NoteQueryResult;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
@@ -78,7 +70,6 @@ import com.automattic.simplenote.utils.DrawableUtils;
 import com.automattic.simplenote.utils.NetworkUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SearchSnippetFormatter;
-import com.automattic.simplenote.utils.SearchTokenizer;
 import com.automattic.simplenote.utils.SimplenoteLinkify;
 import com.automattic.simplenote.utils.StrUtils;
 import com.automattic.simplenote.utils.TextHighlighter;
@@ -87,22 +78,16 @@ import com.automattic.simplenote.utils.ThemeUtils;
 import com.automattic.simplenote.utils.WidgetUtils;
 import com.automattic.simplenote.viewmodels.NoteListUpdate;
 import com.automattic.simplenote.viewmodels.NoteListViewModel;
+import com.automattic.simplenote.viewmodels.SuggestionsUpdate;
 import com.automattic.simplenote.widgets.RobotoRegularTextView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.simperium.client.Bucket;
 import com.simperium.client.Bucket.ObjectCursor;
-import com.simperium.client.BucketObjectMissingException;
-import com.simperium.client.BucketObjectNameInvalid;
-import com.simperium.client.Query;
 
-import java.lang.ref.SoftReference;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -116,9 +101,7 @@ import dagger.hilt.android.AndroidEntryPoint;
  * interface.
  */
 @AndroidEntryPoint
-public class NoteListFragment extends ListFragment implements AdapterView.OnItemLongClickListener, AbsListView.MultiChoiceModeListener, Bucket.Listener<Preferences> {
-    public static final String TAG_PREFIX = "tag:";
-
+public class NoteListFragment extends ListFragment implements AdapterView.OnItemLongClickListener, AbsListView.MultiChoiceModeListener {
     /**
      * The preferences key representing the activated item position. Only used on tablets.
      */
@@ -143,9 +126,6 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         }
     };
     protected NotesCursorAdapter mNotesAdapter;
-    protected String mSearchString;
-    private Bucket<Preferences> mBucketPreferences;
-    private Bucket<Tag> mBucketTag;
     private ActionMode mActionMode;
     private View mRootView;
     private RobotoRegularTextView mEmptyViewButton;
@@ -154,15 +134,18 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
     private View mDividerLine;
     private FloatingActionButton mFloatingActionButton;
     private boolean mIsCondensedNoteList;
-    private boolean mIsSearching;
     private ListView mList;
     private RecyclerView mSuggestionList;
     private RelativeLayout mSuggestionLayout;
     private String mSelectedNoteId;
     private SuggestionAdapter mSuggestionAdapter;
     private NoteListViewModel mViewModel;
-    private RefreshListForSearchTask mRefreshListForSearchTask;
-    private int mDeletedItemIndex;
+    /**
+     * The search string the adapter's current cursor was built against — the delivered
+     * NoteQueryResult.Notes searchSnapshot, never the live query text. Rendering decisions
+     * keyed on it can never disagree with the columns the cursor actually carries (issue #142).
+     */
+    private String mRenderedSearchSnapshot;
     private int mTitleFontSize;
     private int mPreviewFontSize;
     /**
@@ -403,9 +386,14 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         super.onCreate(savedInstanceState);
         AppLog.add(Type.NETWORK, NetworkUtils.getNetworkInfo(requireContext()));
         AppLog.add(Type.SCREEN, "Created (NoteListFragment)");
-        mBucketPreferences = ((Simplenote) requireActivity().getApplication()).getPreferencesBucket();
-        mBucketTag = ((Simplenote) requireActivity().getApplication()).getTagsBucket();
         mViewModel = new ViewModelProvider(this).get(NoteListViewModel.class);
+
+        if (savedInstanceState != null) {
+            // The legacy search fields died with the fragment instance; the view model outlives
+            // it across a recreation, so restore their fresh-instance defaults explicitly.
+            mViewModel.stopSearching();
+            mViewModel.clearSearchQuery();
+        }
     }
 
     protected void getPrefs() {
@@ -478,9 +466,25 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         setListAdapter(mNotesAdapter);
 
         mViewModel.getNoteList().observe(getViewLifecycleOwner(), this::onNoteListUpdated);
+        mViewModel.getSuggestions().observe(getViewLifecycleOwner(), this::onSuggestionsUpdated);
 
         getListView().setOnItemLongClickListener(this);
         getListView().setMultiChoiceModeListener(this);
+    }
+
+    /**
+     * Applies a suggestion feed exactly as the legacy inline queries did: getSearchItems
+     * diffed the recent searches into whichever adapter was live (even the tag-suggestion one,
+     * as the preference-bucket listeners fired), while getTagSuggestions installed a fresh
+     * adapter.
+     */
+    private void onSuggestionsUpdated(SuggestionsUpdate update) {
+        if (update.isRecentSearches()) {
+            mSuggestionAdapter.updateItems(update.getSuggestions());
+        } else {
+            mSuggestionAdapter = new SuggestionAdapter(update.getSuggestions());
+            mSuggestionList.setAdapter(mSuggestionAdapter);
+        }
     }
 
     /**
@@ -499,19 +503,22 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         }
 
         if (update.getResult() instanceof NoteQueryResult.Notes) {
-            Bucket.ObjectCursor<Note> cursor = ((NoteQueryResult.Notes) update.getResult()).getCursor();
+            NoteQueryResult.Notes notes = (NoteQueryResult.Notes) update.getResult();
+            Bucket.ObjectCursor<Note> cursor = notes.getCursor();
 
-            // The search path still swaps its own cursors through the adapter, which closes
-            // ours; a sticky redelivery after view recreation must not hand the adapter a
-            // closed cursor. Request a fresh refresh instead.
+            // The adapter closes each previous cursor on swap, so a sticky redelivery after
+            // view recreation can hand back a cursor that has since been closed. Never swap a
+            // closed cursor in; request a fresh refresh instead.
             if (cursor.isClosed()) {
                 refreshList();
                 return;
             }
 
+            mRenderedSearchSnapshot = notes.getSearchSnapshot();
             mNotesAdapter.changeCursor(cursor);
             count = mNotesAdapter.getCount();
         } else {
+            mRenderedSearchSnapshot = null;
             mNotesAdapter.changeCursor(null);
             count = 0;
         }
@@ -580,26 +587,16 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         super.onResume();
         getPrefs();
 
-        if (mIsSearching) {
-            refreshListForSearch();
+        if (mViewModel.isSearching()) {
+            mViewModel.refreshListForSearch();
         } else {
             refreshList();
         }
-
-        mBucketPreferences.start();
-        mBucketPreferences.addOnDeleteObjectListener(this);
-        mBucketPreferences.addOnNetworkChangeListener(this);
-        mBucketPreferences.addOnSaveObjectListener(this);
-        AppLog.add(Type.SYNC, "Added preference bucket listener (NoteListFragment)");
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        mBucketPreferences.removeOnDeleteObjectListener(this);
-        mBucketPreferences.removeOnNetworkChangeListener(this);
-        mBucketPreferences.removeOnSaveObjectListener(this);
-        AppLog.add(Type.SYNC, "Removed preference bucket listener (NoteListFragment)");
         AppLog.add(Type.SCREEN, "Paused (NoteListFragment)");
     }
 
@@ -731,58 +728,13 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
             return;
         }
 
-        mViewModel.refreshList(notesActivity.getSelectedTag().getFilter(), mSearchString, fromNav);
+        mViewModel.refreshList(notesActivity.getSelectedTag().getFilter(), fromNav);
 
         WidgetUtils.updateNoteWidgets(context.getApplicationContext());
     }
 
-    private void refreshListForSearch() {
-        if (mRefreshListForSearchTask != null && mRefreshListForSearchTask.getStatus() != AsyncTask.Status.FINISHED) {
-            mRefreshListForSearchTask.cancel(true);
-        }
-
-        mRefreshListForSearchTask = new RefreshListForSearchTask(this);
-        mRefreshListForSearchTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-    }
-
     public void refreshListFromNavSelect() {
         refreshList(true);
-    }
-
-    private ObjectCursor<Note> queryNotesForSearch() {
-        NotesActivity notesActivity = (NotesActivity) getActivity();
-        if (!isAdded() || notesActivity == null) {
-            return null;
-        }
-
-        Query<Note> query = Note.all(((Simplenote) notesActivity.getApplication()).getNotesBucket());
-        String searchString = mSearchString;
-
-        if (hasSearchQuery()) {
-            searchString = queryTags(query, mSearchString);
-        }
-
-        if (!TextUtils.isEmpty(searchString)) {
-            query.where(new Query.FullTextMatch(new SearchTokenizer(searchString)));
-            query.include(new Query.FullTextOffsets("match_offsets"));
-            query.include(new Query.FullTextSnippet(Note.MATCHED_TITLE_INDEX_NAME, Note.TITLE_INDEX_NAME));
-            query.include(new Query.FullTextSnippet(Note.MATCHED_CONTENT_INDEX_NAME, Note.CONTENT_PROPERTY));
-            query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
-        } else {
-            query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
-        }
-
-        PrefUtils.sortNoteQuery(query, notesActivity, false);
-        return query.execute();
-    }
-
-    private String queryTags(Query<Note> query, String searchString) {
-        Pattern pattern = Pattern.compile(TAG_PREFIX + "(.*?)( |$)");
-        Matcher matcher = pattern.matcher(searchString);
-        while (matcher.find()) {
-            query.where(TAGS_PROPERTY, Query.ComparisonType.LIKE, matcher.group(1));
-        }
-        return matcher.replaceAll("");
     }
 
     public void addNote(String title) {
@@ -853,131 +805,35 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         mSelectedNoteId = selectedNoteID;
     }
 
+    /**
+     * The search entry point NotesActivity's query listeners drive. State, suggestions, and
+     * the submit refresh live in the view model; only the overlay visibility stays here (the
+     * legacy method showed it, then hid it again in the same pass when submitting).
+     */
     public void searchNotes(String searchString, boolean isSubmit) {
-        mIsSearching = true;
-        mSuggestionLayout.setVisibility(View.VISIBLE);
-
-        if (!searchString.equals(mSearchString)) {
-            mSearchString = searchString;
-        }
-
-        if (searchString.isEmpty()) {
-            getSearchItems();
-        } else {
-            getTagSuggestions(searchString);
-        }
-
-        if (isSubmit) {
-            mSuggestionLayout.setVisibility(View.GONE);
-            refreshListForSearch();
-        }
+        mSuggestionLayout.setVisibility(isSubmit ? View.GONE : View.VISIBLE);
+        mViewModel.searchNotes(searchString, isSubmit);
     }
 
     /**
-     * Clear search and load all notes
+     * Clear search and load all notes. The double refresh reproduces the legacy sequence: a
+     * tag-filtered pass while the query is still set, then the final unfiltered pass — the
+     * second superseding the first through the view model pipeline exactly as the legacy task
+     * cancellation did.
      */
     public void clearSearch() {
-        mIsSearching = false;
+        mViewModel.stopSearching();
         mSuggestionLayout.setVisibility(View.GONE);
         refreshList();
 
-        if (mSearchString != null && !mSearchString.equals("")) {
-            mSearchString = null;
+        if (mViewModel.hasSearchQuery()) {
+            mViewModel.clearSearchQuery();
             refreshList();
         }
     }
 
-    public boolean hasSearchQuery() {
-        return mSearchString != null && !mSearchString.equals("");
-    }
-
     public void addSearchItem(String item, int index) {
-        Preferences preferences = getPreferences();
-
-        if (preferences != null) {
-            List<String> recents = preferences.getRecentSearches();
-            recents.remove(item);
-            recents.add(index, item);
-            // Trim recent searches to MAX_RECENT_SEARCHES (currently 5) if size is greater than MAX_RECENT_SEARCHES.
-            preferences.setRecentSearches(recents.subList(0, recents.size() > MAX_RECENT_SEARCHES ? MAX_RECENT_SEARCHES : recents.size()));
-            preferences.save();
-        } else {
-            Log.e("addSearchItem", "Could not get preferences entity");
-        }
-    }
-
-    private void deleteSearchItem(String item) {
-        Preferences preferences = getPreferences();
-
-        if (preferences != null) {
-            List<String> recents = preferences.getRecentSearches();
-            mDeletedItemIndex = recents.indexOf(item);
-            recents.remove(item);
-            preferences.setRecentSearches(recents);
-            preferences.save();
-        } else {
-            Log.e("deleteSearchItem", "Could not get preferences entity");
-        }
-    }
-
-    private Preferences getPreferences() {
-        try {
-            return mBucketPreferences.get(PREFERENCES_OBJECT_KEY);
-        } catch (BucketObjectMissingException exception) {
-            try {
-                Preferences preferences = mBucketPreferences.newObject(PREFERENCES_OBJECT_KEY);
-                preferences.save();
-                return preferences;
-            } catch (BucketObjectNameInvalid invalid) {
-                Log.e("getPreferences", "Could not create preferences entity", invalid);
-                return null;
-            }
-        }
-    }
-
-    private void getSearchItems() {
-        Preferences preferences = getPreferences();
-
-        if (preferences != null) {
-            ArrayList<Suggestion> suggestions = new ArrayList<>();
-
-            for (String recent : preferences.getRecentSearches()) {
-                suggestions.add(new Suggestion(recent, HISTORY));
-            }
-
-            mSuggestionAdapter.updateItems(suggestions);
-        } else {
-            Log.e("getSearchItems", "Could not get preferences entity");
-        }
-    }
-
-    private void getTagSuggestions(String query) {
-        ArrayList<Suggestion> suggestions = new ArrayList<>();
-        suggestions.add(new Suggestion(query, QUERY));
-        Query<Tag> tags = Tag.all(mBucketTag).reorder().order(Tag.NOTE_COUNT_INDEX_NAME, Query.SortType.DESCENDING);
-
-        if (!query.endsWith(TAG_PREFIX)) {
-            tags.where(NAME_PROPERTY, Query.ComparisonType.LIKE, "%" + query + "%");
-        }
-
-        try (ObjectCursor<Tag> cursor = tags.execute()) {
-            while (cursor.moveToNext()) {
-                suggestions.add(new Suggestion(cursor.getObject().getName(), TAG));
-            }
-        }
-
-        mSuggestionAdapter = new SuggestionAdapter(suggestions);
-        mSuggestionList.setAdapter(mSuggestionAdapter);
-    }
-
-    @Override
-    public void onLocalQueueChange(Bucket<Preferences> bucket, Set<String> queuedObjects) {
-
-    }
-
-    @Override
-    public void onSyncObject(Bucket<Preferences> bucket, String key) {
-
+        mViewModel.addRecentSearch(item, index);
     }
 
     /**
@@ -1082,20 +938,21 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
 
             // for performance reasons we are going to get indexed values
             // from the cursor instead of instantiating the entire bucket object
+            boolean isSearching = mViewModel.isSearching();
             holder.mContent.setVisibility(mIsCondensedNoteList ? View.GONE : View.VISIBLE);
             mCursor.moveToPosition(position);
             holder.setNoteId(mCursor.getSimperiumKey());
             Calendar date = getDateByPreference(mCursor.getObject());
             holder.mDate.setText(date != null ? DateTimeUtils.getDateTextNumeric(date) : "");
-            holder.mDate.setVisibility(mIsSearching && date != null ? View.VISIBLE : View.GONE);
+            holder.mDate.setVisibility(isSearching && date != null ? View.VISIBLE : View.GONE);
             boolean hasCollaborators = mCursor.getObject().hasCollaborators();
-            holder.mHasCollaborators.setVisibility(!hasCollaborators || mIsSearching ? View.GONE : View.VISIBLE);
+            holder.mHasCollaborators.setVisibility(!hasCollaborators || isSearching ? View.GONE : View.VISIBLE);
             boolean isPinned = mCursor.getObject().isPinned();
-            holder.mPinned.setVisibility(!isPinned || mIsSearching ? View.GONE : View.VISIBLE);
+            holder.mPinned.setVisibility(!isPinned || isSearching ? View.GONE : View.VISIBLE);
             boolean isPublished = !mCursor.getObject().getPublishedUrl().isEmpty();
-            holder.mPublished.setVisibility(!isPublished || mIsSearching ? View.GONE : View.VISIBLE);
+            holder.mPublished.setVisibility(!isPublished || isSearching ? View.GONE : View.VISIBLE);
             boolean showIcons = isPinned || isPublished || hasCollaborators;
-            boolean showDate = mIsSearching && date != null;
+            boolean showDate = isSearching && date != null;
             holder.mStatus.setVisibility(showIcons || showDate ? View.VISIBLE : View.GONE);
             String title = mCursor.getString(mCursor.getColumnIndexOrThrow(Note.TITLE_INDEX_NAME));
 
@@ -1131,7 +988,9 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
                 matchOffsetsIndex = mCursor.getColumnIndexOrThrow("match_offsets");
             } catch (IllegalArgumentException ignored) {}
 
-            if (hasSearchQuery() && matchOffsetsIndex != -1) {
+            // Snippet rendering keys off the delivered search snapshot, never the live query
+            // text, so it can only see columns the displayed cursor was actually built with.
+            if (!TextUtils.isEmpty(mRenderedSearchSnapshot) && matchOffsetsIndex != -1) {
                 title = mCursor.getString(mCursor.getColumnIndexOrThrow(Note.MATCHED_TITLE_INDEX_NAME));
                 String snippet = mCursor.getString(mCursor.getColumnIndexOrThrow(Note.MATCHED_CONTENT_INDEX_NAME));
                 holder.mMatchOffsets = mCursor.getString(matchOffsetsIndex);
@@ -1198,46 +1057,6 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         }
     }
 
-    @Override
-    public void onBeforeUpdateObject(Bucket<Preferences> bucket, Preferences object) {
-    }
-
-    @Override
-    public void onDeleteObject(Bucket<Preferences> bucket, Preferences object) {
-        if (isAdded()) {
-            requireActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    getSearchItems();
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onNetworkChange(Bucket<Preferences> bucket, Bucket.ChangeType type, String key) {
-        if (isAdded()) {
-            requireActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    getSearchItems();
-                }
-            });
-        }
-    }
-
-    @Override
-    public void onSaveObject(Bucket<Preferences> bucket, Preferences object) {
-        if (isAdded()) {
-            requireActivity().runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    getSearchItems();
-                }
-            });
-        }
-    }
-
     private class SuggestionAdapter extends RecyclerView.Adapter<SuggestionAdapter.ViewHolder> {
         private final List<Suggestion> mSuggestions;
 
@@ -1284,7 +1103,7 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
                     }
 
                     final String item = holder.mSuggestionText.getText().toString();
-                    deleteSearchItem(item);
+                    mViewModel.removeRecentSearch(item);
                     Snackbar
                         .make(getRootView(), R.string.snackbar_deleted_recent_search, Snackbar.LENGTH_LONG)
                         .setAction(
@@ -1292,7 +1111,7 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
                             new View.OnClickListener() {
                                 @Override
                                 public void onClick(View view) {
-                                    addSearchItem(item, mDeletedItemIndex);
+                                    mViewModel.restoreRemovedRecentSearch(item);
                                 }
                             }
                         )
@@ -1455,45 +1274,6 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         });
 
         popup.show();
-    }
-
-    private static class RefreshListForSearchTask extends AsyncTask<Void, Void, ObjectCursor<Note>> {
-        private SoftReference<NoteListFragment> mNoteListFragmentReference;
-
-        private RefreshListForSearchTask(NoteListFragment context) {
-            mNoteListFragmentReference = new SoftReference<>(context);
-        }
-
-        @Override
-        protected ObjectCursor<Note> doInBackground(Void... args) {
-            NoteListFragment fragment = mNoteListFragmentReference.get();
-            return fragment.queryNotesForSearch();
-        }
-
-        @Override
-        protected void onPostExecute(ObjectCursor<Note> cursor) {
-            NoteListFragment fragment = mNoteListFragmentReference.get();
-
-            if (cursor == null || fragment.getActivity() == null || fragment.getActivity().isFinishing()) {
-                return;
-            }
-
-            // While using Query.FullTextMatch, it's easy to enter an invalid term so catch the error and clear the cursor.
-            try {
-                fragment.mNotesAdapter.changeCursor(cursor);
-            } catch (SQLiteException e) {
-                Log.e(Simplenote.TAG, "Invalid SQL statement", e);
-                fragment.mNotesAdapter.changeCursor(null);
-            }
-
-            NotesActivity notesActivity = (NotesActivity) fragment.requireActivity();
-            notesActivity.updateTrashMenuItem(true);
-
-            if (fragment.mSelectedNoteId != null) {
-                fragment.setNoteSelected(fragment.mSelectedNoteId);
-                fragment.mSelectedNoteId = null;
-            }
-        }
     }
 
 }

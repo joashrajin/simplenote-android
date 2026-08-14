@@ -4,12 +4,15 @@ import androidx.test.filters.SmallTest
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.runner.AndroidJUnit4
 import com.automattic.simplenote.models.Note
+import com.automattic.simplenote.models.Tag
+import com.automattic.simplenote.models.TagItem
 import com.automattic.simplenote.repositories.NoteChange
 import com.automattic.simplenote.repositories.NoteQueryResult
 import com.automattic.simplenote.repositories.NoteReference
 import com.automattic.simplenote.repositories.NotesRepository
 import com.automattic.simplenote.repositories.PreferencesRepository
 import com.automattic.simplenote.repositories.RevisionsResult
+import com.automattic.simplenote.repositories.TagsRepository
 import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SortOrder
 import com.automattic.simplenote.viewmodels.NoteListViewModel
@@ -56,7 +59,7 @@ class NoteListFragmentLifecycleTest {
     fun detachedRefreshNeverReachesTheViewModel() {
         val fragment = newDetachedFragment()
         val repository = CountingNotesRepository()
-        setViewModel(fragment, NoteListViewModel(repository, StubPreferencesRepository()))
+        setViewModel(fragment, NoteListViewModel(repository, StubPreferencesRepository(), StubTagsRepository()))
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync { fragment.refreshList() }
 
@@ -118,8 +121,22 @@ class NoteListFragmentLifecycleTest {
         override fun analyticsEnabledSnapshot(): Boolean = false
         override suspend fun recentSearches(): List<String> = emptyList()
         override suspend fun addRecentSearch(query: String, index: Int) = Unit
-        override suspend fun removeRecentSearch(query: String) = Unit
+        override suspend fun removeRecentSearch(query: String): Int = -1
         override fun preferencesChanged(): Flow<Unit> = emptyFlow()
         override suspend fun sortOrder(): SortOrder = SortOrder.MODIFIED_DESC
+    }
+
+    private class StubTagsRepository : TagsRepository {
+        override fun saveTag(tagName: String): Boolean = false
+        override fun isTagValid(tagName: String): Boolean = false
+        override fun isTagMissing(tagName: String): Boolean = false
+        override fun isTagConflict(tagName: String, oldTagName: String): Boolean = false
+        override fun getCanonicalTagName(tagName: String): String = tagName
+        override fun renameTag(tagName: String, oldTag: Tag): Boolean = false
+        override suspend fun allTags(): List<TagItem> = emptyList()
+        override suspend fun searchTags(query: String): List<TagItem> = emptyList()
+        override suspend fun suggestTags(query: String): List<String> = emptyList()
+        override suspend fun deleteTag(tag: Tag) = Unit
+        override suspend fun tagsChanged(): Flow<Boolean> = emptyFlow()
     }
 }

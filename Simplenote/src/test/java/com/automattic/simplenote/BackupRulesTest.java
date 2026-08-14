@@ -15,13 +15,16 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 public class BackupRulesTest {
     private static final String SIMPERIUM_PREFS = "simperium.xml";
+    private static final String[] TRACKS_DATABASE_PATHS = {
+        "tracks.db", "tracks.db-journal", "tracks.db-wal", "tracks.db-shm"
+    };
 
     @Test
     public void legacyBackupRulesExcludeSimperiumSessionPreferences() throws Exception {
         Document rules = parse("src/main/res/xml/backup_rules.xml");
 
         assertEquals("full-backup-content", rules.getDocumentElement().getTagName());
-        assertTrue(hasSharedPrefExclusion(rules.getDocumentElement()));
+        assertTrue(hasExclusion(rules.getDocumentElement(), "sharedpref", SIMPERIUM_PREFS));
     }
 
     @Test
@@ -32,7 +35,28 @@ public class BackupRulesTest {
         for (String transport : new String[]{"cloud-backup", "device-transfer"}) {
             NodeList sections = rules.getElementsByTagName(transport);
             assertEquals(transport, 1, sections.getLength());
-            assertTrue(transport, hasSharedPrefExclusion((Element) sections.item(0)));
+            assertTrue(transport, hasExclusion((Element) sections.item(0), "sharedpref", SIMPERIUM_PREFS));
+        }
+    }
+
+    @Test
+    public void legacyBackupRulesExcludeTracksDeliveryQueue() throws Exception {
+        Document rules = parse("src/main/res/xml/backup_rules.xml");
+
+        for (String path : TRACKS_DATABASE_PATHS) {
+            assertTrue(path, hasExclusion(rules.getDocumentElement(), "database", path));
+        }
+    }
+
+    @Test
+    public void dataExtractionRulesExcludeTracksDeliveryQueueFromBothTransports() throws Exception {
+        Document rules = parse("src/main/res/xml/data_extraction_rules.xml");
+
+        for (String transport : new String[]{"cloud-backup", "device-transfer"}) {
+            Element section = (Element) rules.getElementsByTagName(transport).item(0);
+            for (String path : TRACKS_DATABASE_PATHS) {
+                assertTrue(transport + "/" + path, hasExclusion(section, "database", path));
+            }
         }
     }
 
@@ -45,7 +69,7 @@ public class BackupRulesTest {
         return DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(file);
     }
 
-    private static boolean hasSharedPrefExclusion(Element section) {
+    private static boolean hasExclusion(Element section, String domain, String path) {
         NodeList excludes = section.getElementsByTagName("exclude");
         for (int index = 0; index < excludes.getLength(); index++) {
             Node exclude = excludes.item(index);
@@ -53,8 +77,7 @@ public class BackupRulesTest {
                 continue;
             }
             Element element = (Element) exclude;
-            if ("sharedpref".equals(element.getAttribute("domain"))
-                    && SIMPERIUM_PREFS.equals(element.getAttribute("path"))) {
+            if (domain.equals(element.getAttribute("domain")) && path.equals(element.getAttribute("path"))) {
                 return true;
             }
         }

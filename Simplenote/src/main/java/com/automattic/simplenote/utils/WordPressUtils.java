@@ -2,11 +2,8 @@
 package com.automattic.simplenote.utils;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.text.TextUtils;
-
-import androidx.preference.PreferenceManager;
 
 import com.automattic.simplenote.BuildConfig;
 import com.automattic.simplenote.Simplenote;
@@ -39,16 +36,15 @@ public class WordPressUtils {
         }
 
 
-        return !TextUtils.isEmpty(PrefUtils.getStringPref(context, PrefUtils.PREF_WP_TOKEN));
+        return !TextUtils.isEmpty(getWPToken(context));
     }
 
     // Publish a post to a WordPress site via the WordPress.com REST API
     public static void publishPost(Context context, String url, String title, String content, String status, Callback callback) {
-        if (!hasWPToken(context)) {
+        String wpToken = getWPToken(context);
+        if (TextUtils.isEmpty(wpToken)) {
             return;
         }
-
-        String wpToken = PrefUtils.getStringPref(context, PrefUtils.PREF_WP_TOKEN);
 
         OkHttpClient client = new OkHttpClient().newBuilder().readTimeout(30, TimeUnit.SECONDS).build();
         RequestBody requestBody = new MultipartBody.Builder()
@@ -68,11 +64,10 @@ public class WordPressUtils {
 
     // Returns a list of sites that a user has on WordPress.com
     public static void getSites(Context context, Callback callback) {
-        if (!hasWPToken(context)) {
+        String wpToken = getWPToken(context);
+        if (TextUtils.isEmpty(wpToken)) {
             return;
         }
-
-        String wpToken = PrefUtils.getStringPref(context, PrefUtils.PREF_WP_TOKEN);
 
         OkHttpClient client = new OkHttpClient().newBuilder().readTimeout(30, TimeUnit.SECONDS).build();
         Request request = new Request.Builder()
@@ -113,9 +108,9 @@ public class WordPressUtils {
         }
 
         if (wpToken != null) {
-            SharedPreferences.Editor appEditor = PreferenceManager.getDefaultSharedPreferences(app.getApplicationContext()).edit();
-            appEditor.putString(PrefUtils.PREF_WP_TOKEN, wpToken);
-            appEditor.apply();
+            if (!WordPressTokenStore.from(app).setToken(wpToken)) {
+                return false;
+            }
         }
 
         if (!shouldAuthSimperiumUser) {
@@ -125,5 +120,13 @@ public class WordPressUtils {
         app.loginWithToken(userEmail, spToken);
 
         return true;
+    }
+
+    private static String getWPToken(Context context) {
+        if (context == null) {
+            return "";
+        }
+
+        return WordPressTokenStore.from(context).getToken();
     }
 }

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <full-backup-content>
     <exclude domain="sharedpref" path="simperium.xml" />
+    <exclude domain="sharedpref" path="wordpress_auth.xml" />
     <exclude domain="database" path="tracks.db" />
     <exclude domain="database" path="tracks.db-journal" />
     <exclude domain="database" path="tracks.db-wal" />

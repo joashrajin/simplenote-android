@@ -17,6 +17,7 @@ import androidx.lifecycle.testing.TestLifecycleOwner
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
@@ -302,6 +303,7 @@ class NotesActivityStreamsTest {
         }
 
         override fun noteChanges(): Flow<NoteChange> = changes
+        override fun observeNote(key: String): Flow<Note?> = flowOf(notes[key])
 
         override suspend fun getNote(key: String): Note? {
             lookups.add(key)

@@ -10,7 +10,8 @@ import java.util.Calendar
 /**
  * Read surface over the notes bucket. Each method reproduces an existing query shape:
  * [search] the note list queries behind SearchQueryBuilder, [getNote] the bucket lookups that
- * treat a missing object as absence, [trashedNoteCount] NotesActivity.updateTrashMenuItem,
+ * treat a missing object as absence, [observeNote] the listener-before-snapshot stream used by
+ * the markdown preview, [trashedNoteCount] NotesActivity.updateTrashMenuItem,
  * [interlinkSuggestions] the NoteEditorFragment link autocomplete, [referencesTo]
  * Note.getReferences as InfoBottomSheetDialog consumes it, and [hasUnsyncedNotes] plus
  * [allNotesForExport] the PreferencesFragment logout and export scans.
@@ -26,6 +27,15 @@ import java.util.Calendar
 interface NotesRepository {
     suspend fun search(request: NoteSearchRequest): NoteQueryResult
     suspend fun getNote(key: String): Note?
+
+    /**
+     * Emits the current note after attaching its save/delete listeners, then emits refreshed
+     * snapshots for matching saves and null for a matching deletion. A callback observed while
+     * a snapshot is being read supersedes that snapshot, and callback bursts may coalesce to
+     * their latest state.
+     */
+    fun observeNote(key: String): Flow<Note?>
+
     suspend fun trashedNoteCount(): Int
     suspend fun interlinkSuggestions(titleFilter: String, sort: SortOrder): NoteQueryResult
     suspend fun referencesTo(key: String): List<NoteReference>

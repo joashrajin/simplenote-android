@@ -21,45 +21,49 @@ class NoteMarkdownViewModel @Inject constructor(
     private val _uiState = MutableStateFlow<NoteMarkdownState>(NoteMarkdownState.Idle)
     val uiState: StateFlow<NoteMarkdownState> = _uiState.asStateFlow()
 
-    private var loadJob: Job? = null
+    private var observationJob: Job? = null
     private var requestSequence = 0L
+    private var stateSequence = 0L
 
     fun loadNote(noteKey: String) {
         val requestId = ++requestSequence
-        loadJob?.cancel()
-        _uiState.value = NoteMarkdownState.Loading(requestId, noteKey)
-        loadJob = viewModelScope.launch {
+        observationJob?.cancel()
+        _uiState.value = NoteMarkdownState.Loading(nextStateId(), noteKey)
+        observationJob = viewModelScope.launch {
             try {
-                val note = notesRepository.getNote(noteKey)
-                if (!isActive || requestId != requestSequence) {
-                    return@launch
-                }
-                _uiState.value = if (note == null) {
-                    NoteMarkdownState.Missing(requestId, noteKey)
-                } else {
-                    NoteMarkdownState.Loaded(requestId, noteKey, note)
+                notesRepository.observeNote(noteKey).collect { note ->
+                    if (!isActive || requestId != requestSequence) {
+                        return@collect
+                    }
+                    _uiState.value = if (note == null) {
+                        NoteMarkdownState.Missing(nextStateId(), noteKey)
+                    } else {
+                        NoteMarkdownState.Loaded(nextStateId(), noteKey, note)
+                    }
                 }
             } catch (exception: CancellationException) {
                 throw exception
             } catch (exception: Exception) {
                 if (isActive && requestId == requestSequence) {
-                    _uiState.value = NoteMarkdownState.Error(requestId, noteKey, exception)
+                    _uiState.value = NoteMarkdownState.Error(nextStateId(), noteKey, exception)
                 }
             }
         }
     }
 
+    private fun nextStateId(): Long = ++stateSequence
+
     override fun onCleared() {
         requestSequence++
-        loadJob?.cancel()
+        observationJob?.cancel()
         super.onCleared()
     }
 }
 
 sealed class NoteMarkdownState {
     object Idle : NoteMarkdownState()
-    data class Loading(val requestId: Long, val noteKey: String) : NoteMarkdownState()
-    data class Loaded(val requestId: Long, val noteKey: String, val note: Note) : NoteMarkdownState()
-    data class Missing(val requestId: Long, val noteKey: String) : NoteMarkdownState()
-    data class Error(val requestId: Long, val noteKey: String, val cause: Exception) : NoteMarkdownState()
+    data class Loading(val stateId: Long, val noteKey: String) : NoteMarkdownState()
+    data class Loaded(val stateId: Long, val noteKey: String, val note: Note) : NoteMarkdownState()
+    data class Missing(val stateId: Long, val noteKey: String) : NoteMarkdownState()
+    data class Error(val stateId: Long, val noteKey: String, val cause: Exception) : NoteMarkdownState()
 }

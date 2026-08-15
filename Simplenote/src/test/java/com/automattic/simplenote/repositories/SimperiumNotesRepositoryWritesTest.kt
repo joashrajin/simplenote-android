@@ -8,12 +8,15 @@ import com.simperium.client.BucketObjectMissingException
 import com.simperium.client.Query
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -21,6 +24,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
@@ -354,6 +358,298 @@ class SimperiumNotesRepositoryWritesTest {
         verify(notesBucket).removeOnNetworkChangeListener(networkListener)
         verify(notesBucket).removeOnSaveObjectListener(saveListener)
         verify(notesBucket).removeOnDeleteObjectListener(deleteListener)
+    }
+
+    @Test
+    fun observeNoteAttachesListenersBeforeReadingTheInitialSnapshot() = runTest {
+        val note = noteWithKey("key1")
+        var saveListenerAdded = false
+        var deleteListenerAdded = false
+        doAnswer {
+            saveListenerAdded = true
+            null
+        }.whenever(notesBucket).addOnSaveObjectListener(any())
+        doAnswer {
+            deleteListenerAdded = true
+            null
+        }.whenever(notesBucket).addOnDeleteObjectListener(any())
+        whenever(notesBucket.get("key1")).thenAnswer {
+            assertTrue(saveListenerAdded)
+            assertTrue(deleteListenerAdded)
+            note
+        }
+
+        val values = repository.observeNote("key1").take(1).toList()
+
+        assertEquals(listOf(note), values)
+    }
+
+    @Test
+    fun observeNoteEmitsNullWhenTheInitialSnapshotIsMissing() = runTest {
+        whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
+
+        val values = repository.observeNote("missing").take(1).toList()
+
+        assertEquals(listOf<Note?>(null), values)
+    }
+
+    @Test
+    fun saveObservedDuringTheInitialReadSupersedesTheStaleSnapshot() = runTest {
+        val stale = noteWithKey("key1")
+        val fresh = noteWithKey("key1")
+        lateinit var saveListener: Bucket.OnSaveObjectListener<Note>
+        doAnswer {
+            saveListener = it.getArgument(0)
+            null
+        }.whenever(notesBucket).addOnSaveObjectListener(any())
+        var reads = 0
+        whenever(notesBucket.get("key1")).thenAnswer {
+            reads++
+            if (reads == 1) {
+                saveListener.onSaveObject(notesBucket, fresh)
+                stale
+            } else {
+                fresh
+            }
+        }
+
+        val values = repository.observeNote("key1").take(1).toList()
+
+        assertEquals(listOf(fresh), values)
+        assertEquals(2, reads)
+    }
+
+    @Test
+    fun observeNoteRefreshesOnlyForTheObservedKey() = runTest {
+        val initial = noteWithKey("key1")
+        val refreshed = noteWithKey("key1")
+        whenever(notesBucket.get("key1")).thenReturn(initial, refreshed)
+        val values = mutableListOf<Note?>()
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect(values::add)
+        }
+        runCurrent()
+        val saveListener = savedNoteListener()
+        val deleteListener = deletedNoteListener()
+
+        saveListener.onSaveObject(notesBucket, noteWithKey("other"))
+        deleteListener.onDeleteObject(notesBucket, noteWithKey("other"))
+        runCurrent()
+
+        assertEquals(listOf(initial), values)
+        verify(notesBucket).get("key1")
+        job.cancel()
+    }
+
+    @Test
+    fun observeNoteRereadsAfterAMatchingSave() = runTest {
+        val initial = noteWithKey("key1")
+        val refreshed = noteWithKey("key1")
+        whenever(notesBucket.get("key1")).thenReturn(initial, refreshed)
+        val values = mutableListOf<Note?>()
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect(values::add)
+        }
+        runCurrent()
+
+        savedNoteListener().onSaveObject(notesBucket, refreshed)
+        runCurrent()
+
+        assertEquals(listOf(initial, refreshed), values)
+        job.cancel()
+    }
+
+    @Test
+    fun observeNoteRecoversWhenASaveRefreshFails() = runTest {
+        val initial = noteWithKey("key1")
+        val recovered = noteWithKey("key1")
+        val failure = IllegalStateException("read failed")
+        whenever(notesBucket.get("key1"))
+            .thenReturn(initial)
+            .thenThrow(failure)
+            .thenReturn(recovered)
+        val values = mutableListOf<Note?>()
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect(values::add)
+        }
+        runCurrent()
+        val saveListener = savedNoteListener()
+        val deleteListener = deletedNoteListener()
+
+        saveListener.onSaveObject(notesBucket, recovered)
+        runCurrent()
+        assertEquals(listOf(initial), values)
+        verify(notesBucket, never()).removeOnSaveObjectListener(saveListener)
+        verify(notesBucket, never()).removeOnDeleteObjectListener(deleteListener)
+
+        saveListener.onSaveObject(notesBucket, recovered)
+        runCurrent()
+
+        assertEquals(listOf(initial, recovered), values)
+        job.cancel()
+    }
+
+    @Test
+    fun observeNoteSaveDeleteBurstEndsDeleted() = runTest {
+        val initial = noteWithKey("key1")
+        whenever(notesBucket.get("key1")).thenReturn(initial)
+        val values = mutableListOf<Note?>()
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect(values::add)
+        }
+        runCurrent()
+
+        savedNoteListener().onSaveObject(notesBucket, initial)
+        deletedNoteListener().onDeleteObject(notesBucket, initial)
+        runCurrent()
+
+        assertSame(initial, values.first())
+        assertNull(values.last())
+        job.cancel()
+    }
+
+    @Test
+    fun observeNoteDeleteSaveBurstEndsWithTheFreshSnapshot() = runTest {
+        val initial = noteWithKey("key1")
+        val refreshed = noteWithKey("key1")
+        whenever(notesBucket.get("key1")).thenReturn(initial, refreshed)
+        val values = mutableListOf<Note?>()
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect(values::add)
+        }
+        runCurrent()
+
+        deletedNoteListener().onDeleteObject(notesBucket, initial)
+        savedNoteListener().onSaveObject(notesBucket, refreshed)
+        runCurrent()
+
+        assertSame(initial, values.first())
+        assertSame(refreshed, values.last())
+        job.cancel()
+    }
+
+    @Test
+    fun observeNoteEmitsNullAfterAMatchingDeleteWithoutAnotherRead() = runTest {
+        val initial = noteWithKey("key1")
+        whenever(notesBucket.get("key1")).thenReturn(initial)
+        val values = mutableListOf<Note?>()
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect(values::add)
+        }
+        runCurrent()
+
+        deletedNoteListener().onDeleteObject(notesBucket, initial)
+        runCurrent()
+
+        assertSame(initial, values.first())
+        assertNull(values.last())
+        assertEquals(2, values.size)
+        verify(notesBucket).get("key1")
+        job.cancel()
+    }
+
+    @Test
+    fun observeNoteCancellationRemovesTheExactListeners() = runTest {
+        val note = noteWithKey("key1")
+        whenever(notesBucket.get("key1")).thenReturn(note)
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect {}
+        }
+        runCurrent()
+        val saveListener = savedNoteListener()
+        val deleteListener = deletedNoteListener()
+
+        job.cancel()
+        advanceUntilIdle()
+
+        verify(notesBucket).removeOnSaveObjectListener(saveListener)
+        verify(notesBucket).removeOnDeleteObjectListener(deleteListener)
+    }
+
+    @Test
+    fun observeNoteReadFailurePropagatesAndRemovesTheExactListeners() = runTest {
+        val failure = IllegalStateException("read failed")
+        whenever(notesBucket.get("key1")).thenThrow(failure)
+
+        val result = runCatching {
+            repository.observeNote("key1").collect {}
+        }
+        val saveListener = savedNoteListener()
+        val deleteListener = deletedNoteListener()
+
+        val propagated = result.exceptionOrNull()
+        assertEquals(failure::class, propagated?.let { it::class })
+        assertEquals(failure.message, propagated?.message)
+        assertTrue(propagated === failure || propagated?.cause === failure)
+        verify(notesBucket).removeOnSaveObjectListener(saveListener)
+        verify(notesBucket).removeOnDeleteObjectListener(deleteListener)
+    }
+
+    @Test
+    fun observeNoteFailsWhenASaveSupersedesTheInitialReadButNoSnapshotWasDelivered() = runTest {
+        val failure = IllegalStateException("read failed")
+        val saved = noteWithKey("key1")
+        lateinit var saveListener: Bucket.OnSaveObjectListener<Note>
+        doAnswer {
+            saveListener = it.getArgument(0)
+            null
+        }.whenever(notesBucket).addOnSaveObjectListener(any())
+        var reads = 0
+        whenever(notesBucket.get("key1")).thenAnswer {
+            reads++
+            if (reads == 1) {
+                saveListener.onSaveObject(notesBucket, saved)
+            }
+            throw failure
+        }
+
+        val result = runCatching {
+            repository.observeNote("key1").collect {}
+        }
+        val deleteListener = deletedNoteListener()
+
+        assertEquals(failure.message, result.exceptionOrNull()?.message)
+        assertEquals(2, reads)
+        verify(notesBucket).removeOnSaveObjectListener(saveListener)
+        verify(notesBucket).removeOnDeleteObjectListener(deleteListener)
+    }
+
+    @Test
+    fun observeNoteTreatsADeleteAsTheFirstSnapshotAndRecoversAfterASaveReadFailure() = runTest {
+        val stale = noteWithKey("key1")
+        val recovered = noteWithKey("key1")
+        val failure = IllegalStateException("read failed")
+        lateinit var deleteListener: Bucket.OnDeleteObjectListener<Note>
+        doAnswer {
+            deleteListener = it.getArgument(0)
+            null
+        }.whenever(notesBucket).addOnDeleteObjectListener(any())
+        whenever(notesBucket.get("key1"))
+            .thenAnswer {
+                deleteListener.onDeleteObject(notesBucket, stale)
+                stale
+            }
+            .thenThrow(failure)
+            .thenReturn(recovered)
+        val values = mutableListOf<Note?>()
+        val job = launch(coroutinesTestRule.testDispatcher) {
+            repository.observeNote("key1").collect(values::add)
+        }
+        runCurrent()
+        val saveListener = savedNoteListener()
+        assertEquals(listOf<Note?>(null), values)
+
+        saveListener.onSaveObject(notesBucket, recovered)
+        runCurrent()
+        assertEquals(listOf<Note?>(null), values)
+        verify(notesBucket, never()).removeOnSaveObjectListener(saveListener)
+        verify(notesBucket, never()).removeOnDeleteObjectListener(deleteListener)
+
+        saveListener.onSaveObject(notesBucket, recovered)
+        runCurrent()
+
+        assertEquals(listOf(null, recovered), values)
+        job.cancel()
     }
 
     private fun noteWithKey(key: String): Note {

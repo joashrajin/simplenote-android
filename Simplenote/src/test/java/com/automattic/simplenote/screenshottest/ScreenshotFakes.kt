@@ -18,6 +18,7 @@ import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SortOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 
 /**
  * Deterministic in-memory repositories backing the screenshot surfaces. They replace the
@@ -59,6 +60,7 @@ class ScreenshotCollaboratorsRepository : CollaboratorsRepository {
 class ScreenshotNotesRepository : NotesRepository {
     override suspend fun search(request: NoteSearchRequest): NoteQueryResult = NoteQueryResult.InvalidQuery
     override suspend fun getNote(key: String): Note? = null
+    override fun observeNote(key: String): Flow<Note?> = flowOf(null)
     override suspend fun trashedNoteCount(): Int = 0
     override suspend fun interlinkSuggestions(titleFilter: String, sort: SortOrder): NoteQueryResult =
         NoteQueryResult.InvalidQuery

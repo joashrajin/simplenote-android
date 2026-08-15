@@ -68,14 +68,12 @@ class SimperiumTagsRepository @Inject constructor(
     }
 
     private fun deleteTagFromNotes(tag: Tag) {
-        val cursor = tag.findNotes(notesBucket, tag.name)
-
-        while (cursor.moveToNext()) {
-            val note = cursor.getObject()
-            note.removeTag(tag.name)
+        tag.findNotes(notesBucket, tag.name).use { cursor ->
+            while (cursor.moveToNext()) {
+                val note = cursor.getObject()
+                note.removeTag(tag.name)
+            }
         }
-
-        cursor.close()
     }
 
     override suspend fun tagsChanged(): Flow<Boolean> = callbackFlow {
@@ -98,9 +96,7 @@ class SimperiumTagsRepository @Inject constructor(
 
     override suspend fun allTags(): List<TagItem> = withContext(ioDispatcher) {
         val tagQuery = Tag.all(tagsBucket).reorder().orderByKey().include(Tag.NOTE_COUNT_INDEX_NAME)
-        val cursor = tagQuery.execute()
-
-        return@withContext cursorToTagItems(cursor)
+        tagQuery.execute().use { cursor -> cursorToTagItems(cursor) }
     }
 
     override suspend fun searchTags(query: String): List<TagItem> = withContext(ioDispatcher) {
@@ -108,9 +104,7 @@ class SimperiumTagsRepository @Inject constructor(
                 .where(Tag.NAME_PROPERTY, Query.ComparisonType.LIKE, "%$query%")
                 .orderByKey().include(Tag.NOTE_COUNT_INDEX_NAME)
                 .reorder()
-        val cursor = tags.execute()
-
-        return@withContext cursorToTagItems(cursor)
+        tags.execute().use { cursor -> cursorToTagItems(cursor) }
     }
 
     override suspend fun suggestTags(query: String): List<String> = withContext(ioDispatcher) {

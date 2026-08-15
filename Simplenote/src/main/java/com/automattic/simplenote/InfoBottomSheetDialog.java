@@ -1,5 +1,6 @@
 package com.automattic.simplenote;
 
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -11,21 +12,23 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.Observer;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
-import com.automattic.simplenote.models.Reference;
+import com.automattic.simplenote.repositories.NoteReference;
 import com.automattic.simplenote.utils.DateTimeUtils;
 import com.automattic.simplenote.utils.DisplayUtils;
 import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.SimplenoteLinkify;
+import com.automattic.simplenote.viewmodels.InfoBottomSheetViewModel;
+import com.automattic.simplenote.viewmodels.ReferenceState;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.simperium.client.Bucket;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -34,7 +37,14 @@ import java.util.List;
 public class InfoBottomSheetDialog extends BottomSheetDialogBase {
     public static final String TAG = InfoBottomSheetDialog.class.getSimpleName();
 
-    private final Fragment mFragment;
+    private static final String ARG_CHARACTER_COUNT = "character_count";
+    private static final String ARG_CREATED = "created";
+    private static final String ARG_MODIFIED = "modified";
+    private static final String ARG_NOTE_KEY = "note_key";
+    private static final String ARG_WORD_COUNT = "word_count";
+    private static final long NO_REQUEST = 0L;
+
+    private final Observer<ReferenceState> mReferenceObserver = this::onReferenceStateChanged;
 
     private LinearLayout mDateTimeSyncedLayout;
     private LinearLayout mReferencesLayout;
@@ -44,9 +54,19 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
     private TextView mDateTimeCreated;
     private TextView mDateTimeModified;
     private TextView mDateTimeSynced;
+    private InfoBottomSheetViewModel mViewModel;
+    private String mNoteKey;
+    private long mReferenceRequest = NO_REQUEST;
 
-    public InfoBottomSheetDialog(@NonNull Fragment fragment) {
-        mFragment = fragment;
+    public InfoBottomSheetDialog() {
+    }
+
+    @NonNull
+    @Override
+    public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
+        Dialog dialog = super.onCreateDialog(savedInstanceState);
+        setRetainInstance(false);
+        return dialog;
     }
 
     @Nullable
@@ -61,6 +81,7 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
         mDateTimeSyncedLayout = infoView.findViewById(R.id.date_time_synced_layout);
         mReferencesLayout = infoView.findViewById(R.id.references_layout);
         mReferences = infoView.findViewById(R.id.references);
+        mReferences.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         if (getDialog() != null) {
             // Set peek height to half height of screen.
@@ -78,52 +99,124 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
                     }
                 }
             });
-
-            getDialog().setContentView(infoView);
         }
 
-        return super.onCreateView(inflater, container, savedInstanceState);
+        return infoView;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Bundle arguments = requireArguments();
+        mNoteKey = arguments.getString(ARG_NOTE_KEY);
+        mCountCharacters.setText(arguments.getString(ARG_CHARACTER_COUNT));
+        mCountWords.setText(arguments.getString(ARG_WORD_COUNT));
+        mDateTimeCreated.setText(DateTimeUtils.getDateTextString(
+                requireContext(),
+                calendarFromMillis(arguments.getLong(ARG_CREATED))
+        ));
+        mDateTimeModified.setText(DateTimeUtils.getDateTextString(
+                requireContext(),
+                calendarFromMillis(arguments.getLong(ARG_MODIFIED))
+        ));
+
+        Calendar sync = ((Simplenote) requireActivity().getApplication())
+                .getNoteSyncTimes()
+                .getLastSyncTime(mNoteKey);
+        if (sync != null) {
+            mDateTimeSynced.setText(DateTimeUtils.getDateTextString(requireContext(), sync));
+            mDateTimeSyncedLayout.setVisibility(View.VISIBLE);
+        } else {
+            mDateTimeSyncedLayout.setVisibility(View.GONE);
+        }
+
+        mViewModel = new ViewModelProvider(requireActivity()).get(InfoBottomSheetViewModel.class);
+        mReferenceRequest = mViewModel.loadReferences(mNoteKey);
+        mViewModel.getReferenceState().observe(getViewLifecycleOwner(), mReferenceObserver);
     }
 
     public void show(FragmentManager manager, Note note) {
-        if (mFragment.isAdded()) {
-            showNow(manager, TAG);
-            mCountCharacters.setText(NoteUtils.getCharactersCount(note.getContent()));
-            mCountWords.setText(NoteUtils.getWordCount(note.getContent()));
-            mDateTimeCreated.setText(DateTimeUtils.getDateTextString(requireContext(), note.getCreationDate()));
-            mDateTimeModified.setText(DateTimeUtils.getDateTextString(requireContext(), note.getModificationDate()));
-            Calendar sync = ((Simplenote) requireActivity().getApplication()).getNoteSyncTimes().getLastSyncTime(note.getSimperiumKey());
+        Bundle arguments = new Bundle();
+        arguments.putString(ARG_NOTE_KEY, note.getSimperiumKey());
+        arguments.putString(ARG_CHARACTER_COUNT, NoteUtils.getCharactersCount(note.getContent()));
+        arguments.putString(ARG_WORD_COUNT, NoteUtils.getWordCount(note.getContent()));
+        arguments.putLong(ARG_CREATED, note.getCreationDate().getTimeInMillis());
+        arguments.putLong(ARG_MODIFIED, note.getModificationDate().getTimeInMillis());
+        setArguments(arguments);
+        showNow(manager, TAG);
+    }
 
-            if (sync != null) {
-                mDateTimeSynced.setText(DateTimeUtils.getDateTextString(requireContext(), sync));
-                mDateTimeSyncedLayout.setVisibility(View.VISIBLE);
-            } else {
-                mDateTimeSyncedLayout.setVisibility(View.GONE);
+    @Override
+    public void onDismiss(@NonNull DialogInterface dialog) {
+        stopReferenceLoad();
+        super.onDismiss(dialog);
+    }
+
+    @Override
+    public void onDestroyView() {
+        stopReferenceLoad();
+        super.onDestroyView();
+    }
+
+    private void onReferenceStateChanged(ReferenceState state) {
+        if (state instanceof ReferenceState.Loaded) {
+            ReferenceState.Loaded loaded = (ReferenceState.Loaded) state;
+            if (isCurrentRequest(loaded.getRequestId(), loaded.getNoteKey())) {
+                showReferences(loaded.getReferences());
             }
-
-            getReferences(note);
+        } else if (state instanceof ReferenceState.Loading) {
+            ReferenceState.Loading loading = (ReferenceState.Loading) state;
+            if (isCurrentRequest(loading.getRequestId(), loading.getNoteKey())) {
+                hideReferences();
+            }
+        } else if (state instanceof ReferenceState.Error) {
+            ReferenceState.Error error = (ReferenceState.Error) state;
+            if (isCurrentRequest(error.getRequestId(), error.getNoteKey())) {
+                hideReferences();
+            }
         }
     }
 
-    private void getReferences(Note note) {
-        Simplenote application = (Simplenote) mFragment.requireActivity().getApplicationContext();
-        Bucket<Note> bucket = application.getNotesBucket();
-        List<Reference> references = Note.getReferences(bucket, note.getSimperiumKey());
-
+    private void showReferences(List<NoteReference> references) {
         if (references.size() > 0) {
             mReferencesLayout.setVisibility(View.VISIBLE);
             ReferenceAdapter adapter = new ReferenceAdapter(references);
             mReferences.setAdapter(adapter);
-            mReferences.setLayoutManager(new LinearLayoutManager(requireContext()));
         } else {
-            mReferencesLayout.setVisibility(View.GONE);
+            hideReferences();
         }
     }
 
-    private class ReferenceAdapter extends RecyclerView.Adapter<ReferenceAdapter.ViewHolder> {
-        private final List<Reference> mReferences;
+    private void hideReferences() {
+        mReferencesLayout.setVisibility(View.GONE);
+        mReferences.setAdapter(null);
+    }
 
-        private ReferenceAdapter(List<Reference> references) {
+    private void stopReferenceLoad() {
+        if (mViewModel != null) {
+            mViewModel.getReferenceState().removeObserver(mReferenceObserver);
+            if (mReferenceRequest != NO_REQUEST) {
+                mViewModel.cancelReferences(mReferenceRequest);
+            }
+        }
+        mReferenceRequest = NO_REQUEST;
+        mNoteKey = null;
+    }
+
+    private boolean isCurrentRequest(long requestId, String noteKey) {
+        return requestId == mReferenceRequest && noteKey.equals(mNoteKey);
+    }
+
+    private Calendar calendarFromMillis(long millis) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTimeInMillis(millis);
+        return calendar;
+    }
+
+    private class ReferenceAdapter extends RecyclerView.Adapter<ReferenceAdapter.ViewHolder> {
+        private final List<NoteReference> mReferences;
+
+        private ReferenceAdapter(List<NoteReference> references) {
             mReferences = new ArrayList<>(references);
         }
 
@@ -134,7 +227,7 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
 
         @Override
         public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
-            final Reference reference = mReferences.get(position);
+            final NoteReference reference = mReferences.get(position);
             holder.mTitle.setText(reference.getTitle());
             holder.mSubtitle.setText(
                 getResources().getQuantityString(
@@ -153,7 +246,7 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
                             AnalyticsTracker.CATEGORY_LINK,
                             "internote_link_tapped_info"
                         );
-                        SimplenoteLinkify.openNote(mFragment.requireActivity(), reference.getKey());
+                        SimplenoteLinkify.openNote(requireActivity(), reference.getKey());
                     }
                 }
             );

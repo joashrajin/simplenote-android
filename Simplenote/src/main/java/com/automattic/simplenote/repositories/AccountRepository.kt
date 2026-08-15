@@ -9,14 +9,21 @@ interface AccountRepository {
     /**
      * Observes server-confirmed verification changes without emitting an initial local snapshot.
      *
-     * The flow is cold, attaches a listener for each collector, and deduplicates states only within
-     * that collection. Removing the verification object emits an unverified state immediately.
-     * Other qualifying changes read the latest local object only while the callback-time account
-     * remains active, so superseded, missing, unreadable, and stale-account snapshots are skipped
-     * while later changes remain observable.
+     * The flow is cold, attaches a listener for each collector, and deduplicates status only for
+     * the same account within that collection. Every emitted update carries the callback-time
+     * email and is emitted only while that account remains active. Removing the verification
+     * object emits an account-keyed unverified update without reading the object. Superseded,
+     * signed-out, missing, and unreadable snapshots are skipped while later changes remain
+     * observable. Consumers must still compare the update email with the active account before
+     * performing UI side effects and restart collection when the authentication session changes.
      */
-    fun verificationStatusChanges(): Flow<AccountVerificationStatus>
+    fun verificationStatusChanges(): Flow<AccountVerificationUpdate>
 }
+
+data class AccountVerificationUpdate(
+    val email: String,
+    val status: AccountVerificationStatus,
+)
 
 enum class AccountVerificationStatus {
     SENT_EMAIL,

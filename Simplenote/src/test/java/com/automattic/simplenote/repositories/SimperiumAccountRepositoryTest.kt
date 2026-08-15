@@ -146,7 +146,7 @@ class SimperiumAccountRepositoryTest {
         ioDispatcher.runAll()
         verify(accountBucket).get(KEY_EMAIL_VERIFICATION)
         runCurrent()
-        assertEquals(listOf(AccountVerificationStatus.UNVERIFIED), collected.statuses)
+        assertEquals(listOf(update(AccountVerificationStatus.UNVERIFIED)), collected.updates)
 
         collected.job.cancel()
         runCurrent()
@@ -158,13 +158,13 @@ class SimperiumAccountRepositoryTest {
         whenever(account.hasVerifiedEmail("person@example.com")).thenReturn(true)
         val collected = collectChanges()
 
-        assertTrue(collected.statuses.isEmpty())
+        assertTrue(collected.updates.isEmpty())
         verify(accountBucket, never()).get(any())
 
         networkListener().onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, "ignored")
         runCurrent()
 
-        assertEquals(listOf(AccountVerificationStatus.VERIFIED), collected.statuses)
+        assertEquals(listOf(update(AccountVerificationStatus.VERIFIED)), collected.updates)
     }
 
     @Test
@@ -178,7 +178,7 @@ class SimperiumAccountRepositoryTest {
         listener.onNetworkChange(accountBucket, Bucket.ChangeType.REMOVE, "other")
         runCurrent()
 
-        assertTrue(collected.statuses.isEmpty())
+        assertTrue(collected.updates.isEmpty())
         verify(accountBucket, never()).get(any())
 
         listener.onNetworkChange(accountBucket, Bucket.ChangeType.INSERT, KEY_EMAIL_VERIFICATION)
@@ -186,13 +186,16 @@ class SimperiumAccountRepositoryTest {
         runCurrent()
 
         assertEquals(
-            listOf(AccountVerificationStatus.SENT_EMAIL, AccountVerificationStatus.UNVERIFIED),
-            collected.statuses,
+            listOf(
+                update(AccountVerificationStatus.SENT_EMAIL),
+                update(AccountVerificationStatus.UNVERIFIED),
+            ),
+            collected.updates,
         )
     }
 
     @Test
-    fun keyedRemovalImmediatelyEmitsUnverifiedWithoutReadingUserOrBucket() = runTest {
+    fun keyedRemovalWithoutAnActiveAccountEmitsNothing() = runTest {
         whenever(simperium.user).thenReturn(null)
         val collected = collectChanges()
 
@@ -203,8 +206,22 @@ class SimperiumAccountRepositoryTest {
         )
         runCurrent()
 
-        assertEquals(listOf(AccountVerificationStatus.UNVERIFIED), collected.statuses)
-        verify(simperium, never()).user
+        assertTrue(collected.updates.isEmpty())
+        verify(accountBucket, never()).get(any())
+    }
+
+    @Test
+    fun keyedRemovalEmitsTheActiveAccountWithoutReadingTheBucket() = runTest {
+        val collected = collectChanges()
+
+        networkListener().onNetworkChange(
+            accountBucket,
+            Bucket.ChangeType.REMOVE,
+            KEY_EMAIL_VERIFICATION,
+        )
+        runCurrent()
+
+        assertEquals(listOf(update(AccountVerificationStatus.UNVERIFIED)), collected.updates)
         verify(accountBucket, never()).get(any())
     }
 
@@ -216,7 +233,7 @@ class SimperiumAccountRepositoryTest {
         networkListener().onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
         runCurrent()
 
-        assertTrue(collected.statuses.isEmpty())
+        assertTrue(collected.updates.isEmpty())
         verify(accountBucket, never()).get(any())
     }
 
@@ -228,7 +245,7 @@ class SimperiumAccountRepositoryTest {
         networkListener().onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
         runCurrent()
 
-        assertTrue(collected.statuses.isEmpty())
+        assertTrue(collected.updates.isEmpty())
     }
 
     @Test
@@ -240,12 +257,12 @@ class SimperiumAccountRepositoryTest {
 
         listener.onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
         runCurrent()
-        assertTrue(collected.statuses.isEmpty())
+        assertTrue(collected.updates.isEmpty())
         assertTrue(collected.job.isActive)
 
         listener.onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
         runCurrent()
-        assertEquals(listOf(AccountVerificationStatus.UNVERIFIED), collected.statuses)
+        assertEquals(listOf(update(AccountVerificationStatus.UNVERIFIED)), collected.updates)
     }
 
     @Test
@@ -262,12 +279,46 @@ class SimperiumAccountRepositoryTest {
 
         assertEquals(
             listOf(
-                AccountVerificationStatus.UNVERIFIED,
-                AccountVerificationStatus.SENT_EMAIL,
-                AccountVerificationStatus.VERIFIED,
+                update(AccountVerificationStatus.UNVERIFIED),
+                update(AccountVerificationStatus.SENT_EMAIL),
+                update(AccountVerificationStatus.VERIFIED),
             ),
-            collected.statuses,
+            collected.updates,
         )
+    }
+
+    @Test
+    fun theSameStatusForDifferentAccountsIsNotDeduplicated() = runTest {
+        val collected = collectChanges()
+        val listener = networkListener()
+
+        listener.onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
+        runCurrent()
+        whenever(user.email).thenReturn("second@example.com")
+        listener.onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                AccountVerificationUpdate("person@example.com", AccountVerificationStatus.UNVERIFIED),
+                AccountVerificationUpdate("second@example.com", AccountVerificationStatus.UNVERIFIED),
+            ),
+            collected.updates,
+        )
+    }
+
+    @Test
+    fun emailCaseChangesDoNotDefeatStatusDeduplication() = runTest {
+        val collected = collectChanges()
+        val listener = networkListener()
+
+        listener.onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
+        runCurrent()
+        whenever(user.email).thenReturn("PERSON@example.com")
+        listener.onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
+        runCurrent()
+
+        assertEquals(listOf(update(AccountVerificationStatus.UNVERIFIED)), collected.updates)
     }
 
     @Test
@@ -289,7 +340,7 @@ class SimperiumAccountRepositoryTest {
         ioDispatcher.runAll()
         runCurrent()
 
-        assertEquals(listOf(AccountVerificationStatus.VERIFIED), collected.statuses)
+        assertEquals(listOf(update(AccountVerificationStatus.VERIFIED)), collected.updates)
 
         collected.job.cancel()
         runCurrent()
@@ -314,10 +365,76 @@ class SimperiumAccountRepositoryTest {
         ioDispatcher.runAll()
         runCurrent()
 
-        assertEquals(listOf(AccountVerificationStatus.VERIFIED), collected.statuses)
+        assertEquals(
+            listOf(AccountVerificationUpdate("second@example.com", AccountVerificationStatus.VERIFIED)),
+            collected.updates,
+        )
         verify(accountBucket).get(KEY_EMAIL_VERIFICATION)
         verify(account, never()).hasVerifiedEmail("first@example.com")
         verify(account, never()).hasSentEmail("first@example.com")
+
+        collected.job.cancel()
+        runCurrent()
+    }
+
+    @Test
+    fun accountSwitchDuringTheVerificationReadDiscardsTheStaleUpdate() = runTest {
+        var currentEmail = "first@example.com"
+        whenever(user.email).thenAnswer { currentEmail }
+        whenever(accountBucket.get(KEY_EMAIL_VERIFICATION)).thenAnswer {
+            currentEmail = "second@example.com"
+            account
+        }
+        val collected = collectChanges()
+
+        networkListener().onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
+        runCurrent()
+
+        assertTrue(collected.updates.isEmpty())
+        verify(accountBucket).get(KEY_EMAIL_VERIFICATION)
+    }
+
+    @Test
+    fun accountSwitchAfterIoBeforeDeliveryDiscardsTheStaleUpdate() = runTest {
+        val ioDispatcher = QueueingDispatcher()
+        repository = repositoryWithDispatcher(ioDispatcher)
+        var currentEmail = "first@example.com"
+        whenever(user.email).thenAnswer { currentEmail }
+        val collected = collectChanges()
+
+        networkListener().onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
+        runCurrent()
+        ioDispatcher.runAll()
+        currentEmail = "second@example.com"
+        runCurrent()
+
+        assertTrue(collected.updates.isEmpty())
+        verify(accountBucket).get(KEY_EMAIL_VERIFICATION)
+
+        collected.job.cancel()
+        runCurrent()
+    }
+
+    @Test
+    fun queuedRemovalForThePreviousUserIsDiscardedWithoutReadingTheBucket() = runTest {
+        val ioDispatcher = QueueingDispatcher()
+        repository = repositoryWithDispatcher(ioDispatcher)
+        var currentEmail = "first@example.com"
+        whenever(user.email).thenAnswer { currentEmail }
+        val collected = collectChanges()
+
+        networkListener().onNetworkChange(
+            accountBucket,
+            Bucket.ChangeType.REMOVE,
+            KEY_EMAIL_VERIFICATION,
+        )
+        currentEmail = "second@example.com"
+        runCurrent()
+        ioDispatcher.runAll()
+        runCurrent()
+
+        assertTrue(collected.updates.isEmpty())
+        verify(accountBucket, never()).get(any())
 
         collected.job.cancel()
         runCurrent()
@@ -334,7 +451,7 @@ class SimperiumAccountRepositoryTest {
 
         listener.onNetworkChange(accountBucket, Bucket.ChangeType.INDEX, null)
         runCurrent()
-        assertTrue(collected.statuses.isEmpty())
+        assertTrue(collected.updates.isEmpty())
     }
 
     @Test
@@ -354,16 +471,16 @@ class SimperiumAccountRepositoryTest {
         verify(accountBucket).removeOnNetworkChangeListener(listener)
         ioDispatcher.runAll()
         verify(accountBucket, never()).get(any())
-        assertTrue(collected.statuses.isEmpty())
+        assertTrue(collected.updates.isEmpty())
     }
 
     private fun TestScope.collectChanges(): CollectedChanges {
-        val statuses = mutableListOf<AccountVerificationStatus>()
+        val updates = mutableListOf<AccountVerificationUpdate>()
         val job = backgroundScope.launch {
-            repository.verificationStatusChanges().collect(statuses::add)
+            repository.verificationStatusChanges().collect(updates::add)
         }
         runCurrent()
-        return CollectedChanges(job, statuses)
+        return CollectedChanges(job, updates)
     }
 
     private fun networkListener(): Bucket.OnNetworkChangeListener<Account> =
@@ -377,8 +494,11 @@ class SimperiumAccountRepositoryTest {
 
     private data class CollectedChanges(
         val job: Job,
-        val statuses: List<AccountVerificationStatus>,
+        val updates: List<AccountVerificationUpdate>,
     )
+
+    private fun update(status: AccountVerificationStatus) =
+        AccountVerificationUpdate("person@example.com", status)
 
     private class QueueingDispatcher : CoroutineDispatcher() {
         private val tasks = ArrayDeque<Runnable>()

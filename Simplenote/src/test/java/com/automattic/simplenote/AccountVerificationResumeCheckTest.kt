@@ -4,6 +4,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.testing.TestLifecycleOwner
 import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.AccountVerificationStatus
+import com.automattic.simplenote.repositories.AccountVerificationUpdate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -149,7 +150,7 @@ class AccountVerificationResumeCheckTest {
             return if (responses.isEmpty()) null else responses.removeFirst()
         }
 
-        override fun verificationStatusChanges(): Flow<AccountVerificationStatus> {
+        override fun verificationStatusChanges(): Flow<AccountVerificationUpdate> {
             changeFlowRequests++
             return emptyFlow()
         }

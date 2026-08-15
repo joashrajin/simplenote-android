@@ -19,7 +19,7 @@ import static com.automattic.simplenote.Simplenote.SCROLL_POSITION_PREFERENCES;
 import static com.automattic.simplenote.Simplenote.SYNC_TIME_PREFERENCES;
 
 public class AuthUtils {
-    public static void logOut(Simplenote application) {
+    static void logOutImmediately(Simplenote application) {
         application.getSimperium().deauthorizeUser();
 
         application.getAccountBucket().reset();

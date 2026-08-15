@@ -78,9 +78,9 @@ import com.automattic.simplenote.repositories.CollaboratorsRepository;
 import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
-import com.automattic.simplenote.utils.AuthUtils;
 import com.automattic.simplenote.utils.DisplayUtils;
 import com.automattic.simplenote.utils.DrawableUtils;
+import com.automattic.simplenote.utils.ExportNotesGate;
 import com.automattic.simplenote.utils.HtmlCompat;
 import com.automattic.simplenote.utils.NetworkUtils;
 import com.automattic.simplenote.utils.NoteUtils;
@@ -154,6 +154,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     private TagsAdapter.TagMenuItem mSelectedTag;
     @Inject CollaboratorsRepository collaboratorsRepository;
     @Inject NotesRepository notesRepository;
+    @Inject ExportNotesGate exportNotesGate;
     private NotesActivityStreams mNotesActivityStreams;
     // Tags bucket listener
     private Bucket.Listener<Tag> mTagsMenuUpdater = new Bucket.Listener<Tag>() {
@@ -381,7 +382,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             .setPositiveButton(R.string.log_out, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    AuthUtils.logOut((Simplenote) getApplication());
+                    exportNotesGate.logOut((Simplenote) getApplication());
                     finish();
                 }
             })
@@ -1373,10 +1374,8 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     }
 
     public void startLoginActivity() {
-        // Clear account-specific data
-        AuthUtils.logOut((Simplenote) getApplication());
-
-        Intent intent = new Intent(NotesActivity.this, SimplenoteAuthenticationActivity.class);
+        exportNotesGate.logOut((Simplenote) getApplication());
+        Intent intent = new Intent(this, SimplenoteAuthenticationActivity.class);
         startActivityForResult(intent, Simperium.SIGNUP_SIGNIN_REQUEST);
     }
 

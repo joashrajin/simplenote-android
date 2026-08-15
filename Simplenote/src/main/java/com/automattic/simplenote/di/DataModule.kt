@@ -2,13 +2,16 @@ package com.automattic.simplenote.di
 
 import com.automattic.simplenote.Simplenote
 import com.automattic.simplenote.authentication.magiclink.OkHttpMagicLinkRepository
+import com.automattic.simplenote.models.Account
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Preferences
 import com.automattic.simplenote.models.Tag
+import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.NotesRepository
 import com.automattic.simplenote.repositories.PreferencesRepository
+import com.automattic.simplenote.repositories.SimperiumAccountRepository
 import com.automattic.simplenote.repositories.SimperiumCollaboratorsRepository
 import com.automattic.simplenote.repositories.SimperiumNotesRepository
 import com.automattic.simplenote.repositories.SimperiumPreferencesRepository
@@ -27,6 +30,9 @@ import dagger.hilt.components.SingletonComponent
 abstract class DataModule {
     companion object {
         @Provides
+        fun providesAccountBucket(simplenote: Simplenote): Bucket<Account> = simplenote.accountBucket
+
+        @Provides
         fun providesTagsBucket(simplenote: Simplenote): Bucket<Tag> = simplenote.tagsBucket
 
         @Provides
@@ -42,6 +48,9 @@ abstract class DataModule {
     // Repository binds stay unscoped until bucket ownership moves into DI: a singleton
     // repository would freeze the SimplenoteTest.useTestBucket seam at first injection
     // for the whole instrumentation process.
+    @Binds
+    abstract fun bindsAccountRepository(repository: SimperiumAccountRepository): AccountRepository
+
     @Binds
     abstract fun bindsTagsRepository(repository: SimperiumTagsRepository): TagsRepository
 

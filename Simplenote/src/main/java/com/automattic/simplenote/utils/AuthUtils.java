@@ -20,6 +20,7 @@ import static com.automattic.simplenote.Simplenote.SYNC_TIME_PREFERENCES;
 
 public class AuthUtils {
     public static void logOut(Simplenote application) {
+        application.prepareForAuthenticationSessionChange();
         application.getSimperium().deauthorizeUser();
 
         application.getAccountBucket().reset();

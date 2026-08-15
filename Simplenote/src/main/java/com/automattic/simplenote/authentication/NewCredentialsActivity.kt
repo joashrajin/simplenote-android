@@ -26,6 +26,7 @@ import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.Toolbar
 import androidx.core.content.ContextCompat
 import com.automattic.simplenote.R
+import com.automattic.simplenote.Simplenote
 import com.automattic.simplenote.ThemedAppCompatActivity
 import com.automattic.simplenote.utils.AccountNetworkUtils
 import com.automattic.simplenote.utils.AccountVerificationEmailHandler
@@ -263,6 +264,7 @@ open class NewCredentialsActivity : ThemedAppCompatActivity() {
             val inputMethodManager =
                 getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
             inputMethodManager.hideSoftInputFromWindow(button?.windowToken, 0)
+            (application as Simplenote).prepareForAuthenticationSessionChange()
             if (isValidPassword(user.email, user.password) && isValidPasswordLength(false)) {
                 user.status = User.Status.AUTHORIZED
                 user.accessToken = token
@@ -392,6 +394,7 @@ open class NewCredentialsActivity : ThemedAppCompatActivity() {
                     getEditTextString(inputPassword)
                 )
                 intent.putExtra("EXTRA_AUTOMATE_LOGIN", true)
+                (application as Simplenote).prepareForAuthenticationSessionChange()
                 startActivity(intent)
                 finish()
             }.show()

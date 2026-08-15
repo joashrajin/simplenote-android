@@ -37,6 +37,10 @@ import dagger.hilt.android.AndroidEntryPoint;
  */
 @AndroidEntryPoint
 public class ReviewAccountVerifyEmailFragment extends Fragment implements FullScreenDialogContent {
+    public static final String EXTRA_ACCOUNT_EMAIL = "EXTRA_ACCOUNT_EMAIL";
+    public static final String EXTRA_PRESENTATION_REVISION = "EXTRA_PRESENTATION_REVISION";
+    public static final String EXTRA_PROCESS_NONCE = "EXTRA_PROCESS_NONCE";
+    public static final String EXTRA_SESSION_GENERATION = "EXTRA_SESSION_GENERATION";
     public static final String EXTRA_SENT_EMAIL = "EXTRA_SENT_EMAIL";
 
     private static final String URL_SETTINGS_REDIRECT = "https://app.simplenote.com/settings/";
@@ -48,6 +52,9 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
     private FullScreenDialogController mDialogController;
     private ImageView mImageIcon;
     private String mEmail;
+    private long mPresentationRevision = -1;
+    private String mProcessNonce;
+    private int mSessionGeneration = -1;
     private TextView mTextSubtitle;
     private TextView mTextTitle;
     private boolean mHasSentEmail;
@@ -56,6 +63,11 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
 
     @Override
     public boolean onConfirmClicked(FullScreenDialogController controller) {
+        if (!isForCurrentAccount()) {
+            dismissStaleDialog();
+            return false;
+        }
+
         if (!NetworkUtils.isNetworkAvailable(requireContext())) {
             Toast.makeText(requireContext(), R.string.error_network_required, Toast.LENGTH_LONG).show();
             return false;
@@ -75,7 +87,12 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View layout = inflater.inflate(R.layout.fragment_review_account_verify_email, container, false);
         mHasSentEmail = getArguments() != null && getArguments().getBoolean(EXTRA_SENT_EMAIL);
-        mEmail = ((Simplenote) requireActivity().getApplication()).getSimperium().getUser().getEmail();
+        mEmail = getArguments() == null ? null : getArguments().getString(EXTRA_ACCOUNT_EMAIL);
+        mPresentationRevision = getArguments() == null ? -1 :
+                getArguments().getLong(EXTRA_PRESENTATION_REVISION, -1);
+        mProcessNonce = getArguments() == null ? null : getArguments().getString(EXTRA_PROCESS_NONCE);
+        mSessionGeneration = getArguments() == null ? -1 : getArguments().getInt(EXTRA_SESSION_GENERATION, -1);
+        String displayEmail = mEmail == null ? "" : mEmail;
 
         mImageIcon = layout.findViewById(R.id.image);
         mImageIcon.setImageResource(mHasSentEmail ? R.drawable.ic_mail_24dp : R.drawable.ic_warning_24dp);
@@ -87,13 +104,18 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
 
         @StringRes int subtitle = mHasSentEmail ? R.string.fullscreen_verify_email_subtitle : R.string.fullscreen_review_account_subtitle;
         mTextSubtitle = layout.findViewById(R.id.text_subtitle);
-        mTextSubtitle.setText(Html.fromHtml(String.format(getResources().getString(subtitle), mEmail)));
+        mTextSubtitle.setText(Html.fromHtml(String.format(getResources().getString(subtitle), displayEmail)));
 
         mButtonPrimary = layout.findViewById(R.id.button_primary);
         mButtonPrimary.setOnClickListener(
             new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if (!isForCurrentAccount()) {
+                        dismissStaleDialog();
+                        return;
+                    }
+
                     AnalyticsTracker.track(
                         AnalyticsTracker.Stat.VERIFICATION_CONFIRM_BUTTON_TAPPED,
                         AnalyticsTracker.CATEGORY_USER,
@@ -110,6 +132,11 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
             new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    if (!isForCurrentAccount()) {
+                        dismissStaleDialog();
+                        return;
+                    }
+
                     if (mHasSentEmail) {
                         AnalyticsTracker.track(
                             AnalyticsTracker.Stat.VERIFICATION_RESEND_EMAIL_BUTTON_TAPPED,
@@ -137,7 +164,8 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        if (mEmail == null) {
+        if (!isForCurrentAccount()) {
+            dismissStaleDialog();
             return;
         }
 
@@ -148,12 +176,24 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        if (!isForCurrentAccount()) {
+            dismissStaleDialog();
+        }
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
     }
 
     @Override
     public boolean onDismissClicked(FullScreenDialogController controller) {
+        if (!isForCurrentAccount()) {
+            return false;
+        }
+
         AnalyticsTracker.track(
             AnalyticsTracker.Stat.VERIFICATION_DISMISSED,
             AnalyticsTracker.CATEGORY_USER,
@@ -175,10 +215,38 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
         mDialogController.dismiss();
     }
 
-    public static Bundle newBundle(boolean hasSentEmail) {
+    public static Bundle newBundle(
+            boolean hasSentEmail,
+            String email,
+            int sessionGeneration,
+            long presentationRevision,
+            String processNonce
+    ) {
         Bundle bundle = new Bundle();
+        bundle.putString(EXTRA_ACCOUNT_EMAIL, email);
+        bundle.putLong(EXTRA_PRESENTATION_REVISION, presentationRevision);
+        bundle.putString(EXTRA_PROCESS_NONCE, processNonce);
+        bundle.putInt(EXTRA_SESSION_GENERATION, sessionGeneration);
         bundle.putBoolean(EXTRA_SENT_EMAIL, hasSentEmail);
         return bundle;
+    }
+
+    private boolean isForCurrentAccount() {
+        Simplenote application = (Simplenote) requireActivity().getApplication();
+        return application.isCurrentAccountVerificationPresentation(
+                mEmail,
+                mSessionGeneration,
+                mPresentationRevision,
+                mProcessNonce
+        );
+    }
+
+    private void dismissStaleDialog() {
+        if (mDialogController != null) {
+            mDialogController.dismiss();
+        } else if (getParentFragment() instanceof FullScreenDialogFragment) {
+            ((FullScreenDialogFragment) getParentFragment()).dismiss();
+        }
     }
 
     private void sendVerificationEmail() {

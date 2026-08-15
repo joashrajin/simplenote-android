@@ -8,15 +8,20 @@
         <item name="titleTextStyle">@style/Simplestyle.ActionModeTitleTextStyle</item>
     </style>
 
-    <style name="Base.Theme.Simplestyle" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Base.Theme.Simplestyle" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:actionModeCopyDrawable">@drawable/ic_copy_24dp</item>
         <item name="android:actionModeCutDrawable">@drawable/ic_cut_24dp</item>
         <item name="android:actionModePasteDrawable">@drawable/ic_paste_24dp</item>
         <item name="android:actionModeSelectAllDrawable">@drawable/ic_select_all_24dp</item>
         <item name="android:actionOverflowButtonStyle">@style/Action.Overflow</item>
         <item name="android:alertDialogTheme">@style/Dialog</item>
+        <item name="android:backgroundDimAmount">0.6</item>
+        <item name="android:colorBackground">@color/sn_surface</item>
         <item name="android:spinnerDropDownItemStyle">@style/SpinnerDropDownItem.Simplestyle</item>
         <item name="android:spinnerItemStyle">@style/SpinnerItem.Simplestyle</item>
+        <item name="android:textColorHint">@color/abc_hint_foreground_material_light</item>
+        <item name="android:textColorPrimary">@color/abc_primary_text_material_light</item>
+        <item name="android:textColorSecondary">@color/abc_secondary_text_material_light</item>
         <item name="android:windowBackground">@color/background_light</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="actionBarTextColor">@color/text_title_light</item>
@@ -29,9 +34,20 @@
         <item name="chipCheckedOnBackgroundColor">@color/gray_10</item>
         <item name="chipCheckedOffBackgroundColor">@color/gray_5</item>
         <item name="chipTextColor">@color/text_chip_light</item>
-        <item name="colorAccent">@color/item_default_light</item>
-        <item name="colorPrimary">@color/blue</item>
+        <item name="colorAccent">@color/sn_primary</item>
+        <item name="colorOnPrimary">@color/sn_on_primary</item>
+        <item name="colorOnSurface">@color/sn_on_surface</item>
+        <item name="colorOnSurfaceVariant">@color/sn_on_surface_variant</item>
+        <item name="colorOutlineVariant">@color/sn_outline_variant</item>
+        <item name="colorPrimary">@color/sn_primary</item>
         <item name="colorPrimaryDark">@color/background_light</item>
+        <item name="colorSecondary">@color/sn_primary</item>
+        <item name="colorSecondaryContainer">@color/sn_secondary_container</item>
+        <item name="colorSurface">@color/sn_surface</item>
+        <item name="colorSurfaceContainer">@color/sn_surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/sn_surface_container_high</item>
+        <item name="colorSurfaceContainerHighest">@color/sn_surface_container_highest</item>
+        <item name="colorSurfaceContainerLow">@color/sn_surface_container_low</item>
         <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
         <item name="drawerBackgroundColor">@color/background_light</item>
         <item name="drawerBackgroundSelector">@color/bg_drawer_selector_light</item>
@@ -59,6 +75,45 @@
         <item name="toolbarIconColor">@color/gray_50</item>
         <item name="toolbarPopupTheme">@style/ThemeOverlay.MaterialComponents.Light</item>
         <item name="windowActionModeOverlay">true</item>
+
+        <!-- Material 2 pins: keep every component's current appearance under the Material 3
+             parent. Each pin is retired by the Phase 3 PR that deliberately restyles it. -->
+        <item name="appBarLayoutStyle">@style/Widget.Simplenote.AppBarLayout</item>
+        <item name="borderlessButtonStyle">@style/Widget.MaterialComponents.Button.TextButton</item>
+        <item name="bottomSheetDialogTheme">@style/Theme.MaterialComponents.Light.BottomSheetDialog</item>
+        <item name="chipGroupStyle">@style/Widget.MaterialComponents.ChipGroup</item>
+        <item name="chipStandaloneStyle">@style/Widget.MaterialComponents.Chip.Entry</item>
+        <item name="chipStyle">@style/Widget.MaterialComponents.Chip.Action</item>
+        <item name="floatingActionButtonStyle">@style/Widget.MaterialComponents.FloatingActionButton</item>
+        <item name="listPopupWindowStyle">@style/Widget.MaterialComponents.PopupMenu.ListPopupWindow</item>
+        <item name="materialButtonOutlinedStyle">@style/Widget.MaterialComponents.Button.OutlinedButton</item>
+        <item name="materialButtonStyle">@style/Widget.MaterialComponents.Button</item>
+        <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
+        <item name="navigationViewStyle">@style/Widget.MaterialComponents.NavigationView</item>
+        <item name="popupMenuStyle">@style/Widget.MaterialComponents.PopupMenu</item>
+        <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.MaterialComponents.LargeComponent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.MaterialComponents.MediumComponent</item>
+        <item name="shapeAppearanceSmallComponent">@style/ShapeAppearance.MaterialComponents.SmallComponent</item>
+        <item name="tabStyle">@style/Widget.MaterialComponents.TabLayout</item>
+        <item name="textAppearanceBody1">@style/TextAppearance.MaterialComponents.Body1</item>
+        <item name="textAppearanceBody2">@style/TextAppearance.MaterialComponents.Body2</item>
+        <item name="textAppearanceButton">@style/TextAppearance.MaterialComponents.Button</item>
+        <item name="textAppearanceCaption">@style/TextAppearance.MaterialComponents.Caption</item>
+        <item name="textAppearanceHeadline1">@style/TextAppearance.MaterialComponents.Headline1</item>
+        <item name="textAppearanceHeadline2">@style/TextAppearance.MaterialComponents.Headline2</item>
+        <item name="textAppearanceHeadline3">@style/TextAppearance.MaterialComponents.Headline3</item>
+        <item name="textAppearanceHeadline4">@style/TextAppearance.MaterialComponents.Headline4</item>
+        <item name="textAppearanceHeadline5">@style/TextAppearance.MaterialComponents.Headline5</item>
+        <item name="textAppearanceHeadline6">@style/TextAppearance.MaterialComponents.Headline6</item>
+        <item name="textAppearanceOverline">@style/TextAppearance.MaterialComponents.Overline</item>
+        <item name="textAppearanceSubtitle1">@style/TextAppearance.MaterialComponents.Subtitle1</item>
+        <item name="textAppearanceSubtitle2">@style/TextAppearance.MaterialComponents.Subtitle2</item>
+        <item name="textInputStyle">@style/Widget.MaterialComponents.TextInputLayout.FilledBox</item>
+        <item name="toolbarStyle">@style/Widget.MaterialComponents.Toolbar</item>
+    </style>
+
+    <style name="Widget.Simplenote.AppBarLayout" parent="Widget.MaterialComponents.AppBarLayout.Primary">
+        <item name="liftOnScroll">false</item>
     </style>
 
     <style name="Action.Overflow" parent="Widget.AppCompat.ActionButton.Overflow">

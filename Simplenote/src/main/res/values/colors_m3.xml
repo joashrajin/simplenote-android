@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- Semantic token layer for the Material 3 migration. Each sn_* token points at the exact color
+     the hand-built Material 2 theme resolves today, so the M3 color roles and the legacy custom
+     attrs render pixel-identically while consumers are moved role-by-role. Night forks live in
+     values-night/colors_m3.xml (the existing dark elevation ladder is the M3 container ladder). -->
+<resources>
+
+    <color name="sn_primary">@color/item_default_light</color>
+    <color name="sn_on_primary">@android:color/white</color>
+    <color name="sn_secondary_container">@color/gray_10</color>
+    <color name="sn_surface">@color/background_light</color>
+    <color name="sn_surface_container">@color/background_light</color>
+    <color name="sn_surface_container_low">@color/background_light</color>
+    <color name="sn_surface_container_high">@color/gray_5</color>
+    <color name="sn_surface_container_highest">@color/gray_10</color>
+    <color name="sn_on_surface">@color/text_title_light</color>
+    <color name="sn_on_surface_variant">@color/text_content_light</color>
+    <color name="sn_outline_variant">@color/divider_light</color>
+
+</resources>

@@ -161,6 +161,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$androidxLifecycleVersion"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$androidxLifecycleVersion"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$androidxLifecycleVersion"
+    testImplementation "androidx.lifecycle:lifecycle-runtime-testing:$androidxLifecycleVersion"
     // Support for androidx Fragments
     implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:$androidxLifecycleVersion"
 

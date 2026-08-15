@@ -611,6 +611,20 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
                 if (!TextUtils.isEmpty(subject) && !isVoiceShare) {
                     text = subject + "\n\n" + text;
                 }
+
+                // The exemption depends only on the intent, and the lock check runs at the
+                // resume dispatch this same main-thread pass; it cannot wait for the note.
+                if (!DisplayUtils.isLargeScreenLandscape(this)) {
+                    // Disable the lock screen when sharing content and opening NoteEditorActivity
+                    // Lock screen activities are enabled again in NoteEditorActivity.onPause()
+                    if (AppLockManager.getInstance().isAppLockFeatureEnabled()) {
+                        AppLockManager.getInstance().getAppLock().setExemptActivities(
+                            new String[] {"com.automattic.simplenote.NotesActivity",
+                                "com.automattic.simplenote.NoteEditorActivity"});
+                        AppLockManager.getInstance().getAppLock().setOneTimeTimeout(0);
+                    }
+                }
+
                 mNotesActivityStreams.createNoteFromShare(text, this::onSharedNoteCreated);
             }
         }
@@ -625,17 +639,6 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             CATEGORY_NOTE,
             "external_share"
         );
-
-        if (!DisplayUtils.isLargeScreenLandscape(this)) {
-            // Disable the lock screen when sharing content and opening NoteEditorActivity
-            // Lock screen activities are enabled again in NoteEditorActivity.onPause()
-            if (AppLockManager.getInstance().isAppLockFeatureEnabled()) {
-                AppLockManager.getInstance().getAppLock().setExemptActivities(
-                    new String[] {"com.automattic.simplenote.NotesActivity",
-                        "com.automattic.simplenote.NoteEditorActivity"});
-                AppLockManager.getInstance().getAppLock().setOneTimeTimeout(0);
-            }
-        }
 
         // The legacy creation finished before onResume picked the selection flag up; when the
         // asynchronous save lands after onResume has already run, the selection happens here.
@@ -756,7 +759,11 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             return;
         }
 
-        // Disable trash icon if there are no trashed notes.
+        // The legacy count was synchronous; seed the disabled state so the menu never renders
+        // an enabled trash action it has not verified.
+        mEmptyTrashMenuItem.setIcon(R.drawable.ic_trash_disabled_24dp);
+        mEmptyTrashMenuItem.setEnabled(false);
+
         mNotesActivityStreams.trashedNoteCount(count -> {
             if (mEmptyTrashMenuItem == null) {
                 return;

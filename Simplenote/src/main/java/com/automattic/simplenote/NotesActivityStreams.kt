@@ -73,6 +73,10 @@ class NotesActivityStreams(
      * listeners genuinely attach and detach at these boundaries (the flow adds them on
      * collection and removes them on cancellation), so the legacy add/remove sync log lines
      * keep telling the truth from here.
+     *
+     * Deliberately wider than the legacy resume/pause listener window: paused-but-started
+     * activities now receive un-muted events (benign refresh work, and an INDEX completion
+     * can no longer strand the toolbar spinner while paused).
      */
     fun start(lifecycle: Lifecycle, listener: Listener) {
         scope.launch {

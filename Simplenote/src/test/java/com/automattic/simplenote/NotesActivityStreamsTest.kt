@@ -12,15 +12,19 @@ import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectNameInvalid
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.testing.TestLifecycleOwner
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 
 /**
@@ -30,6 +34,10 @@ import org.junit.Test
  */
 @ExperimentalCoroutinesApi
 class NotesActivityStreamsTest {
+
+    // repeatOnLifecycle hops through Dispatchers.Main.immediate; the rule provides it.
+    @get:Rule
+    val coroutinesTestRule = CoroutineTestRule(UnconfinedTestDispatcher())
 
     private val repository = FakeNotesRepository()
     private val recorded = mutableListOf<String>()
@@ -229,6 +237,53 @@ class NotesActivityStreamsTest {
         runCurrent()
 
         assertEquals(listOf(3), counts)
+    }
+
+    @Test
+    fun startCollectsOnlyWhileStarted() = runTest {
+        val owner = TestLifecycleOwner(Lifecycle.State.CREATED, UnconfinedTestDispatcher(testScheduler))
+        val streams = NotesActivityStreams(repository, backgroundScope)
+        streams.start(owner.lifecycle, listener)
+        runCurrent()
+
+        backgroundScope.launch { repository.changes.emit(NoteChange.Deleted("early")) }
+        runCurrent()
+        assertEquals(emptyList<String>(), recorded)
+
+        owner.currentState = Lifecycle.State.STARTED
+        runCurrent()
+        backgroundScope.launch { repository.changes.emit(NoteChange.Deleted("during")) }
+        runCurrent()
+        assertEquals(listOf("changed"), recorded)
+
+        owner.currentState = Lifecycle.State.CREATED
+        runCurrent()
+        backgroundScope.launch { repository.changes.emit(NoteChange.Deleted("stopped")) }
+        runCurrent()
+        assertEquals(listOf("changed"), recorded)
+    }
+
+    @Test
+    fun muteSurvivesTheStopStartCycle() = runTest {
+        val owner = TestLifecycleOwner(Lifecycle.State.STARTED, UnconfinedTestDispatcher(testScheduler))
+        val streams = NotesActivityStreams(repository, backgroundScope)
+        streams.start(owner.lifecycle, listener)
+        runCurrent()
+        streams.mute()
+
+        owner.currentState = Lifecycle.State.CREATED
+        runCurrent()
+        owner.currentState = Lifecycle.State.STARTED
+        runCurrent()
+
+        backgroundScope.launch { repository.changes.emit(NoteChange.Deleted("muted")) }
+        runCurrent()
+        assertEquals(emptyList<String>(), recorded)
+
+        streams.unmute()
+        backgroundScope.launch { repository.changes.emit(NoteChange.Deleted("open")) }
+        runCurrent()
+        assertEquals(listOf("changed"), recorded)
     }
 
     private class FakeNotesRepository : NotesRepository {

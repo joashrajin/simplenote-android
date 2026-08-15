@@ -23,6 +23,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -519,6 +520,7 @@ class NoteListViewModelTest {
         override fun renameTag(tagName: String, oldTag: Tag): Boolean = false
         override suspend fun allTags(): List<TagItem> = emptyList()
         override suspend fun searchTags(query: String): List<TagItem> = emptyList()
+        override fun navigationTags(sortAlphabetically: Boolean): Flow<List<Tag>> = flowOf(emptyList())
         override suspend fun deleteTag(tag: Tag) = Unit
         override suspend fun tagsChanged(): Flow<Boolean> = emptyFlow()
     }

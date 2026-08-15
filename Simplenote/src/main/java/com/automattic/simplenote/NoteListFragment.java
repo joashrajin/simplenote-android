@@ -747,7 +747,7 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         NotesActivity notesActivity = (NotesActivity) requireActivity();
 
         if (!DisplayUtils.isLargeScreenLandscape(notesActivity)) {
-            notesActivity.stopListeningToNotesBucket();
+            notesActivity.muteNoteChanges();
         }
 
         // Create & save new note

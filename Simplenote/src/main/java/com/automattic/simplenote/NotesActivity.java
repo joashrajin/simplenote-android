@@ -35,7 +35,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -67,6 +66,8 @@ import androidx.core.view.MenuCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleOwnerKt;
 import androidx.preference.PreferenceManager;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
@@ -74,6 +75,7 @@ import com.automattic.simplenote.authentication.SimplenoteAuthenticationActivity
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Tag;
 import com.automattic.simplenote.repositories.CollaboratorsRepository;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
 import com.automattic.simplenote.utils.AuthUtils;
@@ -90,16 +92,11 @@ import com.automattic.simplenote.utils.UndoBarController;
 import com.google.android.material.navigation.NavigationView;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
-import com.simperium.client.BucketObjectMissingException;
-import com.simperium.client.BucketObjectNameInvalid;
-import com.simperium.client.Query;
 import com.simperium.client.User;
 
 import org.wordpress.passcodelock.AppLockManager;
 
-import java.lang.ref.SoftReference;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +109,7 @@ import dagger.hilt.android.AndroidEntryPoint;
 @AndroidEntryPoint
 public class NotesActivity extends ThemedAppCompatActivity implements NoteListFragment.Callbacks,
     User.StatusChangeListener, Simperium.OnUserCreatedListener, UndoBarController.UndoListener,
-    Bucket.Listener<Note> {
+    NotesActivityStreams.Listener {
     public static String TAG_NOTE_LIST = "noteList";
     public static String TAG_NOTE_EDITOR = "noteEditor";
 
@@ -156,6 +153,8 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     private TagsAdapter mTagsAdapter;
     private TagsAdapter.TagMenuItem mSelectedTag;
     @Inject CollaboratorsRepository collaboratorsRepository;
+    @Inject NotesRepository notesRepository;
+    private NotesActivityStreams mNotesActivityStreams;
     // Tags bucket listener
     private Bucket.Listener<Tag> mTagsMenuUpdater = new Bucket.Listener<Tag>() {
         @Override
@@ -215,6 +214,9 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         if (mTagsBucket == null) {
             mTagsBucket = currentApp.getTagsBucket();
         }
+
+        mNotesActivityStreams = new NotesActivityStreams(notesRepository, LifecycleOwnerKt.getLifecycleScope(this));
+        mNotesActivityStreams.start(getLifecycle(), this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -331,10 +333,10 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
         disableScreenshotsIfLocked(this);
 
-        mNotesBucket.addOnNetworkChangeListener(this);
-        mNotesBucket.addOnSaveObjectListener(this);
-        mNotesBucket.addOnDeleteObjectListener(this);
-        AppLog.add(Type.SYNC, "Added note bucket listener (NotesActivity)");
+        // The legacy path re-added the note bucket listeners here; the change stream keeps
+        // collecting, so lifting the addNote mute at the same point reproduces both the
+        // suppression window and its in-resume expiry.
+        mNotesActivityStreams.unmute();
         mTagsBucket.addListener(mTagsMenuUpdater);
         AppLog.add(Type.SYNC, "Added tag bucket listener (NotesActivity)");
 
@@ -352,10 +354,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             filterListBySelectedTag();
         }
 
-        if (mCurrentNote != null && mShouldSelectNewNote) {
-            onNoteSelected(mCurrentNote.getSimperiumKey(), null, mCurrentNote.isMarkdownEnabled(), mCurrentNote.isPreviewEnabled());
-            mShouldSelectNewNote = false;
-        }
+        selectNewNoteIfNeeded();
 
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
         if (DisplayUtils.isLargeScreenLandscape(this)) {
@@ -395,11 +394,6 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         super.onPause();  // Always call the superclass method first
         mTagsBucket.removeListener(mTagsMenuUpdater);
         AppLog.add(Type.SYNC, "Removed tag bucket listener (NotesActivity)");
-
-        mNotesBucket.removeOnNetworkChangeListener(this);
-        mNotesBucket.removeOnSaveObjectListener(this);
-        mNotesBucket.removeOnDeleteObjectListener(this);
-        AppLog.add(Type.SYNC, "Removed note bucket listener (NotesActivity)");
         AppLog.add(Type.SCREEN, "Paused (NotesActivity)");
     }
 
@@ -592,17 +586,10 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     private void checkForFirstLaunch() {
         if (PrefUtils.getBoolPref(this, PrefUtils.PREF_FIRST_LAUNCH, true)) {
             // Create the welcome note
-            try {
-                Note welcomeNote = mNotesBucket.newObject("welcome-android");
-                welcomeNote.setCreationDate(Calendar.getInstance());
-                welcomeNote.setModificationDate(welcomeNote.getCreationDate());
-                welcomeNote.setContent(getString(R.string.welcome_note));
-                welcomeNote.getTitle();
-                welcomeNote.save();
-            } catch (BucketObjectNameInvalid e) {
-                // this won't happen because welcome-android is a valid name
-            }
+            mNotesActivityStreams.createWelcomeNote(getString(R.string.welcome_note));
 
+            // The flags are written before the asynchronous save lands so onResume still sees
+            // PREF_ACCOUNT_REQUIRED with the timing the legacy synchronous creation guaranteed.
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(this);
             SharedPreferences.Editor editor = preferences.edit();
             editor.putBoolean(PrefUtils.PREF_FIRST_LAUNCH, false);
@@ -624,20 +611,9 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
                 if (!TextUtils.isEmpty(subject) && !isVoiceShare) {
                     text = subject + "\n\n" + text;
                 }
-                Note note = mNotesBucket.newObject();
-                note.setCreationDate(Calendar.getInstance());
-                note.setModificationDate(note.getCreationDate());
-                note.setContent(text);
-                note.save();
-                setCurrentNote(note);
-                mShouldSelectNewNote = true;
 
-                AnalyticsTracker.track(
-                    LIST_NOTE_CREATED,
-                    CATEGORY_NOTE,
-                    "external_share"
-                );
-
+                // The exemption depends only on the intent, and the lock check runs at the
+                // resume dispatch this same main-thread pass; it cannot wait for the note.
                 if (!DisplayUtils.isLargeScreenLandscape(this)) {
                     // Disable the lock screen when sharing content and opening NoteEditorActivity
                     // Lock screen activities are enabled again in NoteEditorActivity.onPause()
@@ -648,7 +624,33 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
                         AppLockManager.getInstance().getAppLock().setOneTimeTimeout(0);
                     }
                 }
+
+                mNotesActivityStreams.createNoteFromShare(text, this::onSharedNoteCreated);
             }
+        }
+    }
+
+    private void onSharedNoteCreated(Note note) {
+        setCurrentNote(note);
+        mShouldSelectNewNote = true;
+
+        AnalyticsTracker.track(
+            LIST_NOTE_CREATED,
+            CATEGORY_NOTE,
+            "external_share"
+        );
+
+        // The legacy creation finished before onResume picked the selection flag up; when the
+        // asynchronous save lands after onResume has already run, the selection happens here.
+        if (getLifecycle().getCurrentState().isAtLeast(Lifecycle.State.RESUMED)) {
+            selectNewNoteIfNeeded();
+        }
+    }
+
+    private void selectNewNoteIfNeeded() {
+        if (mCurrentNote != null && mShouldSelectNewNote) {
+            onNoteSelected(mCurrentNote.getSimperiumKey(), null, mCurrentNote.isMarkdownEnabled(), mCurrentNote.isPreviewEnabled());
+            mShouldSelectNewNote = false;
         }
     }
 
@@ -753,20 +755,28 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
     // Set trash action bar button enabled/disabled and icon based on deleted notes or not.
     public void updateTrashMenuItem() {
-        if (mEmptyTrashMenuItem == null || mNotesBucket == null) {
+        if (mEmptyTrashMenuItem == null) {
             return;
         }
 
-        // Disable trash icon if there are no trashed notes.
-        Query<Note> query = Note.allDeleted(mNotesBucket);
+        // The legacy count was synchronous; seed the disabled state so the menu never renders
+        // an enabled trash action it has not verified.
+        mEmptyTrashMenuItem.setIcon(R.drawable.ic_trash_disabled_24dp);
+        mEmptyTrashMenuItem.setEnabled(false);
 
-        if (query.count() == 0) {
-            mEmptyTrashMenuItem.setIcon(R.drawable.ic_trash_disabled_24dp);
-            mEmptyTrashMenuItem.setEnabled(false);
-        } else {
-            mEmptyTrashMenuItem.setIcon(R.drawable.av_trash_empty_24dp);
-            mEmptyTrashMenuItem.setEnabled(true);
-        }
+        mNotesActivityStreams.trashedNoteCount(count -> {
+            if (mEmptyTrashMenuItem == null) {
+                return;
+            }
+
+            if (count == 0) {
+                mEmptyTrashMenuItem.setIcon(R.drawable.ic_trash_disabled_24dp);
+                mEmptyTrashMenuItem.setEnabled(false);
+            } else {
+                mEmptyTrashMenuItem.setIcon(R.drawable.av_trash_empty_24dp);
+                mEmptyTrashMenuItem.setEnabled(true);
+            }
+        });
     }
 
     public void updateTrashMenuItem(boolean shouldWaitForAnimation) {
@@ -1036,7 +1046,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
                 alert.setNegativeButton(R.string.cancel, null);
                 alert.setPositiveButton(R.string.empty, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
-                        new EmptyTrashTask(NotesActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                        mNotesActivityStreams.emptyTrash(NotesActivity.this::showDetailPlaceholder);
                         setIconAfterAnimation(item, R.drawable.ic_trash_disabled_24dp, R.string.empty_trash);
                         AnalyticsTracker.track(
                             LIST_TRASH_EMPTIED,
@@ -1162,44 +1172,52 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             return;
         }
 
-        note.setDeleted(!note.isDeleted());
-        note.setModificationDate(Calendar.getInstance());
-        note.save();
+        final String key = note.getSimperiumKey();
+        final boolean markTrashed = !note.isDeleted();
 
-        if (note.isDeleted()) {
-            List<String> deletedNoteIds = new ArrayList<>();
-            deletedNoteIds.add(note.getSimperiumKey());
-            mUndoBarController.setDeletedNoteIds(deletedNoteIds);
-            mUndoBarController.showUndoBar(getUndoView(), getString(R.string.note_deleted));
-            AnalyticsTracker.track(
-                LIST_NOTE_DELETED,
-                CATEGORY_NOTE,
-                "overflow_menu"
-            );
-        } else {
-            AnalyticsTracker.track(
-                EDITOR_NOTE_RESTORED,
-                CATEGORY_NOTE,
-                "overflow_menu"
-            );
-        }
-
-        if (getNoteListFragment() != null) {
-            NoteListFragment fragment = getNoteListFragment();
-            if (DisplayUtils.isLargeScreenLandscape(this)) {
-                fragment.updateSelectionAfterTrashAction();
+        mNotesActivityStreams.trashNote(key, markTrashed, refreshed -> {
+            // The legacy code mutated the caller's instance, which the current note aliased;
+            // the repository writes a fresh one, so the reference is renewed here before the
+            // delayed menu invalidation reads the trashed state.
+            if (refreshed != null && mCurrentNote != null && key.equals(mCurrentNote.getSimperiumKey())) {
+                mCurrentNote = refreshed;
             }
-            fragment.getPrefs();
-            fragment.refreshList();
-        }
 
-        if (mInvalidateOptionsMenuHandler != null) {
-            mInvalidateOptionsMenuHandler.removeCallbacks(mInvalidateOptionsMenuRunnable);
-            mInvalidateOptionsMenuHandler.postDelayed(
-                mInvalidateOptionsMenuRunnable,
-                getResources().getInteger(android.R.integer.config_shortAnimTime)
-            );
-        }
+            if (markTrashed) {
+                List<String> deletedNoteIds = new ArrayList<>();
+                deletedNoteIds.add(key);
+                mUndoBarController.setDeletedNoteIds(deletedNoteIds);
+                mUndoBarController.showUndoBar(getUndoView(), getString(R.string.note_deleted));
+                AnalyticsTracker.track(
+                    LIST_NOTE_DELETED,
+                    CATEGORY_NOTE,
+                    "overflow_menu"
+                );
+            } else {
+                AnalyticsTracker.track(
+                    EDITOR_NOTE_RESTORED,
+                    CATEGORY_NOTE,
+                    "overflow_menu"
+                );
+            }
+
+            if (getNoteListFragment() != null) {
+                NoteListFragment fragment = getNoteListFragment();
+                if (DisplayUtils.isLargeScreenLandscape(this)) {
+                    fragment.updateSelectionAfterTrashAction();
+                }
+                fragment.getPrefs();
+                fragment.refreshList();
+            }
+
+            if (mInvalidateOptionsMenuHandler != null) {
+                mInvalidateOptionsMenuHandler.removeCallbacks(mInvalidateOptionsMenuRunnable);
+                mInvalidateOptionsMenuHandler.postDelayed(
+                    mInvalidateOptionsMenuRunnable,
+                    getResources().getInteger(android.R.integer.config_shortAnimTime)
+                );
+            }
+        });
     }
 
     public void setMarkdownShowing(boolean isMarkdownShowing) {
@@ -1425,24 +1443,15 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
         List<String> deletedNoteIds = mUndoBarController.getDeletedNoteIds();
         if (deletedNoteIds != null) {
-            for (int i = 0; i < deletedNoteIds.size(); i++) {
-                Note deletedNote;
-                try {
-                    deletedNote = mNotesBucket.get(deletedNoteIds.get(i));
-                } catch (BucketObjectMissingException e) {
-                    return;
+            // A missing key is skipped and the rest still restore; the legacy loop aborted on
+            // the first missing note, which could strand the remainder in the trash.
+            mNotesActivityStreams.restoreNotes(new ArrayList<>(deletedNoteIds), () -> {
+                NoteListFragment fragment = getNoteListFragment();
+                if (fragment != null) {
+                    fragment.getPrefs();
+                    fragment.refreshList();
                 }
-                if (deletedNote != null) {
-                    deletedNote.setDeleted(false);
-                    deletedNote.setModificationDate(Calendar.getInstance());
-                    deletedNote.save();
-                    NoteListFragment fragment = getNoteListFragment();
-                    if (fragment != null) {
-                        fragment.getPrefs();
-                        fragment.refreshList();
-                    }
-                }
-            }
+            });
         }
     }
 
@@ -1701,11 +1710,12 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         }
     }
 
-    public void stopListeningToNotesBucket() {
-        mNotesBucket.removeOnNetworkChangeListener(this);
-        mNotesBucket.removeOnSaveObjectListener(this);
-        mNotesBucket.removeOnDeleteObjectListener(this);
-        AppLog.add(Type.SYNC, "Removed note bucket listener (NotesActivity)");
+    /**
+     * Drop note change events until the next onResume. Replaces stopListeningToNotesBucket,
+     * which removed the bucket listeners outright for the same window.
+     */
+    public void muteNoteChanges() {
+        mNotesActivityStreams.mute();
     }
 
     // Returns the appropriate view to show the undo bar within
@@ -1759,31 +1769,22 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         mIsTabletFullscreen = mNoteListFragment.isHidden();
     }
 
-    /* Simperium Bucket Listeners */
-    // received a change from the network, refresh the list
+    /* Note change stream, collected on Main by NotesActivityStreams */
+    // the initial network index finished downloading
     @Override
-    public void onNetworkChange(Bucket<Note> bucket, final Bucket.ChangeType type, String key) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                if (type == Bucket.ChangeType.INDEX) {
-                    setToolbarProgressVisibility(false);
-                }
-                mNoteListFragment.refreshList();
-            }
-        });
+    public void onIndexingComplete() {
+        setToolbarProgressVisibility(false);
+    }
+
+    // a note changed somewhere, refresh the list
+    @Override
+    public void onNotesChanged() {
+        mNoteListFragment.refreshList();
     }
 
     @Override
-    public void onSaveObject(Bucket<Note> bucket, Note note) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mNoteListFragment.refreshList();
-            }
-        });
-
-        if (note.equals(mCurrentNote)) {
+    public void onNoteSaved(@NonNull Note note) {
+        if (mCurrentNote != null && note.getSimperiumKey().equals(mCurrentNote.getSimperiumKey())) {
             mCurrentNote = note;
 
             new Handler(Looper.getMainLooper()).postDelayed(
@@ -1804,65 +1805,5 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
                 " / Characters: " + NoteUtils.getCharactersCount(note.getContent()) +
                 " / Words: " + NoteUtils.getWordCount(note.getContent()) + ")"
         );
-    }
-
-    @Override
-    public void onDeleteObject(Bucket<Note> bucket, Note object) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-                mNoteListFragment.refreshList();
-            }
-        });
-    }
-
-    @Override
-    public void onBeforeUpdateObject(Bucket<Note> bucket, Note note) {
-        // noop, NoteEditorFragment will handle this
-    }
-
-    @Override
-    public void onLocalQueueChange(Bucket<Note> bucket, Set<String> queuedObjects) {
-
-    }
-
-    @Override
-    public void onSyncObject(Bucket<Note> bucket, String key) {
-
-    }
-
-    private static class EmptyTrashTask extends AsyncTask<Void, Void, Void> {
-        private SoftReference<NotesActivity> mNotesActivityReference;
-
-        EmptyTrashTask(NotesActivity context) {
-            mNotesActivityReference = new SoftReference<>(context);
-        }
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            NotesActivity activity = mNotesActivityReference.get();
-
-            if (activity.mNotesBucket == null) {
-                return null;
-            }
-
-            Query<Note> query = Note.allDeleted(activity.mNotesBucket);
-            Bucket.ObjectCursor cursor = query.execute();
-
-            while (cursor.moveToNext()) {
-                cursor.getObject().delete();
-            }
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void nada) {
-            NotesActivity activity = mNotesActivityReference.get();
-
-            if (activity != null) {
-                activity.showDetailPlaceholder();
-            }
-        }
     }
 }

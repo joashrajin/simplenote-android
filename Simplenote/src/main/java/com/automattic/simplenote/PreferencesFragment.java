@@ -14,6 +14,7 @@ import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_ASCENDING;
 import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_ASCENDING_LABEL;
 import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_DESCENDING;
 import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_DESCENDING_LABEL;
+import static com.automattic.simplenote.viewmodels.PreferencesViewModelKt.observeLogoutDecisions;
 
 import android.app.Activity;
 import android.app.Fragment;
@@ -23,7 +24,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -35,6 +35,7 @@ import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.core.app.ShareCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -55,6 +56,8 @@ import com.automattic.simplenote.utils.HtmlCompat;
 import com.automattic.simplenote.utils.NetworkUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SimplenoteProgressDialogFragment;
+import com.automattic.simplenote.viewmodels.LogoutDecision;
+import com.automattic.simplenote.viewmodels.PreferencesViewModel;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
 import com.simperium.client.BucketObjectMissingException;
@@ -70,9 +73,12 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import dagger.hilt.android.AndroidEntryPoint;
+
 /**
  * A simple {@link Fragment} subclass.
  */
+@AndroidEntryPoint
 public class PreferencesFragment extends PreferenceFragmentCompat implements User.StatusChangeListener, Simperium.OnUserCreatedListener {
     public static final String WEB_APP_URL = "https://app.simplenote.com";
 
@@ -83,6 +89,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     private Bucket<Preferences> mPreferencesBucket;
     private SwitchPreferenceCompat mAnalyticsSwitch;
     private SimplenoteProgressDialogFragment mProgressDialogFragment;
+    private PreferencesViewModel mViewModel;
 
     public PreferencesFragment() {
         // Required empty public constructor
@@ -96,6 +103,13 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     @Override
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+
+        mViewModel = new ViewModelProvider(this).get(PreferencesViewModel.class);
+        observeLogoutDecisions(
+            mViewModel.getLogoutDecisions(),
+            getViewLifecycleOwner(),
+            this::handleLogoutDecision
+        );
 
         Preference authenticatePreference = findPreference("pref_key_authenticate");
         Simplenote currentApp = (Simplenote) getActivity().getApplication();
@@ -123,7 +137,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                     Intent loginIntent = new Intent(getActivity(), SimplenoteAuthenticationActivity.class);
                     startActivityForResult(loginIntent, Simperium.SIGNUP_SIGNIN_REQUEST);
                 } else {
-                    new LogOutTask(PreferencesFragment.this).execute();
+                    mViewModel.checkLogoutSafety();
                 }
                 return true;
             }
@@ -558,20 +572,6 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         }
     }
 
-    private boolean hasUnsyncedNotes() {
-        Simplenote application = (Simplenote) getActivity().getApplication();
-        Bucket<Note> notesBucket = application.getNotesBucket();
-        Bucket.ObjectCursor<Note> notesCursor = notesBucket.allObjects();
-        while (notesCursor.moveToNext()) {
-            Note note = notesCursor.getObject();
-            if (note.isNew() || note.isModified()) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private void logOut() {
         AppLog.add(Type.ACTION, "Tapped logout button (PreferencesFragment)");
         AnalyticsTracker.track(
@@ -583,6 +583,45 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         AuthUtils.logOut((Simplenote) requireActivity().getApplication());
 
         getActivity().finish();
+    }
+
+    private void handleLogoutDecision(LogoutDecision decision) {
+        switch (decision) {
+            case WARN_UNSYNCED:
+                showUnsyncedNotesDialog();
+                break;
+            case PROCEED:
+                logOut();
+                break;
+        }
+    }
+
+    private void showUnsyncedNotesDialog() {
+        new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), R.style.Dialog))
+            .setTitle(R.string.unsynced_notes)
+            .setMessage(R.string.unsynced_notes_message)
+            .setPositiveButton(R.string.log_out_anyway,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        logOut();
+                    }
+                }
+            )
+            .setNeutralButton(R.string.export_unsynced_notes,
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialogInterface, int i) {
+                        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                        intent.addCategory(Intent.CATEGORY_OPENABLE);
+                        intent.setType("application/json");
+                        intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.export_file));
+                        startActivityForResult(intent, REQUEST_EXPORT_UNSYNCED);
+                    }
+                }
+            )
+            .setNegativeButton(R.string.cancel, null)
+            .show();
     }
 
     @Override
@@ -744,60 +783,6 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 prefs.save();
             } catch (BucketObjectNameInvalid bucketObjectNameInvalid) {
                 bucketObjectNameInvalid.printStackTrace();
-            }
-        }
-    }
-
-    private static class LogOutTask extends AsyncTask<Void, Void, Boolean> {
-        private WeakReference<PreferencesFragment> mPreferencesFragmentReference;
-
-        LogOutTask(PreferencesFragment fragment) {
-            mPreferencesFragmentReference = new WeakReference<>(fragment);
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... voids) {
-            PreferencesFragment fragment = mPreferencesFragmentReference.get();
-            return fragment == null || fragment.hasUnsyncedNotes();
-        }
-
-        @Override
-        protected void onPostExecute(Boolean hasUnsyncedNotes) {
-            final PreferencesFragment fragment = mPreferencesFragmentReference.get();
-
-            if (fragment == null) {
-                return;
-            }
-
-            // Safety first! Check if any notes are unsynced and warn the user if so.
-            if (hasUnsyncedNotes) {
-                new AlertDialog.Builder(new ContextThemeWrapper(fragment.requireContext(), R.style.Dialog))
-                    .setTitle(R.string.unsynced_notes)
-                    .setMessage(R.string.unsynced_notes_message)
-                    .setPositiveButton(R.string.log_out_anyway,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                fragment.logOut();
-                            }
-                        }
-                    )
-                    .setNeutralButton(R.string.export_unsynced_notes,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                                intent.setType("application/json");
-                                intent.putExtra(Intent.EXTRA_TITLE, fragment.getString(R.string.export_file));
-                                fragment.startActivityForResult(intent, REQUEST_EXPORT_UNSYNCED);
-                            }
-                        }
-                    )
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-            } else {
-                fragment.logOut();
             }
         }
     }

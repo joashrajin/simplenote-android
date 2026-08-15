@@ -3,7 +3,6 @@ package com.automattic.simplenote
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.os.AsyncTask
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -20,6 +19,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.MenuCompat
 import androidx.core.widget.NestedScrollView
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import com.automattic.simplenote.Simplenote.SCROLL_POSITION_PREFERENCES
 import com.automattic.simplenote.analytics.AnalyticsTracker
 import com.automattic.simplenote.analytics.AnalyticsTracker.CATEGORY_NOTE
@@ -35,13 +36,16 @@ import com.automattic.simplenote.utils.SimplenoteLinkify
 import com.automattic.simplenote.utils.SimplenoteLinkify.SIMPLENOTE_LINK_PREFIX
 import com.automattic.simplenote.utils.ThemeUtils
 import com.automattic.simplenote.utils.markdown.SimplenoteMarkdownFlavorDescriptor
+import com.automattic.simplenote.viewmodels.NoteMarkdownState
+import com.automattic.simplenote.viewmodels.NoteMarkdownViewModel
 import com.google.android.material.snackbar.Snackbar
 import com.simperium.client.Bucket
-import com.simperium.client.BucketObjectMissingException
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
-import java.lang.ref.SoftReference
 
+@AndroidEntryPoint
 class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
 
     companion object {
@@ -75,6 +79,7 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
     private var mCss: String? = null
     private var mMarkdown: WebView? = null
     private var mIsLoadingNote = false
+    private val viewModel: NoteMarkdownViewModel by viewModels()
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         inflater.inflate(R.menu.note_markdown, menu)
@@ -112,13 +117,6 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
         AppLog.add(Type.SCREEN, "Created (NoteMarkdownFragment)")
         mNotesBucket = (requireActivity().application as Simplenote).notesBucket
         mPreferences = requireContext().getSharedPreferences(SCROLL_POSITION_PREFERENCES, Context.MODE_PRIVATE)
-
-        // Load note if we were passed an ID.
-        val arguments = arguments
-        if (arguments != null && arguments.containsKey(ARG_ITEM_ID)) {
-            val key = arguments.getString(ARG_ITEM_ID)
-            LoadNoteTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, key)
-        }
 
         setHasOptionsMenu(true)
         val layout: View
@@ -173,6 +171,19 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
         }
 
         return layout
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        arguments?.getString(ARG_ITEM_ID)?.let { noteKey ->
+            viewModel.loadNote(noteKey)
+            renderNoteState(viewModel.uiState.value)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.uiState.collect(::renderNoteState)
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
@@ -254,7 +265,7 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
         // Show delete action only when note is in Trash.
         menu.findItem(R.id.menu_delete).isVisible = mNote != null && mNote!!.isDeleted
         // Disable trash action until note is loaded.
-        menu.findItem(R.id.menu_trash).isEnabled = !mIsLoadingNote
+        menu.findItem(R.id.menu_trash).isEnabled = !mIsLoadingNote && mNote != null
 
         val pinItem = menu.findItem(R.id.menu_pin)
         val publishItem = menu.findItem(R.id.menu_publish)
@@ -339,41 +350,44 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
         }
     }
 
+    private fun renderNoteState(state: NoteMarkdownState) {
+        val noteKey = arguments?.getString(ARG_ITEM_ID) ?: return
+        when (state) {
+            NoteMarkdownState.Idle -> return
+            is NoteMarkdownState.Loading -> {
+                if (state.noteKey != noteKey) {
+                    return
+                }
+                mIsLoadingNote = true
+            }
+            is NoteMarkdownState.Loaded -> {
+                if (state.noteKey != noteKey) {
+                    return
+                }
+                mNote = state.note
+                mIsLoadingNote = false
+            }
+            is NoteMarkdownState.Missing -> {
+                if (state.noteKey != noteKey) {
+                    return
+                }
+                mNote = null
+                mIsLoadingNote = false
+            }
+            is NoteMarkdownState.Error -> {
+                if (state.noteKey != noteKey) {
+                    return
+                }
+                mNote = null
+                mIsLoadingNote = false
+            }
+        }
+        activity?.invalidateOptionsMenu()
+    }
+
     override fun onLocalQueueChange(bucket: Bucket<Note>, queuedObjects: Set<String>) {
     }
 
     override fun onSyncObject(bucket: Bucket<Note>, key: String) {
-    }
-
-    private class LoadNoteTask(context: NoteMarkdownFragment) : AsyncTask<String, Void, Void>() {
-        private val mNoteMarkdownFragmentReference: SoftReference<NoteMarkdownFragment> = SoftReference(context)
-
-        override fun onPreExecute() {
-            val fragment = mNoteMarkdownFragmentReference.get()
-            fragment?.mIsLoadingNote = true
-        }
-
-        override fun doInBackground(vararg args: String): Void? {
-            val fragment = mNoteMarkdownFragmentReference.get() ?: return null
-            val activity = fragment.activity ?: return null
-
-            val noteID = args[0]
-            val application = activity.application as Simplenote
-            val notesBucket = application.notesBucket
-
-            try {
-                fragment.mNote = notesBucket.get(noteID)
-            } catch (exception: BucketObjectMissingException) {
-                // TODO: Handle a missing note
-            }
-
-            return null
-        }
-
-        override fun onPostExecute(nada: Void?) {
-            val fragment = mNoteMarkdownFragmentReference.get()
-            fragment?.mIsLoadingNote = false
-            fragment?.requireActivity()?.invalidateOptionsMenu()
-        }
     }
 }

@@ -1,5 +1,7 @@
 package com.automattic.simplenote
 
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.testing.TestLifecycleOwner
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.repositories.NoteChange
 import com.automattic.simplenote.repositories.NoteQueryResult
@@ -12,8 +14,7 @@ import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectNameInvalid
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.testing.TestLifecycleOwner
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -193,6 +194,48 @@ class NotesActivityStreamsTest {
     }
 
     @Test
+    fun previewSelectionIsRoutedThroughTheRepository() = runTest {
+        val streams = NotesActivityStreams(repository, backgroundScope)
+
+        streams.setPreviewEnabled("note-key", true)
+        runCurrent()
+
+        assertEquals(listOf("setPreviewEnabled(note-key, true)"), repository.operations)
+    }
+
+    @Test
+    fun previewSelectionsStayOrderedAcrossActivityReplacement() = runTest {
+        repository.previewOperationStarted = CompletableDeferred()
+        repository.previewOperationGate = CompletableDeferred()
+        val activityJob = Job()
+        val oldActivityStreams = NotesActivityStreams(
+            repository,
+            CoroutineScope(coroutineContext + activityJob),
+        )
+        val newActivityStreams = NotesActivityStreams(repository, backgroundScope)
+
+        oldActivityStreams.setPreviewEnabled("note-key", true)
+        runCurrent()
+        repository.previewOperationStarted?.await()
+        newActivityStreams.setPreviewEnabled("note-key", false)
+        runCurrent()
+
+        assertEquals(listOf("setPreviewEnabled(note-key, true)"), repository.previewOperationStarts)
+        activityJob.cancel()
+        repository.previewOperationGate?.complete(Unit)
+        runCurrent()
+
+        assertEquals(
+            listOf(
+                "setPreviewEnabled(note-key, true)",
+                "setPreviewEnabled(note-key, false)",
+            ),
+            repository.operations,
+        )
+        assertEquals(1, repository.maxConcurrentPreviewOperations)
+    }
+
+    @Test
     fun theWelcomeNoteRidesTheFixedKey() = runTest {
         val streams = NotesActivityStreams(repository, backgroundScope)
 
@@ -295,6 +338,11 @@ class NotesActivityStreamsTest {
         var getNoteGate: CompletableDeferred<Unit>? = null
         var createNoteFailure: Exception? = null
         var trashedCount = 0
+        var previewOperationStarted: CompletableDeferred<Unit>? = null
+        var previewOperationGate: CompletableDeferred<Unit>? = null
+        val previewOperationStarts = mutableListOf<String>()
+        var maxConcurrentPreviewOperations = 0
+        private var concurrentPreviewOperations = 0
 
         private fun record(operation: String) {
             operations.add(operation)
@@ -343,8 +391,22 @@ class NotesActivityStreamsTest {
         override suspend fun setPinned(keys: List<String>, pinned: Boolean) =
             error("unused in these tests")
 
-        override suspend fun setPreviewEnabled(key: String, enabled: Boolean) =
-            error("unused in these tests")
+        override suspend fun setPreviewEnabled(key: String, enabled: Boolean) {
+            val operation = "setPreviewEnabled($key, $enabled)"
+            previewOperationStarts.add(operation)
+            concurrentPreviewOperations++
+            maxConcurrentPreviewOperations = maxOf(
+                maxConcurrentPreviewOperations,
+                concurrentPreviewOperations,
+            )
+            previewOperationStarted?.complete(Unit)
+            try {
+                previewOperationGate?.await()
+                record(operation)
+            } finally {
+                concurrentPreviewOperations--
+            }
+        }
 
         override suspend fun setPublished(key: String, published: Boolean) =
             error("unused in these tests")

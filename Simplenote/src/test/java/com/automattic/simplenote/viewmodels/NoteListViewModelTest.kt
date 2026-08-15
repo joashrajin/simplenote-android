@@ -1,6 +1,10 @@
 package com.automattic.simplenote.viewmodels
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
 import com.automattic.simplenote.CoroutineTestRule
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Suggestion
@@ -59,9 +63,8 @@ class NoteListViewModelTest {
         .map { suggestion -> suggestion.name to suggestion.type }
 
     @Test
-    fun refreshBuildsAPinnedFirstRequestForEveryFilter() {
+    fun refreshBuildsAPinnedFirstRequestForEveryFilterWhenNotSearching() {
         preferencesRepository.sort = SortOrder.CREATED_ASC
-        viewModel.searchNotes("welcome tag:x", isSubmit = false)
         val filters = listOf(
             NoteFilter.AllNotes,
             NoteFilter.Trash,
@@ -77,7 +80,7 @@ class NoteListViewModelTest {
 
         assertEquals(
             filters.map { filter ->
-                NoteSearchRequest(filter, "welcome tag:x", SortOrder.CREATED_ASC, pinnedFirst = true)
+                NoteSearchRequest(filter, null, SortOrder.CREATED_ASC, pinnedFirst = true)
             },
             notesRepository.requests
         )
@@ -130,7 +133,7 @@ class NoteListViewModelTest {
     }
 
     @Test
-    fun replacingAConsumedDeliveryLeavesItsCursorToTheAdapter() {
+    fun replacingAConsumedDeliveryClosesItsCursor() {
         val firstCursor = mock<Bucket.ObjectCursor<Note>>()
         notesRepository.results.add(NoteQueryResult.Notes(firstCursor, null))
         viewModel.refreshList(NoteFilter.AllNotes, false)
@@ -141,7 +144,21 @@ class NoteListViewModelTest {
         viewModel.refreshList(NoteFilter.AllNotes, false)
         advanceUntilIdle()
 
-        verify(firstCursor, never()).close()
+        verify(firstCursor).close()
+    }
+
+    @Test
+    fun replacingADeliveryWithTheSameCursorDoesNotCloseIt() {
+        val cursor = mock<Bucket.ObjectCursor<Note>>()
+        notesRepository.results.add(NoteQueryResult.Notes(cursor, null))
+        viewModel.refreshList(NoteFilter.AllNotes, false)
+        advanceUntilIdle()
+
+        notesRepository.results.add(NoteQueryResult.Notes(cursor, null))
+        viewModel.refreshList(NoteFilter.AllNotes, false)
+        advanceUntilIdle()
+
+        verify(cursor, never()).close()
     }
 
     @Test
@@ -188,6 +205,32 @@ class NoteListViewModelTest {
         verify(newerCursor, never()).close()
     }
 
+    @Test
+    fun clearingTheViewModelClosesAResultThatSurvivesScopeCancellation() {
+        val staleCursor = mock<Bucket.ObjectCursor<Note>>()
+        val gate = CompletableDeferred<NoteQueryResult>()
+        notesRepository.gates.add(gate)
+        notesRepository.resultSwallowingCancellation = NoteQueryResult.Notes(staleCursor, null)
+
+        val store = ViewModelStore()
+        val owner = object : ViewModelStoreOwner {
+            override val viewModelStore = store
+        }
+        val factory = object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(modelClass: Class<T>): T = viewModel as T
+        }
+        assertSame(viewModel, ViewModelProvider(owner, factory)[NoteListViewModel::class.java])
+        viewModel.refreshList(NoteFilter.AllNotes, false)
+        runCurrent()
+
+        store.clear()
+        advanceUntilIdle()
+
+        verify(staleCursor).close()
+        assertNull(viewModel.noteList.value)
+    }
+
     // The search path rides the same pipeline as the plain refresh path, the deterministic
     // replacement for the two legacy AsyncTask chains that never cancelled each other and let
     // whichever onPostExecute ran last win the adapter.
@@ -213,6 +256,58 @@ class NoteListViewModelTest {
             notesRepository.requests
         )
         assertEquals(NoteFilter.InTag("shopping"), viewModel.filter)
+    }
+
+    @Test
+    fun activeSearchRefreshesStayGlobalAndUnpinnedForTagAndTrashFilters() {
+        preferencesRepository.sort = SortOrder.CREATED_ASC
+        notesRepository.results.add(NoteQueryResult.InvalidQuery)
+        viewModel.searchNotes("hello tag:x", isSubmit = true)
+        advanceUntilIdle()
+
+        val filters = listOf(NoteFilter.InTag("shopping"), NoteFilter.Trash)
+        for (filter in filters) {
+            notesRepository.results.add(NoteQueryResult.InvalidQuery)
+            viewModel.refreshList(filter, true)
+            advanceUntilIdle()
+        }
+
+        assertEquals(
+            List(3) {
+                NoteSearchRequest(NoteFilter.AllNotes, "hello tag:x", SortOrder.CREATED_ASC, pinnedFirst = false)
+            },
+            notesRepository.requests
+        )
+        assertEquals(NoteFilter.Trash, viewModel.filter)
+        assertFalse(requireNotNull(viewModel.noteList.value).isFromNavSelect)
+    }
+
+    @Test
+    fun stoppingSearchRestoresSelectedFilterAndPinnedOrderingBeforeClearingTheQuery() {
+        val filter = NoteFilter.InTag("shopping")
+        notesRepository.results.add(NoteQueryResult.InvalidQuery)
+        viewModel.refreshList(filter, false)
+        advanceUntilIdle()
+
+        viewModel.searchNotes("hello", isSubmit = false)
+        viewModel.stopSearching()
+        notesRepository.results.add(NoteQueryResult.InvalidQuery)
+        viewModel.refreshList(filter, false)
+        advanceUntilIdle()
+
+        viewModel.clearSearchQuery()
+        notesRepository.results.add(NoteQueryResult.InvalidQuery)
+        viewModel.refreshList(filter, false)
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                NoteSearchRequest(filter, null, SortOrder.MODIFIED_DESC, pinnedFirst = true),
+                NoteSearchRequest(filter, "hello", SortOrder.MODIFIED_DESC, pinnedFirst = true),
+                NoteSearchRequest(filter, null, SortOrder.MODIFIED_DESC, pinnedFirst = true),
+            ),
+            notesRepository.requests
+        )
     }
 
     @Test
@@ -243,7 +338,7 @@ class NoteListViewModelTest {
     }
 
     @Test
-    fun aPlainRefreshSupersedesAnInFlightSearchRefresh() {
+    fun anOrdinaryRefreshSupersedesAnInFlightSearchWithoutChangingItsQueryShape() {
         val gate = CompletableDeferred<NoteQueryResult>()
         notesRepository.gates.add(gate)
         viewModel.searchNotes("hello", isSubmit = true)
@@ -256,12 +351,11 @@ class NoteListViewModelTest {
 
         assertEquals(1, notesRepository.cancelledSearches)
         assertSame(plainResult, requireNotNull(viewModel.noteList.value).result)
-        // The live query text stays applied to plain refreshes until clearSearchQuery, exactly
-        // as queryNotes always read mSearchString.
         assertEquals(
-            NoteSearchRequest(NoteFilter.InTag("shopping"), "hello", SortOrder.MODIFIED_DESC, pinnedFirst = true),
+            NoteSearchRequest(NoteFilter.AllNotes, "hello", SortOrder.MODIFIED_DESC, pinnedFirst = false),
             notesRepository.requests.last()
         )
+        assertEquals(NoteFilter.InTag("shopping"), viewModel.filter)
     }
 
     @Test

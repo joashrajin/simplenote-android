@@ -4,16 +4,18 @@ import androidx.annotation.VisibleForTesting;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Deque;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class AppLog {
     private static final int LOG_MAX = 100;
     private static final Object LOCK = new Object();
-    private static final Map<Type, String> mHeaders = new LinkedHashMap<>();
+    private static final Map<Type, HeaderProvider> mHeaders = new LinkedHashMap<>();
     private static final Deque<String> mQueue = new ArrayDeque<>(LOG_MAX);
 
     public enum Type {
@@ -29,11 +31,19 @@ public class AppLog {
         EDITOR
     }
 
+    public interface HeaderProvider {
+        String get();
+    }
+
     // Headers hold per-process context (device and account blocks) that must survive rotation,
     // so shared diagnostics keep their context after the 100-entry window turns over.
     public static void addHeader(Type type, String message) {
+        addHeader(type, () -> message);
+    }
+
+    public static void addHeader(Type type, HeaderProvider provider) {
         synchronized (LOCK) {
-            mHeaders.put(type, message + "\n");
+            mHeaders.put(type, provider);
         }
     }
 
@@ -56,16 +66,25 @@ public class AppLog {
     }
 
     public static String get() {
-        StringBuilder queue = new StringBuilder();
+        Map<Type, HeaderProvider> headers;
+        List<String> entries;
 
         synchronized (LOCK) {
-            for (String header : mHeaders.values()) {
-                queue.append(header);
-            }
+            headers = new LinkedHashMap<>(mHeaders);
+            entries = new ArrayList<>(mQueue);
+        }
 
-            for (String entry : mQueue) {
-                queue.append(entry);
+        StringBuilder queue = new StringBuilder();
+        for (HeaderProvider provider : headers.values()) {
+            try {
+                queue.append(provider.get()).append("\n");
+            } catch (RuntimeException ignored) {
+                // Keep queued diagnostics available if dynamic context cannot be read.
             }
+        }
+
+        for (String entry : entries) {
+            queue.append(entry);
         }
 
         return queue.toString();

@@ -164,7 +164,7 @@ public class Simplenote extends Application implements HeartbeatListener {
         AnalyticsTracker.refreshMetadata(mSimperium.getUser().getEmail());
 
         AppLog.addHeader(Type.DEVICE, getDeviceInfo());
-        AppLog.addHeader(Type.ACCOUNT, getAccountInfo());
+        AppLog.addHeader(Type.ACCOUNT, this::getAccountInfo);
         AppLog.add(Type.LAYOUT, DisplayUtils.getDisplaySizeAndOrientation(Simplenote.this));
     }
 

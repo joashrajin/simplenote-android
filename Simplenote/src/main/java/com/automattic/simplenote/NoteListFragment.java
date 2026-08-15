@@ -73,7 +73,6 @@ import com.automattic.simplenote.utils.SearchSnippetFormatter;
 import com.automattic.simplenote.utils.SimplenoteLinkify;
 import com.automattic.simplenote.utils.StrUtils;
 import com.automattic.simplenote.utils.TextHighlighter;
-import com.automattic.simplenote.utils.SystemBarUtils;
 import com.automattic.simplenote.utils.ThemeUtils;
 import com.automattic.simplenote.utils.WidgetUtils;
 import com.automattic.simplenote.viewmodels.NoteListUpdate;
@@ -184,7 +183,6 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         inflater.inflate(R.menu.bulk_edit, menu);
         DrawableUtils.tintMenuWithAttribute(getActivity(), menu, R.attr.actionModeTextColor);
         mActionMode = actionMode;
-        SystemBarUtils.setStatusBarColor(requireActivity(), ThemeUtils.getColorFromAttribute(requireContext(), R.attr.mainBackgroundColor));
         return true;
     }
 
@@ -357,15 +355,6 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
                 notesActivity.showDetailPlaceholder();
             }
         }
-        new Handler().postDelayed(
-            new Runnable() {
-                @Override
-                public void run() {
-                    SystemBarUtils.setStatusBarColor(requireActivity(), getResources().getColor(android.R.color.transparent, requireActivity().getTheme()));
-                }
-            },
-            requireContext().getResources().getInteger(android.R.integer.config_longAnimTime)
-        );
     }
 
     @Override

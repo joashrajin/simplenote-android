@@ -48,10 +48,8 @@ public class SimplenoteSignupActivity extends ThemedAppCompatActivity {
         initContainer(isSignUp);
         initToolbar(isSignUp);
 
-        // Setup edge-to-edge display with proper WindowInsets handling
-        // Use auto-theming to properly handle status bar appearance based on theme
-        SystemBarUtils.setupEdgeToEdgeWithAutoTheming(
-            this,
+        // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets.
+        SystemBarUtils.applyInsets(
             findViewById(R.id.main),
             mToolbar,
             findViewById(R.id.fragment_container)

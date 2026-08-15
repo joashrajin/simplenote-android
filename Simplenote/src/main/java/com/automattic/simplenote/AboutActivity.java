@@ -26,15 +26,12 @@ public class AboutActivity extends AppCompatActivity {
             ));
         }
         
-        // Setup edge-to-edge display with proper WindowInsets handling
-        // AboutActivity has a dark theme with blue background, so use appropriate appearance
-        SystemBarUtils.setupEdgeToEdgeWithToolbar(
-            this,
+        // The About screen is blue in both modes, so force light bar icons.
+        SystemBarUtils.applyEdgeToEdge(this, false);
+        SystemBarUtils.applyInsets(
             findViewById(R.id.main_parent_view),
             toolbar,
-            findViewById(R.id.about_fragment),
-            false, // Dark status bar icons for blue background
-            false  // Dark navigation bar icons for blue background
+            findViewById(R.id.about_fragment)
         );
     }
 

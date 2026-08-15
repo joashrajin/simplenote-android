@@ -59,10 +59,8 @@ public class PreferencesActivity extends ThemedAppCompatActivity {
             mPasscodePreferenceFragment = (PasscodePreferenceFragmentCompat) fragmentManager.findFragmentByTag(passcodeTag);
         }
 
-        // Setup edge-to-edge display with proper WindowInsets handling
-        // Use auto-theming to properly handle status bar appearance based on theme
-        SystemBarUtils.setupEdgeToEdgeWithAutoTheming(
-            this,
+        // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets.
+        SystemBarUtils.applyInsets(
             findViewById(R.id.main_parent_view),
             toolbar,
             findViewById(R.id.preferences_container)

@@ -50,11 +50,9 @@ class CollaboratorsActivity : ThemedAppCompatActivity() {
 
             viewModel.loadCollaborators(noteId)
 
-            // Setup edge-to-edge display with proper WindowInsets handling
-            // Use auto-theming to properly handle status bar appearance based on theme
+            // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets.
             val toolbar = findViewById<Toolbar>(R.id.toolbar)
-            SystemBarUtils.setupEdgeToEdgeWithAutoTheming(
-                this@CollaboratorsActivity,
+            SystemBarUtils.applyInsets(
                 findViewById(R.id.main_parent_view),
                 toolbar,
                 collaboratorsList

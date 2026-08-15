@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<resources>
+<resources
+    xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Base.Theme.Simplestyle" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:alertDialogTheme">@style/Dialog</item>
@@ -133,12 +134,13 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
-    <style name="Theme.Simplestyle.About" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.Simplestyle.About" parent="Theme.MaterialComponents.DayNight.NoActionBar" tools:targetApi="o_mr1">
         <item name="android:colorEdgeEffect">@android:color/white</item>
         <item name="android:navigationBarColor">@color/blue</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@color/blue</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="colorAccent">@color/item_default_dark</item>
         <item name="colorControlHighlight">@color/item_default_dark</item>
@@ -221,8 +223,20 @@
         <item name="android:textColor">@android:color/white</item>
     </style>
 
-    <style name="Theme.Transparent.Dialog" parent="Theme.Transparent">
+    <style name="Theme.Transparent" parent="Theme.Simplestyle" tools:targetApi="o_mr1">
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:navigationBarColor">@color/background_dark</item>
+        <item name="android:windowLightNavigationBar">false</item>
+        <item name="colorPrimaryDark">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.Transparent.Dialog" parent="Theme.Transparent" tools:targetApi="o_mr1">
         <item name="android:navigationBarColor">@color/background_dark_navigation</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="colorPrimary">?attr/colorAccent</item>
         <item name="statusBarBackground">@android:color/transparent</item>

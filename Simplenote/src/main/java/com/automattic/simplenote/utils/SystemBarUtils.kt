@@ -1,174 +1,124 @@
 package com.automattic.simplenote.utils
 
-import android.app.Activity
-import android.content.res.Configuration
+import android.app.Dialog
+import android.content.Context
+import android.graphics.Color
 import android.os.Build
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup.MarginLayoutParams
-import androidx.annotation.ColorInt
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.widget.Toolbar
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import kotlin.math.max
+import com.automattic.simplenote.R
 
 /**
- * Utility class to handle system bar appearance changes in a way that's compatible
- * with Android 15's deprecated APIs for statusBarColor and navigationBarColor.
+ * The single system-bar path. Activity windows go edge to edge via [applyEdgeToEdge] and derive
+ * their status/navigation bar appearance from the resolved theme, replacing the per-API theme
+ * forks (values-v27, values-night-v27, values-v35, values-night-v35) that used to carry
+ * statusBarColor/navigationBarColor/windowLight* items per platform version. The bars are
+ * transparent, so the window background — which every theme's bar color equaled — shows through.
  */
 object SystemBarUtils {
+    // androidx.activity's default dark scrim: navigation bar icons are always white before
+    // API 26, so a light theme keeps a translucent dark scrim behind them there.
+    private val NAVIGATION_BAR_DARK_SCRIM = Color.argb(0x80, 0x1B, 0x1B, 0x1B)
+
     /**
-     * Sets the status bar color in a way that's compatible across Android versions.
-     * On Android 15+, this becomes a no-op as the API is deprecated.
-     *
-     * @param activity The activity whose status bar color should be changed
-     * @param color The color to set
+     * Goes edge to edge with transparent system bars whose icon appearance follows the theme:
+     * dark icons on light themes, light icons on dark themes. Pass [lightSystemBars] explicitly
+     * for windows whose bar area does not match the theme's lightness (e.g. the blue About
+     * screen).
      */
     @JvmStatic
-    @Suppress("deprecation")
-    fun setStatusBarColor(activity: Activity?, @ColorInt color: Int) {
-        if (activity == null) return
-
-        val window = activity.getWindow()
-        if (window == null) return
-
-        // For Android 15+, we should use edge-to-edge design instead
-        // but for backward compatibility, we'll still set the color on older versions
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            window.setStatusBarColor(color)
+    @JvmOverloads
+    fun applyEdgeToEdge(activity: ComponentActivity, lightSystemBars: Boolean = isLightTheme(activity)) {
+        val style = if (lightSystemBars) {
+            SystemBarStyle.light(Color.TRANSPARENT, NAVIGATION_BAR_DARK_SCRIM)
+        } else {
+            SystemBarStyle.dark(Color.TRANSPARENT)
         }
-        // On Android 15+, the deprecated setStatusBarColor is ignored
-        // Apps should migrate to edge-to-edge design with WindowInsets handling
+        activity.enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
     /**
-     * Sets the appearance of system bars (status bar and navigation bar) to be light or dark.
-     * This is the modern way to control system bar appearance.
-     *
-     * @param activity The activity
-     * @param lightStatusBar Whether status bar content should be dark (for light backgrounds)
-     * @param lightNavigationBar Whether navigation bar content should be dark (for light backgrounds)
+     * Standard insets wiring for a toolbar screen: the root absorbs cutout/horizontal insets,
+     * the toolbar drops below the status bar, and the content keeps clear of the navigation bar
+     * and the IME. [keepContentBottomPadding] keeps the content view's own bottom padding as a
+     * floor instead of overwriting it with the inset.
      */
     @JvmStatic
-    fun setSystemBarsAppearance(activity: Activity?, lightStatusBar: Boolean, lightNavigationBar: Boolean) {
-        if (activity == null) return
-
-        val controller = WindowCompat.getInsetsController(
-            activity.getWindow(),
-            activity.getWindow().getDecorView()
-        )
-
-        controller.isAppearanceLightStatusBars = lightStatusBar
-        controller.isAppearanceLightNavigationBars = lightNavigationBar
-    }
-
-    /**
-     * Sets up edge-to-edge display with custom system bar appearance.
-     *
-     * @param activity The activity to setup
-     * @param rootView The root view of the activity layout
-     * @param toolbar The toolbar that should be pushed below the status bar
-     * @param contentView The main content view that should avoid navigation bar overlap
-     * @param lightStatusBar Whether status bar content should be dark (for light backgrounds)
-     * @param lightNavigationBar Whether navigation bar content should be dark (for light backgrounds)
-     */
-    @JvmStatic
-    fun setupEdgeToEdgeWithToolbar(
-        activity: Activity,
+    @JvmOverloads
+    fun applyInsets(
         rootView: View?,
         toolbar: Toolbar?,
         contentView: View?,
-        lightStatusBar: Boolean,
-        lightNavigationBar: Boolean
+        keepContentBottomPadding: Boolean = false
     ) {
-        // Enable edge-to-edge display
-        WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false)
-
-        // Set custom status bar appearance
-        setSystemBarsAppearance(activity, lightStatusBar, lightNavigationBar)
-
         rootView?.let {
-            // Apply insets to the root view first - handles horizontal system bars (notches/cutouts)
-            ViewCompat.setOnApplyWindowInsetsListener(it, { v: View, windowInsets: WindowInsetsCompat ->
+            ViewCompat.setOnApplyWindowInsetsListener(it) { view, windowInsets ->
                 val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-                // Apply horizontal insets to root view to handle notches/cutouts
-                v.setPadding(
-                    systemBars.left,
-                    0,  // Don't apply top padding here - toolbar will handle it
-                    systemBars.right,
-                    0 // Don't apply bottom padding here - content view will handle it
-                )
+                // Horizontal insets only: the toolbar and content handle top and bottom.
+                view.setPadding(systemBars.left, 0, systemBars.right, 0)
                 windowInsets
-            })
+            }
         }
-
-        // Handle toolbar insets - make sure it doesn't overlap with status bar
         toolbar?.let {
-            ViewCompat.setOnApplyWindowInsetsListener(it, { v: View, windowInsets: WindowInsetsCompat ->
+            ViewCompat.setOnApplyWindowInsetsListener(it) { view, windowInsets ->
                 val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-                // Apply top margin to toolbar to push it below status bar
-                val toolbarParams = v.getLayoutParams() as MarginLayoutParams?
-                toolbarParams?.let {
-                    it.topMargin = systemBars.top
-                    v.setLayoutParams(it)
+                (view.layoutParams as? MarginLayoutParams)?.let { params ->
+                    params.topMargin = systemBars.top
+                    view.layoutParams = params
                 }
                 windowInsets
-            })
+            }
         }
-
-        // Handle content view insets - avoid overlap with navigation bar
         contentView?.let {
-            ViewCompat.setOnApplyWindowInsetsListener(
-                it,
-                { v: View, windowInsets: WindowInsetsCompat ->
-                    val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-                    val ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
-                    // Apply bottom padding to avoid navigation bar overlap, but let's consider IME too
-                    // this will prevent the keyboard from pushing the content down
-                    val bottomPadding = max(systemBars.bottom, ime.bottom)
-                    v.setPadding(
-                        v.getPaddingLeft(),
-                        v.getPaddingTop(),
-                        v.getPaddingRight(),
-                        bottomPadding
-                    )
-                    // WARNING: Don't consume IME insets - let them pass through to child views (scroll views)
-                    // this will allow proper scrolling when keyboard appears
-                    windowInsets.inset(0, 0, 0, systemBars.bottom)
-                })
+            val minimumBottomPadding = if (keepContentBottomPadding) it.paddingBottom else 0
+            ViewCompat.setOnApplyWindowInsetsListener(it) { view, windowInsets ->
+                val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                val ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
+                view.setPadding(
+                    view.paddingLeft,
+                    view.paddingTop,
+                    view.paddingRight,
+                    maxOf(systemBars.bottom, ime.bottom, minimumBottomPadding)
+                )
+                // Pass the IME insets through so scrolling children can react to the keyboard.
+                windowInsets.inset(0, 0, 0, systemBars.bottom)
+            }
         }
     }
 
     /**
-     * Automatically determines the appropriate status bar appearance based on the current theme.
-     * Sets up edge-to-edge display with proper theming.
-     *
-     * @param activity The activity to setup
-     * @param rootView The root view of the activity layout
-     * @param toolbar The toolbar that should be pushed below the status bar
-     * @param contentView The main content view that should avoid navigation bar overlap
+     * Bottom sheet windows are separate from the activity, so they reproduce the deleted sheet
+     * themes' navigation bar directly: a sheet-colored bar with dark icons for light themes on
+     * API 27-34 (values-night still paints it for dark themes, and API 35+ ignores bar colors).
      */
     @JvmStatic
-    fun setupEdgeToEdgeWithAutoTheming(activity: Activity?, rootView: View?, toolbar: Toolbar?, contentView: View?) {
-        if (activity == null || rootView == null) return
-
-        // Determine if we're in light or dark theme
-        val isLightTheme = isLightTheme(activity)
-
-        // Setup edge-to-edge with appropriate theme
-        setupEdgeToEdgeWithToolbar(activity, rootView, toolbar, contentView, isLightTheme, isLightTheme)
+    fun applyToSheet(dialog: Dialog) {
+        val window = dialog.window ?: return
+        val lightNavigationBar = isLightTheme(dialog.context) &&
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
+        if (lightNavigationBar && Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            @Suppress("DEPRECATION")
+            window.navigationBarColor =
+                ThemeUtils.getColorFromAttribute(dialog.context, R.attr.sheetBackgroundColor)
+        }
+        WindowCompat.getInsetsController(window, window.decorView)
+            .isAppearanceLightNavigationBars = lightNavigationBar
     }
 
-    /**
-     * Determines if the current theme is light or dark.
-     *
-     * @param activity The activity to check
-     * @return true if light theme, false if dark theme
-     */
-    private fun isLightTheme(activity: Activity?): Boolean {
-        if (activity == null) return true
-
-        val nightModeFlags = activity.getResources().getConfiguration().uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return nightModeFlags != Configuration.UI_MODE_NIGHT_YES
+    private fun isLightTheme(context: Context): Boolean {
+        val value = TypedValue()
+        return if (context.theme.resolveAttribute(R.attr.isLightTheme, value, true)) {
+            value.data != 0
+        } else {
+            ThemeUtils.isLightTheme(context)
+        }
     }
 }

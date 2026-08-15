@@ -14,7 +14,6 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
@@ -66,14 +65,10 @@ public class SimplenoteAuthenticationActivity extends AuthenticationActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Setup edge-to-edge display only on Android 15+ to avoid breaking existing theming
-        // Since this extends Simperium's AuthenticationActivity, we need to be conservative
+        // Simperium owns this screen's layout, so it only takes the shared edge-to-edge path on
+        // Android 15+, where the platform enforces it anyway.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-            // Use auto-theming to properly handle dark mode
-            boolean isLightTheme = (getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK)
-                != android.content.res.Configuration.UI_MODE_NIGHT_YES;
-            SystemBarUtils.setSystemBarsAppearance(this, isLightTheme, isLightTheme);
+            SystemBarUtils.applyEdgeToEdge(this);
 
             // Apply navigation bar insets to avoid button overlap with 3-button navigation
             ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content), (v, windowInsets) -> {

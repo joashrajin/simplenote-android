@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<resources>
+<resources
+    xmlns:tools="http://schemas.android.com/tools">
 
     <style name="ActionMode.Simplestyle" parent="@style/Widget.AppCompat.ActionMode">
         <item name="background">?attr/actionModeBackgroundColor</item>
@@ -188,10 +189,11 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <style name="Theme.Simplestyle.Splash">
+    <style name="Theme.Simplestyle.Splash" tools:targetApi="o_mr1">
         <item name="android:navigationBarColor">@color/blue</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@drawable/bg_splash</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
@@ -308,12 +310,13 @@
         <item name="android:textColor">?attr/actionModeTextColor</item>
     </style>
 
-    <style name="Theme.Simplestyle.About" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.Simplestyle.About" parent="Theme.MaterialComponents.DayNight.NoActionBar" tools:targetApi="o_mr1">
         <item name="android:colorEdgeEffect">@android:color/white</item>
         <item name="android:navigationBarColor">@color/blue</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@color/blue</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="colorAccent">@color/item_default_light</item>
         <item name="colorControlHighlight">@color/item_default_dark</item>
@@ -374,10 +377,11 @@
         <item name="android:textSize">@dimen/text_about_title</item>
     </style>
 
-    <style name="Theme.Simplestyle.Passcode" parent="@style/Theme.MaterialComponents.Light.NoActionBar">
+    <style name="Theme.Simplestyle.Passcode" parent="@style/Theme.MaterialComponents.Light.NoActionBar" tools:targetApi="o_mr1">
         <item name="android:navigationBarColor">@color/passcodelock_background</item>
         <item name="android:statusBarColor">@color/passcodelock_background</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="colorPrimary">@color/passcodelock_background</item>
     </style>
 
@@ -390,8 +394,9 @@
         <item name="colorPrimaryDark">@android:color/transparent</item>
     </style>
 
-    <style name="Theme.Transparent.Dialog" parent="Theme.Transparent">
+    <style name="Theme.Transparent.Dialog" parent="Theme.Transparent" tools:targetApi="o_mr1">
         <item name="android:navigationBarColor">@color/background_light_navigation</item>
+        <item name="android:windowLightNavigationBar">false</item>
         <item name="android:windowLightStatusBar">false</item>
         <item name="colorPrimary">?attr/colorAccent</item>
         <item name="statusBarBackground">@android:color/transparent</item>

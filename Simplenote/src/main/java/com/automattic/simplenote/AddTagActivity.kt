@@ -1,6 +1,5 @@
 package com.automattic.simplenote
 
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.text.method.LinkMovementMethod
@@ -17,7 +16,6 @@ import androidx.core.widget.doAfterTextChanged
 import com.automattic.simplenote.databinding.ActivityTagAddBinding
 import com.automattic.simplenote.utils.DisplayUtils
 import com.automattic.simplenote.utils.HtmlCompat
-import com.automattic.simplenote.utils.SystemBarUtils
 import com.automattic.simplenote.utils.ThemeUtils
 import com.automattic.simplenote.viewmodels.AddTagViewModel
 import com.automattic.simplenote.widgets.MorphCircleToRectangle
@@ -40,13 +38,8 @@ class AddTagActivity : AppCompatActivity() {
 
             viewModel.start()
 
-
-            // Setup edge-to-edge display with proper WindowInsets handling
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-                SystemBarUtils.setupEdgeToEdgeWithAutoTheming(this@AddTagActivity, root, null, null)
-            }
-
-            // Add minimal IME (keyboard) insets handling for dialog positioning
+            // This faux-dialog window keeps its Theme.Transparent.Dialog bar appearance;
+            // only the IME (keyboard) insets need handling for dialog positioning.
             ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
                 val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
                 view.setPadding(view.paddingLeft, view.paddingTop, view.paddingRight, imeInsets.bottom)

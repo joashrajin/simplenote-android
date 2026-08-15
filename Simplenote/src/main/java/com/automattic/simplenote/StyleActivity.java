@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.automattic.simplenote.utils.BrowserUtils;
 import com.automattic.simplenote.utils.PrefUtils;
+import com.automattic.simplenote.utils.SystemBarUtils;
 import com.automattic.simplenote.utils.ThemeUtils;
 import com.automattic.simplenote.widgets.EmptyViewRecyclerView;
 
@@ -69,6 +70,15 @@ public class StyleActivity extends ThemedAppCompatActivity {
         list.setAdapter(new StyleAdapter(styles));
         mLayoutManager = new LinearLayoutManager(StyleActivity.this);
         list.setLayoutManager(mLayoutManager);
+
+        // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets. The list
+        // keeps its own bottom padding as a floor so the layout is untouched without insets.
+        SystemBarUtils.applyInsets(
+            findViewById(R.id.main_parent_view),
+            (Toolbar) findViewById(R.id.toolbar),
+            list,
+            true
+        );
 
         if (getIntent().hasExtra(EXTRA_SCROLL)) {
             mLayoutManager.onRestoreInstanceState(getIntent().getParcelableExtra(EXTRA_SCROLL));

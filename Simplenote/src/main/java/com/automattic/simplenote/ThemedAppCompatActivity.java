@@ -10,6 +10,7 @@ import androidx.lifecycle.Lifecycle;
 import androidx.preference.PreferenceManager;
 
 import com.automattic.simplenote.utils.PrefUtils;
+import com.automattic.simplenote.utils.SystemBarUtils;
 import com.automattic.simplenote.utils.ThemeUtils;
 
 /**
@@ -24,6 +25,7 @@ abstract public class ThemedAppCompatActivity extends AppCompatActivity implemen
         ThemeUtils.setTheme(this);
         super.onCreate(savedInstanceState);
         setTheme(ThemeUtils.getStyle(this));
+        SystemBarUtils.applyEdgeToEdge(this);
         PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
     }
 

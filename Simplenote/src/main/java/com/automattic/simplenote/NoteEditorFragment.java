@@ -316,7 +316,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
         AppLog.add(Type.NETWORK, NetworkUtils.getNetworkInfo(requireContext()));
         AppLog.add(Type.SCREEN, "Created (NoteEditorFragment)");
         mPreferences = requireContext().getSharedPreferences(SCROLL_POSITION_PREFERENCES, Context.MODE_PRIVATE);
-        mInfoBottomSheet = new InfoBottomSheetDialog(this);
+        mInfoBottomSheet = new InfoBottomSheetDialog();
         mShareBottomSheet = new ShareBottomSheetDialog(this, this);
         mHistoryBottomSheet = new HistoryBottomSheetDialog(this, this);
 

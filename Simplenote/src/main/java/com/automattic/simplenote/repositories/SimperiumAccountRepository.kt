@@ -27,42 +27,52 @@ class SimperiumAccountRepository @Inject constructor(
     override suspend fun verificationStatus(email: String): AccountVerificationStatus? =
         withContext(ioDispatcher) { readVerificationStatus(email) }
 
-    override fun verificationStatusChanges(): Flow<AccountVerificationStatus> = callbackFlow {
+    override fun verificationStatusChanges(): Flow<AccountVerificationUpdate> = callbackFlow {
         val listener = Bucket.OnNetworkChangeListener<Account> { _, type, key ->
-            val isVerificationRemoval = type == Bucket.ChangeType.REMOVE && key == KEY_EMAIL_VERIFICATION
-            val email = if (isVerificationRemoval) null else simperium.user?.email
-            trySend(AccountChange(type, key, email))
+            trySend(AccountChange(type, key, simperium.user?.email))
         }
 
         accountBucket.addOnNetworkChangeListener(listener)
         awaitClose { accountBucket.removeOnNetworkChangeListener(listener) }
     }
         .buffer(Channel.UNLIMITED)
-        .mapNotNull(::verificationStatusForChange)
-        .distinctUntilChanged()
-
-    private suspend fun verificationStatusForChange(change: AccountChange): AccountVerificationStatus? {
-        if (change.type == Bucket.ChangeType.REMOVE && change.key == KEY_EMAIL_VERIFICATION) {
-            return AccountVerificationStatus.UNVERIFIED
+        .mapNotNull(::verificationUpdateForChange)
+        .distinctUntilChanged { previous, current ->
+            previous.status == current.status && previous.email.equals(current.email, ignoreCase = true)
         }
 
+    private suspend fun verificationUpdateForChange(change: AccountChange): AccountVerificationUpdate? {
+        val isVerificationRemoval = change.type == Bucket.ChangeType.REMOVE &&
+                change.key == KEY_EMAIL_VERIFICATION
         val shouldRefresh = change.type == Bucket.ChangeType.INDEX ||
                 ((change.type == Bucket.ChangeType.INSERT || change.type == Bucket.ChangeType.MODIFY) &&
                         change.key == KEY_EMAIL_VERIFICATION)
-        if (!shouldRefresh) {
+        if (!isVerificationRemoval && !shouldRefresh) {
             return null
         }
 
         val email = change.email ?: return null
         return try {
-            withContext(ioDispatcher) {
+            val update = withContext(ioDispatcher) {
                 val currentEmail = simperium.user?.email
                 if (email.equals(currentEmail, ignoreCase = true)) {
-                    readVerificationStatus(email)
+                    val status = if (isVerificationRemoval) {
+                        AccountVerificationStatus.UNVERIFIED
+                    } else {
+                        readVerificationStatus(email)
+                    }
+                    val activeEmail = simperium.user?.email
+                    if (email.equals(activeEmail, ignoreCase = true)) {
+                        status?.let { AccountVerificationUpdate(email, it) }
+                    } else {
+                        null
+                    }
                 } else {
                     null
                 }
             }
+            val currentEmail = simperium.user?.email
+            update?.takeIf { it.email.equals(currentEmail, ignoreCase = true) }
         } catch (exception: CancellationException) {
             throw exception
         } catch (exception: Exception) {

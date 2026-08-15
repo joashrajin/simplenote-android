@@ -463,6 +463,14 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         getListView().setMultiChoiceModeListener(this);
     }
 
+    @Override
+    public void onDestroyView() {
+        if (mNotesAdapter != null) {
+            mNotesAdapter.swapNoteCursor(null);
+        }
+        super.onDestroyView();
+    }
+
     /**
      * Applies a suggestion feed exactly as the legacy inline queries did: getSearchItems
      * diffed the recent searches into whichever adapter was live (even the tag-suggestion one,
@@ -480,9 +488,9 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
 
     /**
      * Renders a refresh delivered by {@link NoteListViewModel}, running the exact callback
-     * chain RefreshListTask.onPostExecute ran. The adapter closes the previous cursor inside
-     * changeCursor; the invalid-query contract clears the list. On a sticky redelivery (view
-     * recreated, same update instance) only the idempotent cursor swap repeats.
+     * chain RefreshListTask.onPostExecute ran. The adapter borrows the ViewModel-owned cursor;
+     * the invalid-query contract clears the list. On a sticky redelivery (view recreated, same
+     * update instance) only the idempotent cursor swap repeats.
      */
     private void onNoteListUpdated(NoteListUpdate update) {
         int count;
@@ -509,11 +517,11 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
             }
 
             mRenderedSearchSnapshot = notes.getSearchSnapshot();
-            mNotesAdapter.changeCursor(cursor);
+            mNotesAdapter.swapNoteCursor(cursor);
             count = mNotesAdapter.getCount();
         } else {
             mRenderedSearchSnapshot = null;
-            mNotesAdapter.changeCursor(null);
+            mNotesAdapter.swapNoteCursor(null);
             count = 0;
         }
 
@@ -884,9 +892,9 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
             mCursor = c;
         }
 
-        public void changeCursor(ObjectCursor<Note> cursor) {
+        public void swapNoteCursor(ObjectCursor<Note> cursor) {
             mCursor = cursor;
-            super.changeCursor(cursor);
+            super.swapCursor(cursor);
         }
 
         @Override

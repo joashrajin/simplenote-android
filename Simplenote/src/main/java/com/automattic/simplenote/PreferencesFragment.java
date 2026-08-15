@@ -14,6 +14,7 @@ import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_ASCENDING;
 import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_ASCENDING_LABEL;
 import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_DESCENDING;
 import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_DESCENDING_LABEL;
+import static com.automattic.simplenote.viewmodels.PreferencesViewModelKt.observeExportResults;
 import static com.automattic.simplenote.viewmodels.PreferencesViewModelKt.observeLogoutDecisions;
 
 import android.app.Activity;
@@ -26,7 +27,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.widget.Switch;
 import android.widget.Toast;
 
@@ -43,19 +43,19 @@ import androidx.preference.SwitchPreferenceCompat;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.authentication.SimplenoteAuthenticationActivity;
-import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Preferences;
 import com.automattic.simplenote.utils.AccountNetworkUtils;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
-import com.automattic.simplenote.utils.AuthUtils;
 import com.automattic.simplenote.utils.BrowserUtils;
 import com.automattic.simplenote.utils.DeleteAccountRequestHandler;
 import com.automattic.simplenote.utils.DialogUtils;
+import com.automattic.simplenote.utils.ExportNotesGate;
 import com.automattic.simplenote.utils.HtmlCompat;
 import com.automattic.simplenote.utils.NetworkUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SimplenoteProgressDialogFragment;
+import com.automattic.simplenote.viewmodels.ExportResult;
 import com.automattic.simplenote.viewmodels.LogoutDecision;
 import com.automattic.simplenote.viewmodels.PreferencesViewModel;
 import com.simperium.Simperium;
@@ -64,14 +64,9 @@ import com.simperium.client.BucketObjectMissingException;
 import com.simperium.client.BucketObjectNameInvalid;
 import com.simperium.client.User;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+
+import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -90,6 +85,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     private SwitchPreferenceCompat mAnalyticsSwitch;
     private SimplenoteProgressDialogFragment mProgressDialogFragment;
     private PreferencesViewModel mViewModel;
+    @Inject ExportNotesGate mExportNotesGate;
 
     public PreferencesFragment() {
         // Required empty public constructor
@@ -109,6 +105,11 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             mViewModel.getLogoutDecisions(),
             getViewLifecycleOwner(),
             this::handleLogoutDecision
+        );
+        observeExportResults(
+            mViewModel.getExportResults(),
+            getViewLifecycleOwner(),
+            this::handleExportResult
         );
 
         Preference authenticatePreference = findPreference("pref_key_authenticate");
@@ -561,10 +562,10 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
 
         switch (requestCode) {
             case REQUEST_EXPORT_DATA:
-                exportData(resultData.getData(), false);
+                mViewModel.exportNotes(resultData.getData(), false);
                 break;
             case REQUEST_EXPORT_UNSYNCED:
-                exportData(resultData.getData(), true);
+                mViewModel.exportNotes(resultData.getData(), true);
                 break;
             case REQUEST_IMPORT_DATA:
                 importData(resultData.getData());
@@ -580,9 +581,9 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 "preferences_sign_out_button"
         );
 
-        AuthUtils.logOut((Simplenote) requireActivity().getApplication());
-
-        getActivity().finish();
+        FragmentActivity activity = requireActivity();
+        mExportNotesGate.logOut((Simplenote) activity.getApplication());
+        activity.finish();
     }
 
     private void handleLogoutDecision(LogoutDecision decision) {
@@ -592,6 +593,17 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 break;
             case PROCEED:
                 logOut();
+                break;
+        }
+    }
+
+    private void handleExportResult(ExportResult result) {
+        switch (result) {
+            case SUCCESS:
+                toast(R.string.export_message_success);
+                break;
+            case FAILURE:
+                toast(R.string.export_message_failure);
                 break;
         }
     }
@@ -653,79 +665,6 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 AnalyticsTracker.CATEGORY_USER,
                 "account_created_from_preferences_activity"
         );
-    }
-
-    private void exportData(Uri uri, boolean isUnsyncedNotes) {
-        Simplenote currentApp = (Simplenote) requireActivity().getApplication();
-        Bucket<Note> noteBucket = currentApp.getNotesBucket();
-        JSONObject account = new JSONObject();
-        Bucket.ObjectCursor<Note> cursor = noteBucket.allObjects();
-
-        try {
-            JSONArray activeNotes = new JSONArray();
-            JSONArray trashedNotes = new JSONArray();
-            Comparator<String> comparator = new Comparator<String>() {
-                @Override
-                public int compare(String text1, String text2) {
-                    return text1.compareToIgnoreCase(text2);
-                }
-            };
-
-            while (cursor.moveToNext()) {
-                Note note = cursor.getObject();
-
-                if (isUnsyncedNotes && !note.isNew() && !note.isModified()) {
-                    continue;
-                }
-
-                JSONObject noteJson = new JSONObject();
-
-                noteJson.put("id", note.getSimperiumKey());
-                noteJson.put("content", note.getContent());
-                noteJson.put("creationDate", note.getCreationDateString());
-                noteJson.put("lastModified", note.getModificationDateString());
-
-                if (note.isPinned()) {
-                    noteJson.put("pinned", note.isPinned());
-                }
-
-                if (note.isMarkdownEnabled()) {
-                    noteJson.put("markdown", note.isMarkdownEnabled());
-                }
-
-                if (note.getTags().size() > 0) {
-                    List<String> tags = note.getTags();
-                    Collections.sort(tags, comparator);
-                    noteJson.put("tags", new JSONArray(tags));
-                }
-
-                if (!note.getPublishedUrl().isEmpty()) {
-                    noteJson.put("publicURL", note.getPublishedUrl());
-                }
-
-                if (note.isDeleted()) {
-                    trashedNotes.put(noteJson);
-                } else {
-                    activeNotes.put(noteJson);
-                }
-            }
-
-            account.put("activeNotes", activeNotes);
-            account.put("trashedNotes", trashedNotes);
-
-            ParcelFileDescriptor parcelFileDescriptor = requireContext().getContentResolver().openFileDescriptor(uri, "w");
-
-            if (parcelFileDescriptor != null) {
-                FileOutputStream fileOutputStream = new FileOutputStream(parcelFileDescriptor.getFileDescriptor());
-                fileOutputStream.write(account.toString(2).replace("\\/","/").getBytes());
-                parcelFileDescriptor.close();
-                toast(R.string.export_message_success);
-            } else {
-                toast(R.string.export_message_failure);
-            }
-        } catch (Exception e) {
-            toast(R.string.export_message_failure);
-        }
     }
 
     private void importData(Uri uri) {

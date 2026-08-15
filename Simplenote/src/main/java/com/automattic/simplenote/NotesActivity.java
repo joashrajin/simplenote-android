@@ -21,7 +21,6 @@ import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.USER_ACC
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.USER_SIGNED_IN;
 import static com.automattic.simplenote.utils.DisplayUtils.disableScreenshotsIfLocked;
 import static com.automattic.simplenote.utils.TagsAdapter.ALL_NOTES_ID;
-import static com.automattic.simplenote.utils.TagsAdapter.DEFAULT_ITEM_POSITION;
 import static com.automattic.simplenote.utils.TagsAdapter.SETTINGS_ID;
 import static com.automattic.simplenote.utils.TagsAdapter.TAGS_ID;
 import static com.automattic.simplenote.utils.TagsAdapter.TRASH_ID;
@@ -74,8 +73,8 @@ import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.authentication.SimplenoteAuthenticationActivity;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Tag;
-import com.automattic.simplenote.repositories.CollaboratorsRepository;
 import com.automattic.simplenote.repositories.NotesRepository;
+import com.automattic.simplenote.usecases.GetTagsUseCase;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
 import com.automattic.simplenote.utils.AuthUtils;
@@ -100,7 +99,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -109,7 +107,7 @@ import dagger.hilt.android.AndroidEntryPoint;
 @AndroidEntryPoint
 public class NotesActivity extends ThemedAppCompatActivity implements NoteListFragment.Callbacks,
     User.StatusChangeListener, Simperium.OnUserCreatedListener, UndoBarController.UndoListener,
-    NotesActivityStreams.Listener {
+    NotesActivityStreams.Listener, NavigationTagsStream.Listener {
     public static String TAG_NOTE_LIST = "noteList";
     public static String TAG_NOTE_EDITOR = "noteEditor";
 
@@ -118,7 +116,6 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     private static String STATE_NOTE_LIST_WIDGET_BUTTON_TAPPED = "STATE_NOTE_LIST_WIDGET_BUTTON_TAPPED";
 
     protected Bucket<Note> mNotesBucket;
-    protected Bucket<Tag> mTagsBucket;
     private boolean mHasTappedNoteListWidgetButton;
     private boolean mIsSettingsClicked;
     private boolean mIsShowingMarkdown;
@@ -152,49 +149,10 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     private ActionBarDrawerToggle mDrawerToggle;
     private TagsAdapter mTagsAdapter;
     private TagsAdapter.TagMenuItem mSelectedTag;
-    @Inject CollaboratorsRepository collaboratorsRepository;
+    @Inject GetTagsUseCase getTagsUseCase;
     @Inject NotesRepository notesRepository;
+    private NavigationTagsStream mNavigationTagsStream;
     private NotesActivityStreams mNotesActivityStreams;
-    // Tags bucket listener
-    private Bucket.Listener<Tag> mTagsMenuUpdater = new Bucket.Listener<Tag>() {
-        @Override
-        public void onSyncObject(Bucket<Tag> bucket, String key) {
-
-        }
-
-        @Override
-        public void onLocalQueueChange(Bucket<Tag> bucket, Set<String> queuedObjects) {
-
-        }
-
-        void updateNavigationDrawer() {
-            runOnUiThread(new Runnable() {
-                public void run() {
-                    updateNavigationDrawerItems();
-                }
-            });
-        }
-
-        @Override
-        public void onSaveObject(Bucket<Tag> bucket, Tag tag) {
-            updateNavigationDrawer();
-        }
-
-        @Override
-        public void onDeleteObject(Bucket<Tag> bucket, Tag tag) {
-            updateNavigationDrawer();
-        }
-
-        @Override
-        public void onNetworkChange(Bucket<Tag> bucket, Bucket.ChangeType type, String key) {
-            updateNavigationDrawer();
-        }
-
-        @Override
-        public void onBeforeUpdateObject(Bucket<Tag> bucket, Tag object) {
-            // noop
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -211,16 +169,21 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             mNotesBucket = currentApp.getNotesBucket();
         }
 
-        if (mTagsBucket == null) {
-            mTagsBucket = currentApp.getTagsBucket();
-        }
-
         mNotesActivityStreams = new NotesActivityStreams(notesRepository, LifecycleOwnerKt.getLifecycleScope(this));
         mNotesActivityStreams.start(getLifecycle(), this);
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         configureNavigationDrawer(toolbar);
+        mNavigationTagsStream = new NavigationTagsStream(
+            getTagsUseCase,
+            LifecycleOwnerKt.getLifecycleScope(this)
+        );
+        mNavigationTagsStream.start(
+            getLifecycle(),
+            () -> PrefUtils.getBoolPref(this, PrefUtils.PREF_SORT_TAGS_ALPHA),
+            this
+        );
 
         if (savedInstanceState == null) {
             mNoteListFragment = new NoteListFragment();
@@ -337,22 +300,6 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         // collecting, so lifting the addNote mute at the same point reproduces both the
         // suppression window and its in-resume expiry.
         mNotesActivityStreams.unmute();
-        mTagsBucket.addListener(mTagsMenuUpdater);
-        AppLog.add(Type.SYNC, "Added tag bucket listener (NotesActivity)");
-
-        updateNavigationDrawerItems();
-
-        // if the user is not authenticated and the tag doesn't exist revert to default drawer selection
-        if (userIsUnauthorized()) {
-            if (mTagsAdapter.getPosition(mSelectedTag) == -1) {
-                mSelectedTag = null;
-                mNavigationMenu.getItem(DEFAULT_ITEM_POSITION).setChecked(true);
-            }
-        }
-
-        if (mSelectedTag != null) {
-            filterListBySelectedTag();
-        }
 
         selectNewNoteIfNeeded();
 
@@ -392,8 +339,6 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     @Override
     protected void onPause() {
         super.onPause();  // Always call the superclass method first
-        mTagsBucket.removeListener(mTagsMenuUpdater);
-        AppLog.add(Type.SYNC, "Removed tag bucket listener (NotesActivity)");
         AppLog.add(Type.SCREEN, "Paused (NotesActivity)");
     }
 
@@ -531,6 +476,19 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     }
 
     private void filterListBySelectedTag() {
+        applySelectedTagFilter(true, true, true);
+    }
+
+    private void reconcileSelectedTagAfterResume() {
+        applySelectedTagFilter(true, false, true);
+    }
+
+    private void refreshSelectedTagAfterChange() {
+        applySelectedTagFilter(false, false, false);
+    }
+
+    private void applySelectedTagFilter(boolean trackSelection, boolean revealList, boolean fromNavSelect) {
+        mSelectedTag = mTagsAdapter.rebindSelection(mSelectedTag).item;
         MenuItem selectedMenuItem = mNavigationMenu.findItem((int) mSelectedTag.id);
 
         if (selectedMenuItem != null) {
@@ -541,7 +499,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
         checkEmptyListText(mSearchMenuItem != null && mSearchMenuItem.isActionViewExpanded());
 
-        if (mNoteListFragment.isHidden()) {
+        if (revealList && mNoteListFragment.isHidden()) {
             FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
             fragmentTransaction.show(mNoteListFragment);
             fragmentTransaction.commitNowAllowingStateLoss();
@@ -554,7 +512,11 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             getNoteListFragment().getListView().setLongClickable(true);
         }
 
-        getNoteListFragment().refreshListFromNavSelect();
+        if (fromNavSelect) {
+            getNoteListFragment().refreshListFromNavSelect();
+        } else {
+            getNoteListFragment().refreshList();
+        }
 
         Map<String, String> properties = new HashMap<>(1);
 
@@ -573,12 +535,14 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
                 break;
         }
 
-        AnalyticsTracker.track(
-            LIST_TAG_VIEWED,
-            CATEGORY_TAG,
-            "selected_tag_in_navigation_drawer",
-            properties
-        );
+        if (trackSelection) {
+            AnalyticsTracker.track(
+                LIST_TAG_VIEWED,
+                CATEGORY_TAG,
+                "selected_tag_in_navigation_drawer",
+                properties
+            );
+        }
 
         setSelectedTagActive();
     }
@@ -654,30 +618,10 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         }
     }
 
-    private List<Tag> getTagsFromCursor(Bucket.ObjectCursor<Tag> tagCursor) {
-        List<Tag> tags = new ArrayList<>();
-
-        for (int i = 0; i < tagCursor.getCount(); i++) {
-            tagCursor.moveToNext();
-            Tag tag = tagCursor.getObject();
-            if (!collaboratorsRepository.isValidCollaborator(tag.getName())) {
-                tags.add(tag);
-            }
-        }
-
-        return tags;
-    }
-
-    private void updateNavigationDrawerItems() {
-        boolean isAlphaSort = PrefUtils.getBoolPref(this, PrefUtils.PREF_SORT_TAGS_ALPHA);
-        List<Tag> tags;
-        if (isAlphaSort) {
-            tags = getTagsFromCursor(Tag.allSortedAlphabetically(mTagsBucket).execute());
-        } else {
-            tags = getTagsFromCursor(Tag.allWithName(mTagsBucket).execute());
-        }
-
+    private TagsAdapter.SelectionUpdate updateNavigationDrawerItems(List<Tag> tags) {
         mTagsAdapter.submitList(tags);
+        TagsAdapter.SelectionUpdate selectionUpdate = mTagsAdapter.rebindSelection(mSelectedTag);
+        mSelectedTag = selectionUpdate.item;
         mNavigationMenu.removeGroup(GROUP_SECONDARY);
         mNavigationMenu.removeGroup(GROUP_TERTIARY);
 
@@ -705,13 +649,14 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             }
 
             mNavigationMenu.add(GROUP_TERTIARY, UNTAGGED_NOTES_ID, Menu.NONE, getString(R.string.untagged_notes)).setIcon(R.drawable.ic_untagged_24dp).setCheckable(true);
-            setSelectedTagActive();
             emptyTagsDivider.setVisibility(View.GONE);
             emptyTagsHint.setVisibility(View.GONE);
         } else {
             emptyTagsDivider.setVisibility(View.VISIBLE);
             emptyTagsHint.setVisibility(View.VISIBLE);
         }
+        setSelectedTagActive();
+        return selectionUpdate;
     }
 
     public void createNewNote(View view) {
@@ -734,6 +679,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             mSelectedTag = mTagsAdapter.getDefaultItem();
         }
 
+        mSelectedTag = mTagsAdapter.rebindSelection(mSelectedTag).item;
         MenuItem selectedMenuItem = mNavigationMenu.findItem((int) mSelectedTag.id);
 
         if (selectedMenuItem != null) {
@@ -743,6 +689,22 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         }
 
         setTitle(mSelectedTag.name);
+    }
+
+    @Override
+    public void onNavigationTags(List<Tag> tags, boolean isInitial) {
+        TagsAdapter.SelectionUpdate selectionUpdate = updateNavigationDrawerItems(tags);
+
+        switch (selectionUpdate.getFilterRefresh(isInitial)) {
+            case INITIAL:
+                reconcileSelectedTagAfterResume();
+                break;
+            case AUTOMATIC:
+                refreshSelectedTagAfterChange();
+                break;
+            case NONE:
+                break;
+        }
     }
 
     public TagsAdapter.TagMenuItem getSelectedTag() {

@@ -15,6 +15,12 @@ interface TagsRepository {
     suspend fun searchTags(query: String): List<TagItem>
 
     /**
+     * Emits an initial navigation-drawer snapshot in manual or alphabetical order, followed by
+     * refreshed snapshots when the underlying tags change.
+     */
+    fun navigationTags(sortAlphabetically: Boolean): Flow<List<Tag>>
+
+    /**
      * Tag names for the search-suggestion overlay, exactly as NoteListFragment.getTagSuggestions
      * queried them: every tag ordered by note count (most used first); a query ending in the
      * literal tag: prefix suppresses the name filter, any other query is matched with a

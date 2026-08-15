@@ -1,9 +1,12 @@
 package com.automattic.simplenote.usecases
 
 import com.automattic.simplenote.models.Note
+import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.models.TagItem
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.TagsRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 /**
@@ -22,6 +25,12 @@ class GetTagsUseCase @Inject constructor(
     suspend fun searchTags(query: String): List<TagItem> {
         return tagsRepository.searchTags(query)
             .filter { tagItem -> !collaboratorsRepository.isValidCollaborator(tagItem.tag.name) }
+    }
+
+    fun navigationTags(sortAlphabetically: Boolean): Flow<List<Tag>> {
+        return tagsRepository.navigationTags(sortAlphabetically).map { tags ->
+            tags.filter { tag -> !collaboratorsRepository.isValidCollaborator(tag.name) }
+        }
     }
 
     fun getTags(note: Note): List<String> {

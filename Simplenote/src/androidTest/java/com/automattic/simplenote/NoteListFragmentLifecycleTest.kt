@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -135,6 +136,7 @@ class NoteListFragmentLifecycleTest {
         override fun renameTag(tagName: String, oldTag: Tag): Boolean = false
         override suspend fun allTags(): List<TagItem> = emptyList()
         override suspend fun searchTags(query: String): List<TagItem> = emptyList()
+        override fun navigationTags(sortAlphabetically: Boolean): Flow<List<Tag>> = flowOf(emptyList())
         override suspend fun suggestTags(query: String): List<String> = emptyList()
         override suspend fun deleteTag(tag: Tag) = Unit
         override suspend fun tagsChanged(): Flow<Boolean> = emptyFlow()

@@ -21,6 +21,7 @@ import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SortOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import org.json.JSONObject
 import org.mockito.kotlin.mock
 
@@ -40,6 +41,10 @@ class ScreenshotTagsRepository : TagsRepository {
     override suspend fun searchTags(query: String): List<TagItem> =
         ScreenshotHarness.SAMPLE_TAG_ITEMS.filter { it.tag.name.contains(query, ignoreCase = true) }
 
+    override fun navigationTags(sortAlphabetically: Boolean): Flow<List<Tag>> {
+        val tags = ScreenshotHarness.SAMPLE_TAG_ITEMS.map { item -> item.tag }
+        return flowOf(if (sortAlphabetically) tags.sortedBy { tag -> tag.name.lowercase() } else tags)
+    }
     override suspend fun suggestTags(query: String): List<String> =
         ScreenshotHarness.SAMPLE_TAG_ITEMS.map { it.tag.name }
 

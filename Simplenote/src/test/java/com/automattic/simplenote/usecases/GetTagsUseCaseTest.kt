@@ -9,6 +9,8 @@ import com.automattic.simplenote.repositories.SimperiumCollaboratorsRepository
 import com.automattic.simplenote.repositories.TagsRepository
 import com.simperium.client.Bucket
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -19,6 +21,8 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.stub
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 
 @ExperimentalCoroutinesApi
 class GetTagsUseCaseTest {
@@ -90,5 +94,21 @@ class GetTagsUseCaseTest {
 
         val expected = listOf("tag1", "tag2", "name@test")
         assertEquals(expected, result)
+    }
+
+    @Test
+    fun navigationTagsFiltersCollaboratorsWithoutChangingRepositoryOrder() = runTest {
+        val tags = listOf(
+            Tag("work"),
+            Tag("person@example.com"),
+            Tag("home"),
+        )
+        tags.forEach { tag -> tag.bucket = notesBucket }
+        whenever(tagsRepository.navigationTags(true)).thenReturn(flowOf(tags))
+
+        val result = getTagsUseCase.navigationTags(sortAlphabetically = true).first()
+
+        assertEquals(listOf("work", "home"), result.map { tag -> tag.name })
+        verify(tagsRepository).navigationTags(true)
     }
 }

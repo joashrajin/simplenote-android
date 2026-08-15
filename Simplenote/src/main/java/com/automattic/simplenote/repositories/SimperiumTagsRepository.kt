@@ -13,10 +13,13 @@ import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectNameInvalid
 import com.simperium.client.Query
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -93,6 +96,41 @@ class SimperiumTagsRepository @Inject constructor(
             AppLog.add(AppLog.Type.SYNC, "Removed tag bucket listener (TagsActivity)")
         }
     }.flowOn(ioDispatcher)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun navigationTags(sortAlphabetically: Boolean): Flow<List<Tag>> = callbackFlow {
+        val callbackOnSaveObject = Bucket.OnSaveObjectListener<Tag> { _, _ -> trySend(Unit).isSuccess }
+        val callbackOnDeleteObject = Bucket.OnDeleteObjectListener<Tag> { _, _ -> trySend(Unit).isSuccess }
+        val callbackOnNetworkChange = Bucket.OnNetworkChangeListener<Tag> { _, _, _ -> trySend(Unit).isSuccess }
+
+        tagsBucket.addOnSaveObjectListener(callbackOnSaveObject)
+        tagsBucket.addOnDeleteObjectListener(callbackOnDeleteObject)
+        tagsBucket.addOnNetworkChangeListener(callbackOnNetworkChange)
+        AppLog.add(AppLog.Type.SYNC, "Added tag bucket listeners (NotesActivity)")
+        trySend(Unit)
+
+        awaitClose {
+            tagsBucket.removeOnSaveObjectListener(callbackOnSaveObject)
+            tagsBucket.removeOnDeleteObjectListener(callbackOnDeleteObject)
+            tagsBucket.removeOnNetworkChangeListener(callbackOnNetworkChange)
+            AppLog.add(AppLog.Type.SYNC, "Removed tag bucket listeners (NotesActivity)")
+        }
+    }.conflate().mapLatest {
+        withContext(ioDispatcher) {
+            val query = if (sortAlphabetically) {
+                Tag.allSortedAlphabetically(tagsBucket)
+            } else {
+                Tag.allWithName(tagsBucket)
+            }
+            query.execute().use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        add(cursor.`object`)
+                    }
+                }
+            }
+        }
+    }
 
     override suspend fun allTags(): List<TagItem> = withContext(ioDispatcher) {
         val tagQuery = Tag.all(tagsBucket).reorder().orderByKey().include(Tag.NOTE_COUNT_INDEX_NAME)

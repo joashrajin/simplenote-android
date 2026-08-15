@@ -18,6 +18,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class AppLogTest {
     private static final int LOG_MAX = 100;
@@ -70,6 +72,95 @@ public class AppLogTest {
         assertEquals("device-info", entries.get(0));
         assertEquals("account-info-updated", entries.get(1));
         assertFalse(entries.contains("account-info"));
+    }
+
+    @Test
+    public void dynamicHeadersUseTheLatestValueWhenLogsAreRead() {
+        AtomicReference<String> account = new AtomicReference<>("account-a");
+        AppLog.addHeader(Type.ACCOUNT, account::get);
+
+        assertTrue(getEntries().contains("account-a"));
+
+        account.set("account-b");
+        List<String> entries = getEntries();
+
+        assertTrue(entries.contains("account-b"));
+        assertFalse(entries.contains("account-a"));
+    }
+
+    @Test
+    public void dynamicHeadersAreEvaluatedLazilyForEverySnapshot() {
+        AtomicInteger evaluations = new AtomicInteger();
+        AppLog.addHeader(Type.ACCOUNT, () -> "account-" + evaluations.incrementAndGet());
+
+        assertEquals(0, evaluations.get());
+        assertTrue(getEntries().contains("account-1"));
+        assertTrue(getEntries().contains("account-2"));
+        assertEquals(2, evaluations.get());
+    }
+
+    @Test
+    public void dynamicAndFixedHeadersReplaceEachOtherWithoutChangingOrder() {
+        AtomicReference<String> account = new AtomicReference<>("account-a");
+        AppLog.addHeader(Type.DEVICE, "device-info");
+        AppLog.addHeader(Type.ACCOUNT, account::get);
+        AppLog.addHeader(Type.ACCOUNT, "account-fixed");
+
+        account.set("account-b");
+        List<String> fixedEntries = getEntries();
+        assertEquals("device-info", fixedEntries.get(0));
+        assertEquals("account-fixed", fixedEntries.get(1));
+
+        AppLog.addHeader(Type.ACCOUNT, account::get);
+        List<String> dynamicEntries = getEntries();
+        assertEquals("device-info", dynamicEntries.get(0));
+        assertEquals("account-b", dynamicEntries.get(1));
+    }
+
+    @Test
+    public void failingDynamicHeaderDoesNotHideQueuedDiagnostics() {
+        AppLog.addHeader(Type.ACCOUNT, () -> {
+            throw new IllegalStateException("account unavailable");
+        });
+        AppLog.add(Type.SYNC, "queued-diagnostic");
+
+        List<String> entries = getEntries();
+
+        assertEquals(1, entries.size());
+        assertTrue(entries.get(0).endsWith("SYNC: queued-diagnostic"));
+    }
+
+    @Test(timeout = 10_000)
+    public void dynamicHeadersAreEvaluatedOutsideTheQueueLock() throws Exception {
+        CountDownLatch providerStarted = new CountDownLatch(1);
+        CountDownLatch releaseProvider = new CountDownLatch(1);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        AppLog.addHeader(Type.ACCOUNT, () -> {
+            providerStarted.countDown();
+            try {
+                releaseProvider.await();
+            } catch (InterruptedException exception) {
+                Thread.currentThread().interrupt();
+            }
+            return "account-info";
+        });
+
+        Future<String> snapshot = executor.submit(AppLog::get);
+
+        try {
+            assertTrue(providerStarted.await(5, TimeUnit.SECONDS));
+            Future<?> writer = executor.submit(() -> AppLog.add(Type.SYNC, "concurrent-write"));
+            writer.get(5, TimeUnit.SECONDS);
+            releaseProvider.countDown();
+            String firstSnapshot = snapshot.get(5, TimeUnit.SECONDS);
+            assertTrue(firstSnapshot.contains("account-info"));
+            assertFalse(firstSnapshot.contains("concurrent-write"));
+            assertTrue(AppLog.get().contains("concurrent-write"));
+        } finally {
+            releaseProvider.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+        }
     }
 
     @Test(timeout = 10_000)

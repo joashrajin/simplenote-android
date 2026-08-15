@@ -14,14 +14,16 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
  * The coroutine seam between NotesActivity (Java) and [NotesRepository]. It owns the two things
  * the activity cannot express cleanly across the interop boundary: the [noteChanges][NotesRepository.noteChanges]
  * collection that replaces the activity's three raw notes-bucket listener callbacks, and the
- * suspend data operations (welcome/share note creation, trash, undo-restore, trash count,
- * empty trash) that replace the direct bucket mutations and EmptyTrashTask.
+ * suspend data operations (welcome/share note creation, trash, undo-restore, preview selection,
+ * trash count, empty trash) that replace the direct bucket mutations and EmptyTrashTask.
  *
  * The legacy stopListeningToNotesBucket suppression hack — NoteListFragment.addNote removed the
  * activity's bucket listeners so the fresh note would not flash into the list, and the next
@@ -187,6 +189,17 @@ class NotesActivityStreams(
         }
     }
 
+    /** Complete each accepted preview repository handoff in order after the owning activity is destroyed. */
+    fun setPreviewEnabled(key: String, enabled: Boolean) {
+        scope.launch {
+            withContext(NonCancellable) {
+                previewWriteMutex.withLock {
+                    notesRepository.setPreviewEnabled(key, enabled)
+                }
+            }
+        }
+    }
+
     /** The empty-trash menu count read; cancellable, the menu it decorates dies with the activity. */
     fun trashedNoteCount(onCount: Consumer<Int>) {
         scope.launch {
@@ -213,5 +226,6 @@ class NotesActivityStreams(
 
     companion object {
         const val WELCOME_NOTE_KEY = "welcome-android"
+        private val previewWriteMutex = Mutex()
     }
 }

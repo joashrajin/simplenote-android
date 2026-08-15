@@ -1741,17 +1741,19 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     }
 
     private void togglePreview(MenuItem item) {
+        boolean previewEnabled;
         if (mIsShowingMarkdown) {
             setIconAfterAnimation(item, R.drawable.av_visibility_on_off_24dp, R.string.markdown_show);
             setMarkdownShowing(false);
-            mCurrentNote.setPreviewEnabled(false);
+            previewEnabled = false;
         } else {
             setIconAfterAnimation(item, R.drawable.av_visibility_off_on_24dp, R.string.markdown_hide);
             setMarkdownShowing(true);
-            mCurrentNote.setPreviewEnabled(true);
+            previewEnabled = true;
         }
 
-        mCurrentNote.save();
+        mCurrentNote.setPreviewEnabled(previewEnabled);
+        mNotesActivityStreams.setPreviewEnabled(mCurrentNote.getSimperiumKey(), previewEnabled);
     }
 
     private void toggleSidebar(MenuItem item) {

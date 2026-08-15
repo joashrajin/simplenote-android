@@ -35,6 +35,9 @@ class ScreenshotTagsRepository : TagsRepository {
     override suspend fun searchTags(query: String): List<TagItem> =
         ScreenshotHarness.SAMPLE_TAG_ITEMS.filter { it.tag.name.contains(query, ignoreCase = true) }
 
+    override suspend fun suggestTags(query: String): List<String> =
+        ScreenshotHarness.SAMPLE_TAG_ITEMS.map { it.tag.name }
+
     override suspend fun deleteTag(tag: Tag) = Unit
     override suspend fun tagsChanged(): Flow<Boolean> = emptyFlow()
 }
@@ -80,7 +83,7 @@ class ScreenshotPreferencesRepository : PreferencesRepository {
     override fun analyticsEnabledSnapshot(): Boolean = false
     override suspend fun recentSearches(): List<String> = emptyList()
     override suspend fun addRecentSearch(query: String, index: Int) = Unit
-    override suspend fun removeRecentSearch(query: String) = Unit
+    override suspend fun removeRecentSearch(query: String): Int = -1
     override fun preferencesChanged(): Flow<Unit> = emptyFlow()
     override suspend fun sortOrder(): SortOrder = SortOrder.MODIFIED_DESC
 }

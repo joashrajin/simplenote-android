@@ -208,6 +208,26 @@ class SimperiumPreferencesRepositoryTest {
     }
 
     @Test
+    fun removeRecentSearchReturnsTheIndexTheQueryOccupiedForUndo() = runTest {
+        val preferences = storedPreferences()
+        preferences.setRecentSearches(listOf("alpha", "beta", "gamma"))
+
+        assertEquals(1, repository().removeRecentSearch("beta"))
+        assertEquals(listOf("alpha", "gamma"), preferences.recentSearches)
+    }
+
+    @Test
+    fun removeRecentSearchReturnsMinusOneForAQueryThatWasNotStored() = runTest {
+        val preferences = storedPreferences()
+        preferences.setRecentSearches(listOf("alpha"))
+
+        assertEquals(-1, repository().removeRecentSearch("zed"))
+        // The legacy delete path saved unconditionally, even when nothing was removed.
+        assertEquals(listOf("alpha"), preferences.recentSearches)
+        verify(preferencesBucket).sync(preferences)
+    }
+
+    @Test
     fun sortOrderMapsTheStoredPreference() = runTest {
         whenever(sharedPreferences.getString(eq(PrefUtils.PREF_SORT_ORDER), any()))
             .thenReturn(PrefUtils.DATE_CREATED_DESCENDING.toString())

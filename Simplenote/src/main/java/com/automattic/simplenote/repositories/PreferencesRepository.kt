@@ -19,7 +19,12 @@ interface PreferencesRepository {
 
     suspend fun addRecentSearch(query: String, index: Int = 0)
 
-    suspend fun removeRecentSearch(query: String)
+    /**
+     * Drops [query] from the recent searches and returns the index it occupied (-1 when it was
+     * not stored) — the index the legacy NoteListFragment.deleteSearchItem captured for the
+     * undo bar to restore through [addRecentSearch].
+     */
+    suspend fun removeRecentSearch(query: String): Int
 
     fun preferencesChanged(): Flow<Unit>
 

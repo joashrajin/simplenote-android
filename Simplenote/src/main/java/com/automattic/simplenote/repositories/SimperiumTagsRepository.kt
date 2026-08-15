@@ -6,6 +6,7 @@ import com.automattic.simplenote.di.IoDispatcher
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.models.TagItem
+import com.automattic.simplenote.search.SearchQueryBuilder
 import com.automattic.simplenote.utils.AppLog
 import com.automattic.simplenote.utils.TagUtils
 import com.simperium.client.Bucket
@@ -110,6 +111,22 @@ class SimperiumTagsRepository @Inject constructor(
         val cursor = tags.execute()
 
         return@withContext cursorToTagItems(cursor)
+    }
+
+    override suspend fun suggestTags(query: String): List<String> = withContext(ioDispatcher) {
+        val tags = Tag.all(tagsBucket).reorder().order(Tag.NOTE_COUNT_INDEX_NAME, Query.SortType.DESCENDING)
+
+        if (!query.endsWith(SearchQueryBuilder.TAG_PREFIX)) {
+            tags.where(Tag.NAME_PROPERTY, Query.ComparisonType.LIKE, "%$query%")
+        }
+
+        tags.execute().use { cursor ->
+            val names = mutableListOf<String>()
+            while (cursor.moveToNext()) {
+                names.add(cursor.getObject().name)
+            }
+            names
+        }
     }
 
     private fun cursorToTagItems(cursor: Bucket.ObjectCursor<Tag>): List<TagItem> {

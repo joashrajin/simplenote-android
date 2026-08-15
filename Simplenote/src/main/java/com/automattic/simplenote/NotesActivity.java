@@ -1,6 +1,6 @@
 package com.automattic.simplenote;
 
-import static com.automattic.simplenote.NoteListFragment.TAG_PREFIX;
+import static com.automattic.simplenote.search.SearchQueryBuilder.TAG_PREFIX;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.CATEGORY_NOTE;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.CATEGORY_TAG;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.CATEGORY_USER;

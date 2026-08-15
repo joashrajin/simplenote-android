@@ -39,14 +39,13 @@ import com.automattic.simplenote.utils.markdown.SimplenoteMarkdownFlavorDescript
 import com.automattic.simplenote.viewmodels.NoteMarkdownState
 import com.automattic.simplenote.viewmodels.NoteMarkdownViewModel
 import com.google.android.material.snackbar.Snackbar
-import com.simperium.client.Bucket
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 
 @AndroidEntryPoint
-class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
+class NoteMarkdownFragment : Fragment() {
 
     companion object {
         const val ARG_ITEM_ID = "item_id"
@@ -73,7 +72,6 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
         }
     }
 
-    private var mNotesBucket: Bucket<Note>? = null
     private var mNote: Note? = null
     private var mPreferences: SharedPreferences? = null
     private var mCss: String? = null
@@ -115,7 +113,6 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         AppLog.add(Type.SCREEN, "Created (NoteMarkdownFragment)")
-        mNotesBucket = (requireActivity().application as Simplenote).notesBucket
         mPreferences = requireContext().getSharedPreferences(SCROLL_POSITION_PREFERENCES, Context.MODE_PRIVATE)
 
         setHasOptionsMenu(true)
@@ -290,8 +287,6 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
 
     override fun onDestroy() {
         super.onDestroy()
-        mNotesBucket?.removeListener(this)
-        AppLog.add(Type.SYNC, "Removed note bucket listener (NoteMarkdownFragment)")
         AppLog.add(Type.SCREEN, "Destroyed (NoteMarkdownFragment)")
     }
 
@@ -302,34 +297,8 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
         // Check https://issuetracker.google.com/issues/37124582 for more details
         (requireActivity() as AppCompatActivity).delegate.applyDayNight()
         checkWebView()
-        mNotesBucket?.addListener(this)
-        AppLog.add(Type.SYNC, "Added note bucket listener (NoteMarkdownFragment)")
         AppLog.add(Type.NETWORK, NetworkUtils.getNetworkInfo(requireContext()))
         AppLog.add(Type.SCREEN, "Resumed (NoteMarkdownFragment)")
-    }
-
-    override fun onBeforeUpdateObject(bucket: Bucket<Note>, note: Note) {
-    }
-
-    override fun onDeleteObject(bucket: Bucket<Note>, note: Note) {
-    }
-
-    override fun onNetworkChange(bucket: Bucket<Note>, type: Bucket.ChangeType, key: String) {
-    }
-
-    override fun onSaveObject(bucket: Bucket<Note>, note: Note) {
-        if (note.equals(mNote)) {
-            mNote = note
-            requireActivity().invalidateOptionsMenu()
-        }
-
-        AppLog.add(
-            Type.SYNC,
-            "Saved note callback in NoteMarkdownFragment (ID: " + note.simperiumKey +
-                    " / Title: " + note.title +
-                    " / Characters: " + NoteUtils.getCharactersCount(note.content) +
-                    " / Words: " + NoteUtils.getWordCount(note.content) + ")"
-        )
     }
 
     private fun checkWebView() {
@@ -383,11 +352,5 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
             }
         }
         activity?.invalidateOptionsMenu()
-    }
-
-    override fun onLocalQueueChange(bucket: Bucket<Note>, queuedObjects: Set<String>) {
-    }
-
-    override fun onSyncObject(bucket: Bucket<Note>, key: String) {
     }
 }

@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -59,6 +60,78 @@ class SimperiumNotesRepository @Inject constructor(
             null
         }
     }
+
+    override fun observeNote(key: String): Flow<Note?> = callbackFlow {
+        val events = Channel<ObservedNoteEvent>(Channel.UNLIMITED)
+        val observationLock = Any()
+        var latestSequence = 0L
+
+        fun enqueue(deleted: Boolean) {
+            val event = synchronized(observationLock) {
+                ObservedNoteEvent(++latestSequence, deleted)
+            }
+            events.trySend(event)
+        }
+
+        val saveListener = Bucket.OnSaveObjectListener<Note> { _, note ->
+            if (note.simperiumKey == key) {
+                enqueue(deleted = false)
+            }
+        }
+        val deleteListener = Bucket.OnDeleteObjectListener<Note> { _, note ->
+            if (note.simperiumKey == key) {
+                enqueue(deleted = true)
+            }
+        }
+
+        notesBucket.addOnSaveObjectListener(saveListener)
+        notesBucket.addOnDeleteObjectListener(deleteListener)
+        enqueue(deleted = false)
+
+        val loader = launch(ioDispatcher) {
+            var hasEmittedSnapshot = false
+            for (event in events) {
+                val supersededBeforeRead = synchronized(observationLock) {
+                    event.sequence != latestSequence
+                }
+                if (supersededBeforeRead) {
+                    continue
+                }
+
+                val note = try {
+                    if (event.deleted) null else getOrSkip(key)
+                } catch (exception: CancellationException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    val superseded = synchronized(observationLock) {
+                        event.sequence != latestSequence
+                    }
+                    if (!hasEmittedSnapshot && !superseded) {
+                        throw exception
+                    }
+                    if (!superseded) {
+                        Log.e(Simplenote.TAG, "Could not refresh observed note", exception)
+                    }
+                    continue
+                }
+                val emitted = synchronized(observationLock) {
+                    if (event.sequence == latestSequence) {
+                        trySend(note).isSuccess
+                    } else {
+                        false
+                    }
+                }
+                hasEmittedSnapshot = hasEmittedSnapshot || emitted
+            }
+        }
+
+        awaitClose {
+            events.close()
+            loader.cancel()
+            notesBucket.removeOnSaveObjectListener(saveListener)
+            notesBucket.removeOnDeleteObjectListener(deleteListener)
+        }
+    }.buffer(Channel.UNLIMITED).flowOn(ioDispatcher)
 
     override suspend fun trashedNoteCount(): Int = withContext(ioDispatcher) {
         Note.allDeleted(notesBucket).count()
@@ -249,3 +322,8 @@ class SimperiumNotesRepository @Inject constructor(
     private fun referenceCount(key: String, content: String): Int =
         Regex(SIMPLENOTE_LINK_PREFIX + key).findAll(content).count()
 }
+
+private data class ObservedNoteEvent(
+    val sequence: Long,
+    val deleted: Boolean,
+)

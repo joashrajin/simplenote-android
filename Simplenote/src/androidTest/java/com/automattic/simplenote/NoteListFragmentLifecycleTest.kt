@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -97,6 +98,7 @@ class NoteListFragmentLifecycleTest {
         }
 
         override suspend fun getNote(key: String): Note? = null
+        override fun observeNote(key: String): Flow<Note?> = flowOf(null)
         override suspend fun trashedNoteCount(): Int = 0
         override suspend fun interlinkSuggestions(titleFilter: String, sort: SortOrder): NoteQueryResult =
             NoteQueryResult.InvalidQuery

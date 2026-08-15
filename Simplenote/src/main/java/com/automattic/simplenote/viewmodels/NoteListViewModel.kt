@@ -18,6 +18,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /**
@@ -56,6 +58,7 @@ class NoteListViewModel @Inject constructor(
     private var refreshJob: Job? = null
     private var refreshSequence = 0L
     private var suggestionsJob: Job? = null
+    private val recentSearchMutex = Mutex()
     private var removedRecentSearchIndex = 0
 
     init {
@@ -157,7 +160,11 @@ class NoteListViewModel @Inject constructor(
     /** Replaces the fragment's addSearchItem; the submit path passes index 0, undo the captured one. */
     fun addRecentSearch(query: String, index: Int) {
         viewModelScope.launch {
-            preferencesRepository.addRecentSearch(query, index)
+            // The legacy path ran these read-modify-writes synchronously on Main; the mutex
+            // restores that serialization across the IO hops.
+            recentSearchMutex.withLock {
+                preferencesRepository.addRecentSearch(query, index)
+            }
         }
     }
 
@@ -167,13 +174,20 @@ class NoteListViewModel @Inject constructor(
      */
     fun removeRecentSearch(query: String) {
         viewModelScope.launch {
-            removedRecentSearchIndex = preferencesRepository.removeRecentSearch(query)
+            recentSearchMutex.withLock {
+                removedRecentSearchIndex = preferencesRepository.removeRecentSearch(query)
+            }
         }
     }
 
     /** The undo action of the delete-recent-search snackbar. */
     fun restoreRemovedRecentSearch(query: String) {
-        addRecentSearch(query, removedRecentSearchIndex)
+        viewModelScope.launch {
+            // Waits on the mutex so an instant undo reads the index its own delete captured.
+            recentSearchMutex.withLock {
+                preferencesRepository.addRecentSearch(query, removedRecentSearchIndex)
+            }
+        }
     }
 
     // Replaces getSearchItems; a newer suggestion load always supersedes the in-flight one,

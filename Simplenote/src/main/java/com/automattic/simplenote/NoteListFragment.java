@@ -391,6 +391,8 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         if (savedInstanceState != null) {
             // The legacy search fields died with the fragment instance; the view model outlives
             // it across a recreation, so restore their fresh-instance defaults explicitly.
+            // The sticky pre-rotation search delivery may render one stale search frame
+            // before the resume refresh supersedes it; legacy showed an empty list here.
             mViewModel.stopSearching();
             mViewModel.clearSearchQuery();
         }
@@ -506,11 +508,14 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
             NoteQueryResult.Notes notes = (NoteQueryResult.Notes) update.getResult();
             Bucket.ObjectCursor<Note> cursor = notes.getCursor();
 
-            // The adapter closes each previous cursor on swap, so a sticky redelivery after
-            // view recreation can hand back a cursor that has since been closed. Never swap a
-            // closed cursor in; request a fresh refresh instead.
+            // Defensive since the search path joined the shared pipeline (nothing swaps
+            // cursors around the model anymore): never hand the adapter a closed cursor.
             if (cursor.isClosed()) {
-                refreshList();
+                if (mViewModel.isSearching()) {
+                    mViewModel.refreshListForSearch();
+                } else {
+                    refreshList();
+                }
                 return;
             }
 

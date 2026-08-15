@@ -12,8 +12,8 @@ import com.automattic.simplenote.utils.SimplenoteLinkify.SIMPLENOTE_LINK_PREFIX
 import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectMissingException
 import com.simperium.client.Query
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -34,20 +34,26 @@ class SimperiumNotesRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : NotesRepository {
 
-    override suspend fun search(request: NoteSearchRequest): NoteQueryResult = withContext(ioDispatcher) {
+    override suspend fun search(request: NoteSearchRequest): NoteQueryResult {
         var cursor: Bucket.ObjectCursor<Note>? = null
-        try {
-            cursor = searchQueryBuilder.build(notesBucket, request).execute()
-            // The cursor fills lazily, so an invalid Query.FullTextMatch term surfaces on the first count.
-            cursor.count
-            ensureActive()
-            NoteQueryResult.Notes(cursor, request.rawSearch)
+        return try {
+            val result = withContext(ioDispatcher) {
+                val queryCursor = searchQueryBuilder.build(notesBucket, request).execute()
+                cursor = queryCursor
+                // The cursor fills lazily, so an invalid Query.FullTextMatch term surfaces on the first count.
+                queryCursor.count
+                ensureActive()
+                NoteQueryResult.Notes(queryCursor, request.rawSearch)
+            }
+            cursor = null
+            result
         } catch (exception: SQLiteException) {
+            closeCursorAfterFailure(cursor, exception)
             Log.e(Simplenote.TAG, "Invalid SQL statement", exception)
-            cursor?.close()
+            currentCoroutineContext().ensureActive()
             NoteQueryResult.InvalidQuery
-        } catch (exception: CancellationException) {
-            cursor?.close()
+        } catch (exception: Throwable) {
+            closeCursorAfterFailure(cursor, exception)
             throw exception
         }
     }
@@ -64,26 +70,31 @@ class SimperiumNotesRepository @Inject constructor(
         Note.allDeleted(notesBucket).count()
     }
 
-    override suspend fun interlinkSuggestions(titleFilter: String, sort: SortOrder): NoteQueryResult =
-        withContext(ioDispatcher) {
-            val query = notesBucket.query()
-            query.include(Note.PINNED_INDEX_NAME)
-            query.include(Note.TITLE_INDEX_NAME)
-            query.where(Note.DELETED_PROPERTY, Query.ComparisonType.NOT_EQUAL_TO, true)
-            query.where(Note.TITLE_INDEX_NAME, Query.ComparisonType.LIKE, "%$titleFilter%")
-            query.order(Note.PINNED_INDEX_NAME, Query.SortType.DESCENDING)
-            applySortOrder(query, sort)
-            val cursor = query.execute()
-            try {
+    override suspend fun interlinkSuggestions(titleFilter: String, sort: SortOrder): NoteQueryResult {
+        var cursor: Bucket.ObjectCursor<Note>? = null
+        return try {
+            val result = withContext(ioDispatcher) {
+                val query = notesBucket.query()
+                query.include(Note.PINNED_INDEX_NAME)
+                query.include(Note.TITLE_INDEX_NAME)
+                query.where(Note.DELETED_PROPERTY, Query.ComparisonType.NOT_EQUAL_TO, true)
+                query.where(Note.TITLE_INDEX_NAME, Query.ComparisonType.LIKE, "%$titleFilter%")
+                query.order(Note.PINNED_INDEX_NAME, Query.SortType.DESCENDING)
+                applySortOrder(query, sort)
+                val queryCursor = query.execute()
+                cursor = queryCursor
                 // Fill on the IO dispatcher, matching the legacy background filter thread.
-                cursor.count
+                queryCursor.count
                 ensureActive()
-                NoteQueryResult.Notes(cursor, null)
-            } catch (exception: CancellationException) {
-                cursor.close()
-                throw exception
+                NoteQueryResult.Notes(queryCursor, null)
             }
+            cursor = null
+            result
+        } catch (exception: Throwable) {
+            closeCursorAfterFailure(cursor, exception)
+            throw exception
         }
+    }
 
     override suspend fun referencesTo(key: String): List<NoteReference> = withContext(ioDispatcher) {
         Note.search(notesBucket, SIMPLENOTE_LINK_PREFIX + key).execute().use { cursor ->
@@ -243,6 +254,16 @@ class SimperiumNotesRepository @Inject constructor(
             SortOrder.CREATED_ASC -> query.order(Note.CREATED_INDEX_NAME, Query.SortType.ASCENDING)
             SortOrder.CONTENT_ASC -> query.order(Note.CONTENT_PROPERTY, Query.SortType.ASCENDING)
             SortOrder.CONTENT_DESC -> query.order(Note.CONTENT_PROPERTY, Query.SortType.DESCENDING)
+        }
+    }
+
+    private fun closeCursorAfterFailure(cursor: Bucket.ObjectCursor<Note>?, failure: Throwable) {
+        try {
+            cursor?.close()
+        } catch (closeFailure: Throwable) {
+            if (closeFailure !== failure) {
+                failure.addSuppressed(closeFailure)
+            }
         }
     }
 

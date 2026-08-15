@@ -9,6 +9,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -16,6 +17,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.atLeastOnce
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -116,5 +118,79 @@ class SimperiumTagsRepositoryTest {
         repository.suggestTags("kit")
 
         verify(cursor).close()
+    }
+
+    @Test
+    fun allTagsClosesItsCursor() = runTest {
+        whenever(cursor.count).thenReturn(0)
+
+        repository.allTags()
+
+        verify(cursor).close()
+    }
+
+    @Test
+    fun searchTagsClosesItsCursor() = runTest {
+        whenever(cursor.count).thenReturn(0)
+
+        repository.searchTags("kit")
+
+        verify(cursor).close()
+    }
+
+    @Test
+    fun searchTagsClosesItsCursorWhenMaterializationFails() = runTest {
+        val failure = IllegalStateException("count failed")
+        whenever(cursor.count).thenThrow(failure)
+
+        val thrown = try {
+            repository.searchTags("kit")
+            null
+        } catch (exception: IllegalStateException) {
+            exception
+        }
+
+        assertSame(failure, thrown)
+        verify(cursor).close()
+    }
+
+    @Test
+    fun allTagsClosesItsCursorWhenMaterializationFails() = runTest {
+        val failure = IllegalStateException("count failed")
+        whenever(cursor.count).thenThrow(failure)
+
+        val thrown = try {
+            repository.allTags()
+            null
+        } catch (exception: IllegalStateException) {
+            exception
+        }
+
+        assertSame(failure, thrown)
+        verify(cursor).close()
+    }
+
+    @Test
+    fun deleteTagClosesItsNotesCursorWhenNoteRemovalFails() = runTest {
+        val tag = mock<Tag>()
+        val note = mock<Note>()
+        val notesCursor = mock<Bucket.ObjectCursor<Note>>()
+        val failure = IllegalStateException("remove failed")
+        whenever(tag.name).thenReturn("work")
+        whenever(tag.findNotes(notesBucket, "work")).thenReturn(notesCursor)
+        whenever(notesCursor.moveToNext()).thenReturn(true)
+        whenever(notesCursor.getObject()).thenReturn(note)
+        whenever(note.removeTag("work")).thenThrow(failure)
+
+        val thrown = try {
+            repository.deleteTag(tag)
+            null
+        } catch (exception: IllegalStateException) {
+            exception
+        }
+
+        assertSame(failure, thrown)
+        verify(notesCursor).close()
+        verify(tag, never()).delete()
     }
 }

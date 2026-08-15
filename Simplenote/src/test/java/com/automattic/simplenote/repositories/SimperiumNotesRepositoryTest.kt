@@ -10,7 +10,10 @@ import com.automattic.simplenote.search.SortOrder
 import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectMissingException
 import com.simperium.client.Query
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -28,7 +31,9 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.util.ArrayDeque
 import java.util.Calendar
+import kotlin.coroutines.CoroutineContext
 
 @ExperimentalCoroutinesApi
 class SimperiumNotesRepositoryTest {
@@ -90,6 +95,42 @@ class SimperiumNotesRepositoryTest {
         val notes = repository.search(searchRequest(rawSearch = null)) as NoteQueryResult.Notes
 
         assertNull(notes.searchSnapshot)
+    }
+
+    @Test
+    fun searchCancellationAtTheCallerHandoffClosesTheCursor() = runTest {
+        val ioDispatcher = QueueingDispatcher()
+        val handoffRepository = SimperiumNotesRepository(notesBucket, SearchQueryBuilder(), ioDispatcher)
+
+        val job = launch {
+            handoffRepository.search(searchRequest(rawSearch = "hello"))
+        }
+        runCurrent()
+        ioDispatcher.runAll()
+        job.cancel()
+        runCurrent()
+
+        verify(cursor).close()
+    }
+
+    @Test
+    fun searchFailureAtTheCallerHandoffDoesNotSwallowCancellation() = runTest {
+        val ioDispatcher = QueueingDispatcher()
+        val handoffRepository = SimperiumNotesRepository(notesBucket, SearchQueryBuilder(), ioDispatcher)
+        whenever(cursor.count).thenThrow(SQLiteException())
+        var reachedAfterSearch = false
+
+        val job = launch {
+            handoffRepository.search(searchRequest(rawSearch = "\""))
+            reachedAfterSearch = true
+        }
+        runCurrent()
+        ioDispatcher.runAll()
+        job.cancel()
+        runCurrent()
+
+        assertFalse(reachedAfterSearch)
+        verify(cursor).close()
     }
 
     @Test
@@ -167,10 +208,61 @@ class SimperiumNotesRepositoryTest {
 
         assertSame(cursor, notes.cursor)
         assertNull(notes.searchSnapshot)
+        verify(cursor, never()).close()
         val query = executedQuery()
         assertEquals(listOf("deleted NOT_EQUAL_TO true", "title LIKE %meeting%"), conditionsOf(query))
         assertEquals(listOf("pinned", "title"), includesOf(query))
         assertEquals(listOf("pinned DESCENDING", "modified DESCENDING"), sortersOf(query))
+    }
+
+    @Test
+    fun interlinkCancellationAtTheCallerHandoffClosesTheCursor() = runTest {
+        val ioDispatcher = QueueingDispatcher()
+        val handoffRepository = SimperiumNotesRepository(notesBucket, SearchQueryBuilder(), ioDispatcher)
+
+        val job = launch {
+            handoffRepository.interlinkSuggestions("meeting", SortOrder.MODIFIED_DESC)
+        }
+        runCurrent()
+        ioDispatcher.runAll()
+        job.cancel()
+        runCurrent()
+
+        verify(cursor).close()
+    }
+
+    @Test
+    fun interlinkSuggestionsCloseTheCursorWhenLazyFillFails() = runTest {
+        val failure = IllegalStateException("count failed")
+        whenever(cursor.count).thenThrow(failure)
+
+        val thrown = try {
+            repository.interlinkSuggestions("meeting", SortOrder.MODIFIED_DESC)
+            null
+        } catch (exception: IllegalStateException) {
+            exception
+        }
+
+        assertSame(failure, thrown)
+        verify(cursor).close()
+    }
+
+    @Test
+    fun interlinkSuggestionsPreserveThePrimaryFailureWhenClosingAlsoFails() = runTest {
+        val failure = IllegalStateException("count failed")
+        val closeFailure = IllegalArgumentException("close failed")
+        whenever(cursor.count).thenThrow(failure)
+        whenever(cursor.close()).thenThrow(closeFailure)
+
+        val thrown = try {
+            repository.interlinkSuggestions("meeting", SortOrder.MODIFIED_DESC)
+            null
+        } catch (exception: IllegalStateException) {
+            exception
+        }
+
+        assertSame(failure, thrown)
+        assertEquals(listOf(closeFailure), thrown?.suppressed?.toList())
     }
 
     @Test
@@ -270,5 +362,19 @@ class SimperiumNotesRepositoryTest {
             whenever(allCursor.getObject()).thenReturn(notes.first(), *notes.drop(1).toTypedArray())
         }
         return allCursor
+    }
+
+    private class QueueingDispatcher : CoroutineDispatcher() {
+        private val tasks = ArrayDeque<Runnable>()
+
+        override fun dispatch(context: CoroutineContext, block: Runnable) {
+            tasks.addLast(block)
+        }
+
+        fun runAll() {
+            while (tasks.isNotEmpty()) {
+                tasks.removeFirst().run()
+            }
+        }
     }
 }

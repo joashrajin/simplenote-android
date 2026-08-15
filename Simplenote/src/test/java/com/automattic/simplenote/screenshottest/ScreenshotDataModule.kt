@@ -3,6 +3,7 @@ package com.automattic.simplenote.screenshottest
 import com.automattic.simplenote.di.DataModule
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Tag
+import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.NotesRepository
@@ -24,6 +25,9 @@ import org.mockito.kotlin.mock
 @Module
 @TestInstallIn(components = [SingletonComponent::class], replaces = [DataModule::class])
 object ScreenshotDataModule {
+    @Provides
+    fun providesAccountRepository(): AccountRepository = ScreenshotAccountRepository()
+
     @Provides
     fun providesTagsRepository(): TagsRepository = ScreenshotTagsRepository()
 

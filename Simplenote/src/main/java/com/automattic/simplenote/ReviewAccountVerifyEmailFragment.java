@@ -1,10 +1,6 @@
 package com.automattic.simplenote;
 
-import static com.automattic.simplenote.models.Account.KEY_EMAIL_VERIFICATION;
-
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.text.Html;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -14,27 +10,32 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LifecycleOwnerKt;
 
 import com.automattic.simplenote.FullScreenDialogFragment.FullScreenDialogContent;
 import com.automattic.simplenote.FullScreenDialogFragment.FullScreenDialogController;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
-import com.automattic.simplenote.models.Account;
+import com.automattic.simplenote.repositories.AccountRepository;
 import com.automattic.simplenote.utils.AccountNetworkUtils;
 import com.automattic.simplenote.utils.AccountVerificationEmailHandler;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.BrowserUtils;
 import com.automattic.simplenote.utils.NetworkUtils;
-import com.simperium.client.Bucket;
-import com.simperium.client.BucketObjectMissingException;
+
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
 
 /**
  * A {@link FullScreenDialogFragment} for reviewing an account and verifying an email address.  When
  * an account has not been confirmed through a verification email link, the review account interface
  * is shown.  If a verification email has been sent, the verify email interface is shown.
  */
+@AndroidEntryPoint
 public class ReviewAccountVerifyEmailFragment extends Fragment implements FullScreenDialogContent {
     public static final String EXTRA_SENT_EMAIL = "EXTRA_SENT_EMAIL";
 
@@ -44,13 +45,14 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
 
     private AppCompatButton mButtonPrimary;
     private AppCompatButton mButtonSecondary;
-    private Bucket<Account> mBucketAccount;
     private FullScreenDialogController mDialogController;
     private ImageView mImageIcon;
     private String mEmail;
     private TextView mTextSubtitle;
     private TextView mTextTitle;
     private boolean mHasSentEmail;
+
+    @Inject AccountRepository mAccountRepository;
 
     @Override
     public boolean onConfirmClicked(FullScreenDialogController controller) {
@@ -71,8 +73,6 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        mBucketAccount = ((Simplenote) requireActivity().getApplication()).getAccountBucket();
-
         View layout = inflater.inflate(R.layout.fragment_review_account_verify_email, container, false);
         mHasSentEmail = getArguments() != null && getArguments().getBoolean(EXTRA_SENT_EMAIL);
         mEmail = ((Simplenote) requireActivity().getApplication()).getSimperium().getUser().getEmail();
@@ -134,6 +134,20 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
     }
 
     @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        if (mEmail == null) {
+            return;
+        }
+
+        new AccountVerificationResumeCheck(
+            mAccountRepository,
+            LifecycleOwnerKt.getLifecycleScope(getViewLifecycleOwner())
+        ).start(getViewLifecycleOwner().getLifecycle(), mEmail, this::dismissIfVerified);
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
     }
@@ -149,38 +163,16 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-
-        new Handler(Looper.getMainLooper()).post(
-            new Runnable() {
-                @Override
-                public void run() {
-                    dismissIfVerified();
-                }
-            }
-        );
-    }
-
-    @Override
     public void onViewCreated(FullScreenDialogController controller) {
         mDialogController = controller;
     }
 
     private void dismissIfVerified() {
-        if (isDetached() || isRemoving()) {
+        if (isDetached() || isRemoving() || mDialogController == null) {
             return;
         }
 
-        try {
-            Account account = mBucketAccount.get(KEY_EMAIL_VERIFICATION);
-
-            if (account.hasVerifiedEmail(mEmail)) {
-                mDialogController.dismiss();
-            }
-        } catch (BucketObjectMissingException bucketObjectMissingException) {
-            // Do nothing if account cannot be retrieved.
-        }
+        mDialogController.dismiss();
     }
 
     public static Bundle newBundle(boolean hasSentEmail) {

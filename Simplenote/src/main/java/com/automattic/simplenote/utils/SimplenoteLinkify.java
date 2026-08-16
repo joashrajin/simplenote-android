@@ -56,7 +56,11 @@ public class SimplenoteLinkify {
     }
 
     public static String getNoteLinkWithTitle(String title, String id) {
-        return "[" + title + "]" + getNoteLink(id);
+        String escapedTitle = String.valueOf(title)
+            .replace("\\", "\\\\")
+            .replace("[", "\\[")
+            .replace("]", "\\]");
+        return "[" + escapedTitle + "]" + getNoteLink(id);
     }
 
     public static void openNote(Activity activity, String id) {

@@ -1,3 +1,3 @@
 package com.automattic.simplenote.models
 
-data class TagItem(val tag: Tag, val noteCount: Int)
+data class TagItem(val tag: Tag, val noteCount: Int, val displayName: String = tag.getName())

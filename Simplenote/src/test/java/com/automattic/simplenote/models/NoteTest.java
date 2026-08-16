@@ -11,6 +11,7 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class NoteTest {
 
@@ -56,6 +57,19 @@ public class NoteTest {
     }
 
     @Test
+    public void testTagStringDeduplicationIsIndependentOfDefaultLocale() {
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            mNote.setTagString("title TITLE");
+
+            assertEquals(mNote.getTags(), tagList("title"));
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
+    }
+
+    @Test
     public void testParseTitleAndPreview() {
         mNote.setContent(CONTENT);
         assertEquals(mNote.getTitle(), CONTENT_TITLE);
@@ -68,6 +82,20 @@ public class NoteTest {
         tag.setName("Tag");
         mNote.setTagString("tag tag2 tag3");
         assertEquals(mNote.hasTag(tag), true);
+    }
+
+    @Test
+    public void testTagLookupIsIndependentOfDefaultLocale() {
+        mNote.setTags(tagList("title"));
+
+        Locale originalLocale = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+
+            assertEquals(mNote.hasTag("TITLE"), true);
+        } finally {
+            Locale.setDefault(originalLocale);
+        }
     }
 
     @Test

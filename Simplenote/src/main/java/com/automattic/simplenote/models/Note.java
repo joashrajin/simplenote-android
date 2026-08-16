@@ -309,9 +309,9 @@ public class Note extends BucketObject {
 
     public boolean hasTag(String tag) {
         List<String> tags = getTags();
-        String tagLower = tag.toLowerCase();
+        String tagLower = tag.toLowerCase(Locale.US);
         for (String tagName : tags) {
-            if (tagLower.equals(tagName.toLowerCase())) return true;
+            if (tagLower.equals(tagName.toLowerCase(Locale.US))) return true;
         }
         return false;
     }
@@ -425,7 +425,7 @@ public class Note extends BucketObject {
             next = tagString.indexOf(SPACE, start);
             if (next > start) {
                 possible = tagString.substring(start, next);
-                possibleUpperCase = possible.toUpperCase();
+                possibleUpperCase = possible.toUpperCase(Locale.US);
                 if (!possible.equals(SPACE) && !tagsUpperCase.contains(possibleUpperCase)) {
                     tagsUpperCase.add(possibleUpperCase);
                     tags.add(possible);

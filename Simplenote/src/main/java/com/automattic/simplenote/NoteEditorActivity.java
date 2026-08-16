@@ -22,6 +22,7 @@ import android.widget.ImageButton;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
@@ -62,6 +63,12 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
     private static final int INDEX_TAB_EDIT = 0;
     private static final int INDEX_TAB_PREVIEW = 1;
 
+    private final OnBackPressedCallback mBackPressedCallback = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
+            handleBackPressed();
+        }
+    };
     private ImageButton mButtonPrevious;
     private ImageButton mButtonNext;
     private Note mNote;
@@ -82,6 +89,7 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getOnBackPressedDispatcher().addCallback(this, mBackPressedCallback);
 
         AppLog.add(Type.NETWORK, NetworkUtils.getNetworkInfo(NoteEditorActivity.this));
         AppLog.add(Type.SCREEN, "Created (NoteEditorActivity)");
@@ -240,12 +248,6 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
         );
     }
 
-    @Override
-    public void onBackPressed() {
-        super.onBackPressed();
-	    handleBackPressed();
-    }
-
     private void handleBackPressed() {
         AppLog.add(Type.ACTION, "Tapped back button in navigation bar (NoteEditorActivity)");
         if (isTaskRoot()) {
@@ -258,7 +260,8 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
 
             finish();
         } else {
-	        getOnBackPressedDispatcher().onBackPressed();
+            mBackPressedCallback.setEnabled(false);
+            getOnBackPressedDispatcher().onBackPressed();
         }
     }
 
@@ -276,6 +279,7 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        mBackPressedCallback.setEnabled(isTaskRoot());
         disableScreenshotsIfLocked(this);
         AppLog.add(Type.NETWORK, NetworkUtils.getNetworkInfo(NoteEditorActivity.this));
         AppLog.add(Type.SCREEN, "Resumed (NoteEditorActivity)");

@@ -57,6 +57,8 @@ abstract class TestBucket<T : BucketObject>(name: String) : Bucket<T>(null, name
         } ?: throw BucketObjectMissingException()
     }
 
+    override fun get(uuid: String?): T = getObject(uuid)
+
     override fun sync(`object`: T?) {
         `object`?.let { o ->
             o.bucket = this
@@ -106,7 +108,7 @@ abstract class TestBucket<T : BucketObject>(name: String) : Bucket<T>(null, name
 }
 
 class TestObjectCursor<T : BucketObject>(private val objects: MutableList<T>) : AbstractCursor(), Bucket.ObjectCursor<T> {
-    private val columns = arrayOf("simperiumKey", "object")
+    private val columns = arrayOf("_id", "simperiumKey", "object")
 
     override fun getCount(): Int {
         return objects.size

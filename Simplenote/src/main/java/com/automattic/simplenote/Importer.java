@@ -2,6 +2,7 @@ package com.automattic.simplenote;
 
 import android.net.Uri;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.FragmentActivity;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
@@ -88,7 +89,8 @@ public class Importer {
         note.save();
     }
 
-    private void importJsonFile(String content) throws ImportException {
+    @VisibleForTesting
+    void importJsonFile(String content) throws ImportException {
         try {
             importJsonExport(new JSONObject(content));
         } catch (JSONException | ParseException e) {
@@ -97,17 +99,17 @@ public class Importer {
     }
 
     private void importJsonExport(JSONObject export) throws JSONException, ParseException {
-        JSONArray activeNotes = export.optJSONArray("activeNotes");
-        JSONArray trashedNotes = export.optJSONArray("trashedNotes");
+        JSONArray activeNotes = export.getJSONArray("activeNotes");
+        JSONArray trashedNotes = export.getJSONArray("trashedNotes");
 
         ArrayList<Note> notesList = new ArrayList<>();
 
-        for (int i = 0; activeNotes != null && i < activeNotes.length(); i++) {
+        for (int i = 0; i < activeNotes.length(); i++) {
             Note note = Note.fromExportedJson(mNotesBucket, activeNotes.getJSONObject(i));
             notesList.add(note);
         }
 
-        for (int j = 0; trashedNotes != null && j < trashedNotes.length(); j++) {
+        for (int j = 0; j < trashedNotes.length(); j++) {
             Note note = Note.fromExportedJson(mNotesBucket, trashedNotes.getJSONObject(j));
             note.setDeleted(true);
 

@@ -41,12 +41,12 @@ class CollaboratorsAdapter(
     }
 
     sealed class CollaboratorDataItem {
-        abstract val id: Int
+        abstract val id: String?
         object HeaderItem : CollaboratorDataItem() {
-            override val id = Int.MIN_VALUE
+            override val id: String? = null
         }
         data class CollaboratorItem(val email: String) : CollaboratorDataItem() {
-            override val id = email.hashCode()
+            override val id = email
         }
     }
 

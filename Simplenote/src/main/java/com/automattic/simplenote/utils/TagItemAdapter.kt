@@ -37,7 +37,7 @@ class TagItemAdapter(
     ) : RecyclerView.ViewHolder(binding.root) {
         fun bind(currentTagItem: TagItem) {
             binding.apply {
-                tagName.text = currentTagItem.tag.name
+                tagName.text = currentTagItem.displayName
                 tagCount.text = if (currentTagItem.noteCount > 0) currentTagItem.noteCount.toString() else ""
                 tagTrash.setOnClickListener {
                     onDeleteClick(currentTagItem)

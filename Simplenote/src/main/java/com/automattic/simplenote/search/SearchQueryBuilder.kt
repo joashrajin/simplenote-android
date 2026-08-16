@@ -7,11 +7,7 @@ import com.simperium.client.Query
 import java.util.regex.Pattern
 import javax.inject.Inject
 
-/**
- * Builds the note list and search queries exactly as NoteListFragment.queryNotes,
- * NoteListFragment.queryNotesForSearch, and PrefUtils.sortNoteQuery construct them today.
- * Not yet wired into production; characterized by SearchQueryBuilderTest.
- */
+/** Builds the production note-list and search queries executed by SimperiumNotesRepository. */
 class SearchQueryBuilder @Inject constructor() {
 
     fun build(bucket: Bucket<Note>, request: NoteSearchRequest): Query<Note> {
@@ -23,7 +19,7 @@ class SearchQueryBuilder @Inject constructor() {
         }
 
         val searchString = extractTagConditions(query, request.rawSearch)
-        if (!searchString.isNullOrEmpty()) {
+        if (!searchString.isNullOrBlank()) {
             query.where(Query.FullTextMatch(SearchTokenizer(searchString)))
             query.include(Query.FullTextOffsets(MATCH_OFFSETS_INDEX_NAME))
             query.include(Query.FullTextSnippet(Note.MATCHED_TITLE_INDEX_NAME, Note.TITLE_INDEX_NAME))

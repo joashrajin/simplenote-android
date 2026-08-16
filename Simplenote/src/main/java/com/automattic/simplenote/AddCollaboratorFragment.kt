@@ -19,8 +19,21 @@ import com.automattic.simplenote.widgets.MorphCircleToRectangle
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
-class AddCollaboratorFragment(private val noteId: String) : AppCompatDialogFragment(), DialogInterface.OnShowListener {
+class AddCollaboratorFragment : AppCompatDialogFragment(), DialogInterface.OnShowListener {
+    companion object {
+        private const val NOTE_ID_ARG = "note_id"
+
+        fun newInstance(noteId: String) = AddCollaboratorFragment().apply {
+            arguments = Bundle().apply {
+                putString(NOTE_ID_ARG, noteId)
+            }
+        }
+    }
+
     private val viewModel: AddCollaboratorViewModel by viewModels()
+
+    private val noteId: String
+        get() = requireNotNull(requireArguments().getString(NOTE_ID_ARG))
 
     private var _dialogEditTag: AlertDialog? = null
     private val dialogEditTag get() = _dialogEditTag!!

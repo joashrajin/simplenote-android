@@ -53,6 +53,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackground"
+            android:focusable="true"
             android:gravity="center"
             android:layout_below="@id/button"
             android:layout_marginVertical="@dimen/margin_default_half"

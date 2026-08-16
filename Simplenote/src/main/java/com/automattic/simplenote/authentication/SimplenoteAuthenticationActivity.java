@@ -8,6 +8,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
+import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -70,20 +71,8 @@ public class SimplenoteAuthenticationActivity extends AuthenticationActivity {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             SystemBarUtils.applyEdgeToEdge(this);
 
-            // Apply navigation bar insets to avoid button overlap with 3-button navigation
-            ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content), (v, windowInsets) -> {
-                Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-
-                // Apply bottom padding to avoid navigation bar overlap
-                v.setPadding(
-                    v.getPaddingLeft(),
-                    v.getPaddingTop(),
-                    v.getPaddingRight(),
-                    systemBars.bottom
-                );
-
-                return WindowInsetsCompat.CONSUMED;
-            });
+            // Keep the Simperium-owned layout inside system bars and display cutouts.
+            applyAuthenticationInsets(findViewById(com.simperium.R.id.activity_authentication_root));
         }
 
         final Intent intent = getIntent();
@@ -117,6 +106,30 @@ public class SimplenoteAuthenticationActivity extends AuthenticationActivity {
             });
             completeMagicLinkViewModel.completeLogin(authKey, authCode, false);
         }
+    }
+
+    static void applyAuthenticationInsets(View view) {
+        int initialLeft = view.getPaddingLeft();
+        int initialTop = view.getPaddingTop();
+        int initialRight = view.getPaddingRight();
+        int initialBottom = view.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(view, (insetView, windowInsets) -> {
+            Insets safeDrawing = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
+            );
+            insetView.setPadding(
+                initialLeft + safeDrawing.left,
+                initialTop + safeDrawing.top,
+                initialRight + safeDrawing.right,
+                initialBottom + safeDrawing.bottom
+            );
+            return windowInsets.inset(
+                safeDrawing.left,
+                safeDrawing.top,
+                safeDrawing.right,
+                safeDrawing.bottom
+            );
+        });
     }
 
     public static void startNotesActivity(final Context context, final boolean showAnimation) {

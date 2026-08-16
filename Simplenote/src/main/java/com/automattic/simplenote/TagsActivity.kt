@@ -157,7 +157,7 @@ class TagsActivity : ThemedAppCompatActivity() {
 
         val hintHexColor = getColorStr(R.color.text_title_disabled)
         searchView.queryHint = HtmlCompat.fromHtml(String.format(
-            "<font color=\"%s\">%s</font>",
+            "<font color=\"#%s\">%s</font>",
             hintHexColor,
             getString(R.string.search_tags_hint)
         ))

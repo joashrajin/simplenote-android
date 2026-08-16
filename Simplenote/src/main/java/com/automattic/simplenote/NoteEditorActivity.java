@@ -234,7 +234,7 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
         
         // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets.
         SystemBarUtils.applyInsets(
-            findViewById(R.id.main_parent_view),
+            findViewById(R.id.note_editor_root),
             toolbar,
             findViewById(R.id.pager)
         );

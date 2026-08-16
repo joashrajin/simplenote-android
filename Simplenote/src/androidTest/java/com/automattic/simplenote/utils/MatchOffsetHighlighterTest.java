@@ -9,6 +9,8 @@ import androidx.test.runner.AndroidJUnit4;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.nio.charset.StandardCharsets;
+
 import static androidx.test.espresso.matcher.ViewMatchers.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.arrayWithSize;
@@ -153,6 +155,79 @@ public class MatchOffsetHighlighterTest {
         assertThat(spans, arrayWithSize(1));
         assertThat(text.getSpanStart(spans[0]), is(4));
         assertThat(text.getSpanEnd(spans[0]), is(8));
+    }
+
+    @Test
+    public void testCharacterLocationsForNavigationAfterUnicode() {
+        String plainText = "é first 😀 second";
+        SpannableString text = new SpannableString(plainText);
+
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(text, plainText, 3), is(2));
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(text, plainText, 14), is(11));
+    }
+
+    @Test
+    public void testCharacterLocationForNavigationAfterCollapsedChecklist() {
+        String plainText = "é\n- [ ] café";
+        SpannableString text = new SpannableString("é\n\u00a0 café");
+
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(text, plainText, 9), is(4));
+    }
+
+    @Test
+    public void testMatchLocationAfterNoncanonicalCollapsedChecklists() {
+        String indexedText = "é\n-          [ ] first\n-\t[x] target";
+        SpannableString displayedText = new SpannableString("é\n\u00a0 first\n\u00a0 target");
+        int byteLocation = indexedText
+                .substring(0, indexedText.indexOf("target"))
+                .getBytes(StandardCharsets.UTF_8)
+                .length;
+        String matches = "1 0 " + byteLocation + " 6";
+
+        assertThat(
+                MatchOffsetHighlighter.getCharacterLocation(displayedText, indexedText, byteLocation),
+                is(displayedText.toString().indexOf("target"))
+        );
+
+        MatchOffsetHighlighter.highlightMatches(displayedText, matches, indexedText, 1, sHighlighter);
+        Object[] spans = displayedText.getSpans(0, displayedText.length(), Object.class);
+        assertThat(spans, arrayWithSize(1));
+        assertThat(displayedText.getSpanStart(spans[0]), is(displayedText.toString().indexOf("target")));
+        assertThat(displayedText.getSpanEnd(spans[0]), is(displayedText.length()));
+    }
+
+    @Test
+    public void testFirstMatchLocationAfterCollapsedChecklist() {
+        String plainText = "é\n- [ ] café";
+        SpannableString text = new SpannableString("é\n\u00a0 café");
+
+        assertThat(MatchOffsetHighlighter.getFirstMatchLocation(text, "1 0 9 5", plainText), is(4));
+    }
+
+    @Test
+    public void testLegacyFirstMatchLocationWithUncollapsedChecklist() {
+        SpannableString text = new SpannableString("- [ ] café");
+
+        assertThat(MatchOffsetHighlighter.getFirstMatchLocation(text, "1 0 6 5"), is(6));
+    }
+
+    @Test
+    public void testCharacterLocationAtUnicodeAndChecklistEnd() {
+        SpannableString unicodeText = new SpannableString("café");
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(unicodeText, "café", 5), is(4));
+
+        String plainText = "- [ ] é";
+        SpannableString checklistText = new SpannableString("\u00a0 é");
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(checklistText, plainText, 8), is(3));
+    }
+
+    @Test
+    public void testCharacterLocationOutsidePlainText() {
+        SpannableString text = new SpannableString("café");
+
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(text, "café", -1), is(0));
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(text, "café", 6), is(0));
+        assertThat(MatchOffsetHighlighter.getCharacterLocation(text, "longer", 6), is(0));
     }
 
     @Test

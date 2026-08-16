@@ -18,6 +18,14 @@ import java.util.regex.Pattern;
 public class MatchOffsetHighlighter implements Runnable {
     public  static final int MATCH_INDEX_COUNT = 4;
     public  static final int MATCH_INDEX_START = 2;
+    private static final Pattern CHECKLIST_PATTERN = Pattern.compile(
+            ChecklistUtils.CHECKLIST_REGEX_LINES,
+            Pattern.MULTILINE
+    );
+    private static final int CHECKLIST_REPLACEMENT_BYTE_LENGTH = String
+            .valueOf(ChecklistUtils.CHAR_NO_BREAK_SPACE)
+            .getBytes(StandardCharsets.UTF_8)
+            .length;
 
     protected static OnMatchListener sListener = new DefaultMatcher();
     private static List<Object> mMatchedSpans = Collections.synchronizedList(new ArrayList<>());
@@ -90,19 +98,9 @@ public class MatchOffsetHighlighter implements Runnable {
                 continue;
             }
 
-            // Adjust for amount of checklist items before the match
-            int characterStart = new String(plainTextBytes, 0, start, StandardCharsets.UTF_8).length();
-            String textUpToMatch = plainTextContent.substring(0, characterStart);
-            Pattern pattern = Pattern.compile(ChecklistUtils.CHECKLIST_REGEX_LINES, Pattern.MULTILINE);
-            Matcher matcher = pattern.matcher(textUpToMatch);
-            int matchCount = 0;
-            while (matcher.find()) {
-                matchCount++;
-            }
-            if (matchCount > 0) {
-                start -= matchCount * ChecklistUtils.CHECKLIST_OFFSET;
-                end -= matchCount * ChecklistUtils.CHECKLIST_OFFSET;
-            }
+            int checklistOffset = getChecklistByteOffset(plainTextContent, plainTextBytes, start);
+            start -= checklistOffset;
+            end -= checklistOffset;
 
             int span_start = start + getByteOffset(content, 0, start);
             int span_end = span_start + length + getByteOffset(content, start, end);
@@ -118,6 +116,15 @@ public class MatchOffsetHighlighter implements Runnable {
     // The data format for a match is 4 space-separated integers that represent the location
     // of the match: "column token start length" ex: "1 0 42 7"
     public static int getFirstMatchLocation(Spannable content, String matches) {
+        int location = getFirstMatchByteLocation(matches);
+        return location + getByteOffset(content, 0, location);
+    }
+
+    public static int getFirstMatchLocation(Spannable content, String matches, String indexedTextContent) {
+        return getCharacterLocation(content, indexedTextContent, getFirstMatchByteLocation(matches));
+    }
+
+    private static int getFirstMatchByteLocation(String matches) {
         if (TextUtils.isEmpty(matches)) {
             return 0;
         }
@@ -125,15 +132,53 @@ public class MatchOffsetHighlighter implements Runnable {
         String[] values = matches.split("\\s+", 4);
         if (values.length > MATCH_INDEX_START) {
             try {
-                int location = Integer.valueOf(values[MATCH_INDEX_START]);
-
-                return location + getByteOffset(content, 0, location);
+                return Integer.valueOf(values[MATCH_INDEX_START]);
             } catch (NumberFormatException exception) {
                 return 0;
             }
         }
 
         return 0;
+    }
+
+    public static int getCharacterLocation(Spannable content, String indexedTextContent, int byteLocation) {
+        if (indexedTextContent == null) {
+            return 0;
+        }
+
+        byte[] indexedTextBytes = indexedTextContent.getBytes(StandardCharsets.UTF_8);
+        if (byteLocation < 0 || byteLocation > indexedTextBytes.length) {
+            return 0;
+        }
+
+        int displayByteLocation = byteLocation
+                - getChecklistByteOffset(indexedTextContent, indexedTextBytes, byteLocation);
+        if (displayByteLocation < 0) {
+            return 0;
+        }
+
+        int characterLocation = displayByteLocation + getByteOffset(content, 0, displayByteLocation);
+        return characterLocation <= content.length() ? characterLocation : 0;
+    }
+
+    private static int getChecklistByteOffset(String plainTextContent, byte[] plainTextBytes, int byteLocation) {
+        int characterLocation = new String(
+                plainTextBytes,
+                0,
+                byteLocation,
+                StandardCharsets.UTF_8
+        ).length();
+        String textUpToMatch = plainTextContent.substring(0, characterLocation);
+        Matcher matcher = CHECKLIST_PATTERN.matcher(textUpToMatch);
+        int checklistOffset = 0;
+        while (matcher.find()) {
+            String checklist = matcher.group(2);
+            if (checklist != null) {
+                checklistOffset += checklist.getBytes(StandardCharsets.UTF_8).length
+                        - CHECKLIST_REPLACEMENT_BYTE_LENGTH;
+            }
+        }
+        return checklistOffset;
     }
 
     // Returns the byte offset of the source string up to the matching search result.
@@ -184,12 +229,16 @@ public class MatchOffsetHighlighter implements Runnable {
     }
 
     public void highlightMatches(String matches, int columnIndex) {
+        highlightMatches(matches, columnIndex, mTextView.getPlainTextContent());
+    }
+
+    public void highlightMatches(String matches, int columnIndex, String indexedTextContent) {
         synchronized (this) {
             stop();
             mSpannable = mTextView.getEditableText();
             mMatches = matches;
             mIndex = columnIndex;
-            mPlainText = mTextView.getPlainTextContent();
+            mPlainText = indexedTextContent;
             start();
         }
     }

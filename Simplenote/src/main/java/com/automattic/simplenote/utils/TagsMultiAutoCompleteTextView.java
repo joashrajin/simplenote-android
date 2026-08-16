@@ -65,7 +65,9 @@ public class TagsMultiAutoCompleteTextView extends AppCompatMultiAutoCompleteTex
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-            saveTagOrShowError(getText().toString());
+            if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+                saveTagOrShowError(getText().toString());
+            }
             return true;
         } else {
             return super.dispatchKeyEvent(event);

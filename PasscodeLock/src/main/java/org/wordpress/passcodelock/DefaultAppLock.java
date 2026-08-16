@@ -10,10 +10,8 @@ import javax.crypto.spec.DESKeySpec;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Base64;
 
@@ -24,16 +22,19 @@ public class DefaultAppLock extends AbstractAppLock {
 
     private static final String UNLOCK_CLASS_NAME = PasscodeUnlockActivity.class.getName();
     private static final String OLD_PASSWORD_SALT = "sadasauidhsuyeuihdahdiauhs";
-    private static final String OLD_APP_LOCK_PASSWORD_PREF_KEY = "wp_app_lock_password_key";
 
     private Application mCurrentApp;
-    private SharedPreferences mSharedPreferences;
+    private PasscodePreferenceStore mPreferenceStore;
     private Date mLostFocusDate;
 
     public DefaultAppLock(Application app) {
+        this(app, PasscodePreferenceStore.from(app));
+    }
+
+    DefaultAppLock(Application app, PasscodePreferenceStore preferenceStore) {
         super();
         mCurrentApp = app;
-        mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(mCurrentApp);
+        mPreferenceStore = preferenceStore;
     }
 
     /** {@link PasscodeUnlockActivity} is always exempt. */
@@ -77,16 +78,15 @@ public class DefaultAppLock extends AbstractAppLock {
     }
 
     public boolean isPasswordLocked() {
-        return mSharedPreferences.contains(BuildConfig.PASSWORD_PREFERENCE_KEY) ||
-               mSharedPreferences.contains(OLD_APP_LOCK_PASSWORD_PREF_KEY);
+        return mPreferenceStore.getPassword() != null;
     }
 
     public boolean setPassword(String password) {
-        removePasswordFromPreferences();
         if (TextUtils.isEmpty(password)) {
+            mPreferenceStore.clearPassword();
             disable();
         } else {
-            savePasswordToPreferences(password.hashCode());
+            mPreferenceStore.setPasswordHash(password.hashCode());
             enable();
         }
         return true;
@@ -94,18 +94,18 @@ public class DefaultAppLock extends AbstractAppLock {
 
     @Override
     public boolean isFingerprintEnabled() {
-        return mSharedPreferences.getBoolean(BuildConfig.FINGERPRINT_ENABLED_KEY, true);
+        return mPreferenceStore.isFingerprintEnabled();
     }
 
     @Override
     public boolean enableFingerprint() {
-        mSharedPreferences.edit().putBoolean(BuildConfig.FINGERPRINT_ENABLED_KEY, true).apply();
+        mPreferenceStore.setFingerprintEnabled(true);
         return true;
     }
 
     @Override
     public boolean disableFingerprint() {
-        mSharedPreferences.edit().putBoolean(BuildConfig.FINGERPRINT_ENABLED_KEY, false).apply();
+        mPreferenceStore.setFingerprintEnabled(false);
         return true;
     }
 
@@ -122,35 +122,34 @@ public class DefaultAppLock extends AbstractAppLock {
             return true;
         }
 
-    	String storedPassword = "";
-        String securePassword = null;
-        int updatedHash = -1;
-
-    	if (mSharedPreferences.contains(OLD_APP_LOCK_PASSWORD_PREF_KEY)) {
-            // backwards compatibility
-    		storedPassword = getStoredLegacyPassword(OLD_APP_LOCK_PASSWORD_PREF_KEY);
-    		securePassword = legacyPasswordHash(password);
-    	} else if (mSharedPreferences.contains(BuildConfig.PASSWORD_PREFERENCE_KEY)) {
-            if (shouldUpdatePassword()) {
-                storedPassword = getStoredLegacyPassword(BuildConfig.PASSWORD_PREFERENCE_KEY);
-                storedPassword = decryptPassword(storedPassword);
-                storedPassword = stripSalt(storedPassword);
-                securePassword = password;
-                updatedHash = password.hashCode();
-            } else {
-                int storedHash = getStoredPassword();
-                storedPassword = String.valueOf(storedHash);
-                securePassword = String.valueOf(password.hashCode());
-            }
-    	}
-
-        if (!storedPassword.equalsIgnoreCase(securePassword)) return false;
-
-        // password security updated, replace stored password with integer hash value
-        if (updatedHash != -1) {
-            removePasswordFromPreferences();
-            savePasswordToPreferences(updatedHash);
+        PasscodePreferenceStore.StoredPassword storedPassword = mPreferenceStore.getPassword();
+        if (storedPassword == null) {
+            return false;
         }
+
+        boolean matches;
+        switch (storedPassword.getFormat()) {
+            case OLD_MD5:
+                matches = storedPassword.getString().equalsIgnoreCase(legacyPasswordHash(password));
+                break;
+            case LEGACY_ENCRYPTED:
+                String decryptedPassword = stripSalt(decryptPassword(storedPassword.getString()));
+                matches = decryptedPassword.equalsIgnoreCase(password);
+                if (matches && password.hashCode() != -1) {
+                    mPreferenceStore.setPasswordHash(password.hashCode());
+                }
+                break;
+            case HASH:
+                matches = storedPassword.getHash() == password.hashCode();
+                break;
+            case INVALID:
+            default:
+                matches = false;
+                break;
+        }
+
+        if (!matches) return false;
+
         mLostFocusDate = new Date();
         return true;
     }
@@ -174,21 +173,6 @@ public class DefaultAppLock extends AbstractAppLock {
         return true;
     }
 
-    private int getStoredPassword() {
-        return mSharedPreferences.getInt(BuildConfig.PASSWORD_PREFERENCE_KEY, -1);
-    }
-
-    private void savePasswordToPreferences(int password) {
-        mSharedPreferences.edit().putInt(BuildConfig.PASSWORD_PREFERENCE_KEY, password).apply();
-    }
-
-    private void removePasswordFromPreferences() {
-        mSharedPreferences.edit()
-                .remove(OLD_APP_LOCK_PASSWORD_PREF_KEY)
-                .remove(BuildConfig.PASSWORD_PREFERENCE_KEY)
-                .apply();
-    }
-
     private int timeSinceLocked() {
         return Math.abs((int) ((new Date().getTime() - mLostFocusDate.getTime()) / 1000));
     }
@@ -196,16 +180,6 @@ public class DefaultAppLock extends AbstractAppLock {
     //
     // Legacy methods for backwards compatibility of passwords stored using deprecated security
     //
-
-    /** Update to hash-based security if password was stored using encryption-based security. */
-    private boolean shouldUpdatePassword() {
-        Object storedValue = mSharedPreferences.getAll().get(BuildConfig.PASSWORD_PREFERENCE_KEY);
-        return storedValue != null && storedValue instanceof String;
-    }
-
-    private String getStoredLegacyPassword(String key) {
-        return mSharedPreferences.getString(key, "");
-    }
 
     private String legacyPasswordHash(String rawPassword) {
         return StringUtils.getMd5Hash(OLD_PASSWORD_SALT + rawPassword + OLD_PASSWORD_SALT);

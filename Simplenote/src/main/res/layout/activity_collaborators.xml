@@ -41,7 +41,7 @@
             android:layout_marginEnd="@dimen/padding_large"
             android:layout_marginBottom="@dimen/padding_large"
             android:background="@drawable/bg_ripple_oval_fab_color"
-            android:contentDescription="@string/add_tag"
+            android:contentDescription="@string/add_collaborator"
             android:elevation="@dimen/elevation_button"
             android:src="@drawable/ic_add_24dp"
             android:stateListAnimator="@animator/button_raise"

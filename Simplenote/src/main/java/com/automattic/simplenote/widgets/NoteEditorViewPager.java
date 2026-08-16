@@ -11,7 +11,7 @@ public class NoteEditorViewPager extends ViewPager {
 
     public NoteEditorViewPager(Context context, AttributeSet attrs) {
         super(context, attrs);
-        this.mIsEnabled = true;
+        this.mIsEnabled = false;
     }
 
     @Override

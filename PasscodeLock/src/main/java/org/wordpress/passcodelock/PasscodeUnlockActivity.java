@@ -2,12 +2,31 @@ package org.wordpress.passcodelock;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.os.Build;
+import android.os.Bundle;
 import android.view.View;
+import android.window.OnBackInvokedCallback;
+import android.window.OnBackInvokedDispatcher;
 
 import androidx.core.hardware.fingerprint.FingerprintManagerCompat;
 import androidx.core.os.CancellationSignal;
 
 public class PasscodeUnlockActivity extends AbstractPasscodeKeyboardActivity {
+    private OnBackInvokedCallback mBackInvokedCallback;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            mBackInvokedCallback = this::handleBackPressed;
+            getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
+                    OnBackInvokedDispatcher.PRIORITY_DEFAULT,
+                    mBackInvokedCallback
+            );
+        }
+    }
+
 	@SuppressLint("RestrictedApi")
     @Override
     public void onResume() {
@@ -23,6 +42,19 @@ public class PasscodeUnlockActivity extends AbstractPasscodeKeyboardActivity {
 
     @Override
     public void onBackPressed() {
+        handleBackPressed();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && mBackInvokedCallback != null) {
+            getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(mBackInvokedCallback);
+            mBackInvokedCallback = null;
+        }
+        super.onDestroy();
+    }
+
+    private void handleBackPressed() {
         getAppLock().forcePasswordLock();
         Intent i = new Intent();
         i.setAction(Intent.ACTION_MAIN);

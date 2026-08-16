@@ -178,7 +178,7 @@ class CollaboratorsActivity : ThemedAppCompatActivity() {
     }
 
     private fun showAddCollaboratorFragment(event: Event.AddCollaboratorEvent) {
-        val dialog = AddCollaboratorFragment(event.noteId)
+        val dialog = AddCollaboratorFragment.newInstance(event.noteId)
         dialog.show(supportFragmentManager.beginTransaction(), DIALOG_TAG)
     }
 

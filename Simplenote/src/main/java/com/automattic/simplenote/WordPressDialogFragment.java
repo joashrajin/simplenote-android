@@ -465,73 +465,76 @@ public class WordPressDialogFragment extends AppCompatDialogFragment {
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull final Response response) throws IOException {
-                if (getActivity() == null) {
-                    return;
-                }
-
-                if (response.code() == 200 && response.body() != null) {
-                    String resultString = response.body().string();
-                    try {
-                        JSONArray sitesArray = new JSONObject(resultString).getJSONArray(API_FIELD_SITES);
-                        final JSONArray newSitesArray = new JSONArray();
-                        for (int i = 0; i < sitesArray.length(); i++) {
-                            JSONObject site = sitesArray.getJSONObject(i);
-                            JSONObject parsedSite = new JSONObject();
-                            parsedSite.put(API_FIELD_NAME, site.getString(API_FIELD_NAME));
-
-                            URI uri;
-                            try {
-                                uri = new URI(site.getString(API_FIELD_URL));
-                            } catch (URISyntaxException e) {
-                                // Reset to connect state if we reach an error
-                                setDialogStatus(DialogStatus.CONNECT);
-                                return;
-                            }
-
-                            parsedSite.put(API_FIELD_URL, uri.getHost());
-                            newSitesArray.put(i, parsedSite);
-                        }
-
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                if (newSitesArray.length() > 0) {
-                                    mSitesArray = newSitesArray;
-                                    saveSitesToPreferences();
-                                }
-                                SitesAdapter sitesAdapter = new SitesAdapter(getActivity());
-                                mListView.setAdapter(sitesAdapter);
-                            }
-                        });
-
-                    } catch (JSONException e) {
-                        getActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                // Reset to connect state if we reached an error
-                                if (mSitesArray.length() == 0) {
-                                    setDialogStatus(DialogStatus.CONNECT);
-                                }
-                            }
-                        });
-
-                    }
-                } else if (response.code() == 400 || mSitesArray.length() == 0) {
-                    if (!isAdded()) {
+                try (Response ignored = response) {
+                    if (getActivity() == null) {
                         return;
                     }
 
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            // Remove WordPress sites
-                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(getActivity()).edit();
-                            editor.remove(PrefUtils.PREF_WORDPRESS_SITES);
-                            editor.apply();
-                            // Reset to connect state if we reached an error
-                            setDialogStatus(DialogStatus.CONNECT);
+                    if (response.code() == 200 && response.body() != null) {
+                        String resultString = response.body().string();
+                        try {
+                            JSONArray sitesArray = new JSONObject(resultString).getJSONArray(API_FIELD_SITES);
+                            final JSONArray newSitesArray = new JSONArray();
+                            for (int i = 0; i < sitesArray.length(); i++) {
+                                JSONObject site = sitesArray.getJSONObject(i);
+                                JSONObject parsedSite = new JSONObject();
+                                parsedSite.put(API_FIELD_NAME, site.getString(API_FIELD_NAME));
+
+                                URI uri;
+                                try {
+                                    uri = new URI(site.getString(API_FIELD_URL));
+                                } catch (URISyntaxException e) {
+                                    // Reset to connect state if we reach an error
+                                    setDialogStatus(DialogStatus.CONNECT);
+                                    return;
+                                }
+
+                                parsedSite.put(API_FIELD_URL, uri.getHost());
+                                newSitesArray.put(i, parsedSite);
+                            }
+
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    if (newSitesArray.length() > 0) {
+                                        mSitesArray = newSitesArray;
+                                        saveSitesToPreferences();
+                                    }
+                                    SitesAdapter sitesAdapter = new SitesAdapter(getActivity());
+                                    mListView.setAdapter(sitesAdapter);
+                                }
+                            });
+
+                        } catch (JSONException e) {
+                            getActivity().runOnUiThread(new Runnable() {
+                                @Override
+                                public void run() {
+                                    // Reset to connect state if we reached an error
+                                    if (mSitesArray.length() == 0) {
+                                        setDialogStatus(DialogStatus.CONNECT);
+                                    }
+                                }
+                            });
+
                         }
-                    });
+                    } else if (response.code() == 400 || mSitesArray.length() == 0) {
+                        if (!isAdded()) {
+                            return;
+                        }
+
+                        getActivity().runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                // Remove WordPress sites
+                                SharedPreferences.Editor editor = PreferenceManager
+                                        .getDefaultSharedPreferences(getActivity()).edit();
+                                editor.remove(PrefUtils.PREF_WORDPRESS_SITES);
+                                editor.apply();
+                                // Reset to connect state if we reached an error
+                                setDialogStatus(DialogStatus.CONNECT);
+                            }
+                        });
+                    }
                 }
             }
         });

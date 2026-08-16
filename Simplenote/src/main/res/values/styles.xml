@@ -339,6 +339,9 @@
         <item name="android:background">?attr/selectableItemBackground</item>
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
+        <item name="android:gravity">center_vertical</item>
+        <item name="android:minHeight">@dimen/minimum_target</item>
+        <item name="android:minWidth">@dimen/minimum_target</item>
         <item name="android:padding">@dimen/padding_extra_small</item>
         <item name="android:textColor">@color/simplenote_blue_5</item>
         <item name="android:textSize">@dimen/text_about_subtitle</item>

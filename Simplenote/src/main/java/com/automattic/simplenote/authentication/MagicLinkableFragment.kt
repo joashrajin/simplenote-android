@@ -39,6 +39,11 @@ abstract class MagicLinkableFragment : Fragment() {
         return view
     }
 
+    override fun onDestroyView() {
+        super.onDestroyView()
+        emailField = null
+    }
+
     private fun initSignupButton(view: View) {
         emailField = (view.findViewById<View>(R.id.input_email) as TextInputLayout).editText
         val signupButton = view.findViewById<Button>(R.id.button)
@@ -85,7 +90,11 @@ abstract class MagicLinkableFragment : Fragment() {
         } else {
             val magicLinkConfirmationFrag = MagicLinkConfirmationFragment.newInstance(email)
             parentFragmentManager.beginTransaction()
-                .add(R.id.fragment_container, magicLinkConfirmationFrag, SimplenoteSignupActivity.SIGNUP_FRAGMENT_TAG)
+                .replace(
+                    R.id.fragment_container,
+                    magicLinkConfirmationFrag,
+                    SimplenoteSignupActivity.SIGNUP_FRAGMENT_TAG
+                )
                 .addToBackStack(null)
                 .commit()
         }

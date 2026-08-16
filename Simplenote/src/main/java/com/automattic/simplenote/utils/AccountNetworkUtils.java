@@ -5,6 +5,7 @@ import android.os.LocaleList;
 import android.util.Base64;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,27 +39,7 @@ public class AccountNetworkUtils {
 
     public static void makeDeleteAccountRequest(String email, String token, final DeleteAccountRequestHandler handler) {
         OkHttpClient client = createClient();
-        client.newCall(buildDeleteAccountRequest(email, token)).enqueue(new Callback() {
-            @Override
-            public void onFailure(Call call, IOException e) {
-                handler.onFailure();
-            }
-
-            @Override
-            public void onResponse(Call call, Response response) throws IOException {
-                // The delete account requests return 200 when the request was processed
-                // successfully. These requests send an email to the user with instructions
-                // to delete the account. This email is valid for 24h. If the user sends
-                // another request for deletion and the previous request is still valid,
-                // the server sends a response with code 202. We take both 200 and 202 as
-                // successful responses. Both codes are handled by isSuccessful()
-                if (response.isSuccessful()) {
-                    handler.onSuccess();
-                } else {
-                    handler.onFailure();
-                }
-            }
-        });
+        client.newCall(buildDeleteAccountRequest(email, token)).enqueue(buildDeleteAccountCallback(handler));
     }
 
     public static void makeSendVerificationEmailRequest(String email, final AccountVerificationEmailHandler handler) {
@@ -68,28 +49,60 @@ public class AccountNetworkUtils {
                 .newBuilder()
                 .readTimeout(3000, TimeUnit.SECONDS)
                 .build()
-                .newCall(new Request.Builder().url(buildUrl(SIMPLENOTE_SEND_VERIFICATION_EMAIL  + encodedEmail)).build())
-                .enqueue(
-                        new Callback() {
-                            @Override
-                            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                                String url = call.request().url().toString();
-                                handler.onFailure(e, url);
-                            }
+                .newCall(new Request.Builder()
+                        .url(buildUrl(SIMPLENOTE_SEND_VERIFICATION_EMAIL  + encodedEmail))
+                        .build())
+                .enqueue(buildVerificationEmailCallback(handler));
+    }
 
-                            @Override
-                            public void onResponse(@NonNull Call call, @NonNull Response response) {
-                                String url = call.request().url().toString();
-                                if (response.code() == 200) {
-                                    handler.onSuccess(url);
-                                } else {
+    @VisibleForTesting
+    static Callback buildDeleteAccountCallback(final DeleteAccountRequestHandler handler) {
+        return new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                handler.onFailure();
+            }
 
-                                    handler.onFailure(new Exception("Error code: " + response.code()), url);
-                                }
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+                try (Response ignored = response) {
+                    // The delete account requests return 200 when the request was processed
+                    // successfully. These requests send an email to the user with instructions
+                    // to delete the account. This email is valid for 24h. If the user sends
+                    // another request for deletion and the previous request is still valid,
+                    // the server sends a response with code 202. We take both 200 and 202 as
+                    // successful responses. Both codes are handled by isSuccessful()
+                    if (response.isSuccessful()) {
+                        handler.onSuccess();
+                    } else {
+                        handler.onFailure();
+                    }
+                }
+            }
+        };
+    }
 
-                            }
-                        }
-                );
+    @VisibleForTesting
+    static Callback buildVerificationEmailCallback(final AccountVerificationEmailHandler handler) {
+        return new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                String url = call.request().url().toString();
+                handler.onFailure(e, url);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull Response response) {
+                try (Response ignored = response) {
+                    String url = call.request().url().toString();
+                    if (response.code() == 200) {
+                        handler.onSuccess(url);
+                    } else {
+                        handler.onFailure(new Exception("Error code: " + response.code()), url);
+                    }
+                }
+            }
+        };
     }
 
     private static Request buildDeleteAccountRequest(String email, String token) {

@@ -57,12 +57,13 @@ class SimperiumPreferencesRepository @Inject constructor(
     override fun analyticsEnabledSnapshot(): Boolean = analyticsSnapshot.get()
 
     override suspend fun recentSearches(): List<String> = withContext(ioDispatcher) {
-        getOrCreatePreferences()?.recentSearches ?: emptyList()
+        getOrCreatePreferences()?.nonBlankRecentSearches() ?: emptyList()
     }
 
     override suspend fun addRecentSearch(query: String, index: Int) = withContext(ioDispatcher) {
+        if (query.isBlank()) return@withContext
         val preferences = getOrCreatePreferences() ?: return@withContext
-        val recents = preferences.recentSearches
+        val recents = preferences.nonBlankRecentSearches()
         recents.remove(query)
         recents.add(index.coerceIn(0, recents.size), query)
         preferences.setRecentSearches(recents.take(MAX_RECENT_SEARCHES))
@@ -71,7 +72,7 @@ class SimperiumPreferencesRepository @Inject constructor(
 
     override suspend fun removeRecentSearch(query: String): Int = withContext(ioDispatcher) {
         val preferences = getOrCreatePreferences() ?: return@withContext -1
-        val recents = preferences.recentSearches
+        val recents = preferences.nonBlankRecentSearches()
         val removedIndex = recents.indexOf(query)
         recents.remove(query)
         preferences.setRecentSearches(recents)
@@ -107,6 +108,9 @@ class SimperiumPreferencesRepository @Inject constructor(
     } catch (exception: BucketObjectMissingException) {
         DEFAULT_ANALYTICS_ENABLED
     }
+
+    private fun Preferences.nonBlankRecentSearches() =
+        recentSearches.filterNotTo(mutableListOf()) { it.isBlank() }
 
     private fun getOrCreatePreferences(): Preferences? = try {
         preferencesBucket.get(PREFERENCES_OBJECT_KEY)

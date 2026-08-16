@@ -53,6 +53,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ActionMode;
 import androidx.core.app.ShareCompat;
@@ -1731,6 +1733,22 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
 
     }
 
+    @Nullable
+    @VisibleForTesting
+    static Note findNoteInObjectStore(Bucket<Note> notesBucket, String noteID) {
+        try (Bucket.ObjectCursor<Note> notesCursor = notesBucket.allObjects()) {
+            while (notesCursor.moveToNext()) {
+                Note currentNote = notesCursor.getObject();
+
+                if (currentNote != null && currentNote.getSimperiumKey().equals(noteID)) {
+                    return currentNote;
+                }
+            }
+        }
+
+        return null;
+    }
+
     private static class LoadNoteTask extends AsyncTask<String, Void, Void> {
         WeakReference<NoteEditorFragment> mNoteEditorFragmentReference;
 
@@ -1782,15 +1800,9 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
                 }
             } catch (BucketObjectMissingException e) {
                 // See if the note is in the object store
-                Bucket.ObjectCursor<Note> notesCursor = notesBucket.allObjects();
-
-                while (notesCursor.moveToNext()) {
-                    Note currentNote = notesCursor.getObject();
-
-                    if (currentNote != null && currentNote.getSimperiumKey().equals(noteID)) {
-                        fragment.mNote = currentNote;
-                        return null;
-                    }
+                Note currentNote = findNoteInObjectStore(notesBucket, noteID);
+                if (currentNote != null) {
+                    fragment.mNote = currentNote;
                 }
             }
 

@@ -53,7 +53,15 @@ public class SimplenoteEditText extends AppCompatMultiAutoCompleteTextView imple
 
     @Override
     public boolean enoughToFilter() {
-        String substringCursor = getText().toString().substring(getSelectionEnd());
+        Editable text = getText();
+        int end = getSelectionEnd();
+
+        // This can be called from the superclass constructor before the tokenizer is initialized.
+        if (mTokenizer == null || end < 0) {
+            return false;
+        }
+
+        String substringCursor = text.toString().substring(end);
         Matcher matcherEdit = INTERNOTE_LINK_PATTERN_EDIT.matcher(substringCursor);
 
         // When an internote link title is being edited, don't show an autocomplete popup.
@@ -65,20 +73,6 @@ public class SimplenoteEditText extends AppCompatMultiAutoCompleteTextView imple
                 return false;
             }
         }
-
-        Editable text = getText();
-        int end = getSelectionEnd();
-
-        if (end < 0) {
-            return false;
-        }
-
-		// solves a crash after updating dependencies in which this method
-	    // gets called in super() instantiation before the mTokenizer variable
-	    // is instantiated
-	    if (mTokenizer == null) {
-			return false;
-		}
 
         int start = mTokenizer.findTokenStart(text, end);
         return start > 0 && end - start >= 1;

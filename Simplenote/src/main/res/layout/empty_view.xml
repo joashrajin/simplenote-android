@@ -47,6 +47,7 @@
         android:layout_marginTop="@dimen/padding_small"
         android:maxWidth="@dimen/empty_width_maximum"
         android:layout_width="wrap_content"
+        android:minHeight="@dimen/minimum_target"
         android:onClick="createNewNote"
         android:padding="@dimen/padding_small"
         android:text="@string/empty_notes_search_button"

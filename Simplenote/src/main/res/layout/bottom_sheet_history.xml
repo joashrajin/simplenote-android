@@ -51,6 +51,7 @@
 
         <SeekBar
             android:id="@+id/seek_bar"
+            android:contentDescription="@string/history"
             android:layout_height="wrap_content"
             android:layout_marginEnd="@dimen/padding_extra_small"
             android:layout_marginStart="@dimen/padding_extra_small"

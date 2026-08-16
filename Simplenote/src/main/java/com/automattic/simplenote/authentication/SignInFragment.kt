@@ -89,6 +89,11 @@ class SignInFragment: MagicLinkableFragment() {
         }
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        authState = savedInstanceState?.getString(STATE_AUTH_STATE)
+    }
+
     override fun inflateLayout(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_login, container, false)
 
@@ -182,6 +187,11 @@ class SignInFragment: MagicLinkableFragment() {
         manualLoginLauncher.launch(intent)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString(STATE_AUTH_STATE, authState)
+        super.onSaveInstanceState(outState)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         resultLauncher.unregister()
@@ -190,6 +200,8 @@ class SignInFragment: MagicLinkableFragment() {
     }
 
     companion object {
+        private const val STATE_AUTH_STATE = "STATE_AUTH_STATE"
+
         const val LOGIN_MANUALLY_SUBSTRING = "log in manually"
 
         fun showLoginWithPassword(activity: Activity?, username: String?) {

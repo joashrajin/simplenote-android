@@ -19,10 +19,18 @@ public class ShortcutDialogFragment extends AppCompatDialogFragment {
     public final static String DIALOG_TAG = "shortcut_tag";
     public final static String DIALOG_VISIBLE = "shortcut_visible";
 
-    private boolean mIsPreview;
+    private static final String ARG_IS_PREVIEW = "ARG_IS_PREVIEW";
 
-    private ShortcutDialogFragment(boolean isPreview) {
-        mIsPreview = isPreview;
+    public ShortcutDialogFragment() {
+    }
+
+    @NonNull
+    public static ShortcutDialogFragment newInstance(boolean isPreview) {
+        ShortcutDialogFragment fragment = new ShortcutDialogFragment();
+        Bundle arguments = new Bundle();
+        arguments.putBoolean(ARG_IS_PREVIEW, isPreview);
+        fragment.setArguments(arguments);
+        return fragment;
     }
 
     @NonNull
@@ -40,9 +48,10 @@ public class ShortcutDialogFragment extends AppCompatDialogFragment {
     }
 
     private @LayoutRes int getLayout() {
+        boolean isPreview = requireArguments().getBoolean(ARG_IS_PREVIEW);
         return DisplayUtils.isLargeScreenLandscape(requireContext()) ? R.layout.dialog_shortcuts_all :
                 !(getActivity() instanceof NoteEditorActivity) ? R.layout.dialog_shortcuts_list :
-                        mIsPreview ? R.layout.dialog_shortcuts_editor_preview :
+                        isPreview ? R.layout.dialog_shortcuts_editor_preview :
                                 R.layout.dialog_shortcuts_editor_edit;
     }
 
@@ -54,7 +63,7 @@ public class ShortcutDialogFragment extends AppCompatDialogFragment {
             transaction.remove(fragment);
         }
 
-        ShortcutDialogFragment dialog = new ShortcutDialogFragment(isPreview);
+        ShortcutDialogFragment dialog = newInstance(isPreview);
         dialog.show(transaction, DIALOG_TAG);
     }
 }

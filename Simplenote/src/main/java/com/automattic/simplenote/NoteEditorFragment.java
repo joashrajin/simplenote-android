@@ -34,6 +34,7 @@ import android.text.style.RelativeSizeSpan;
 import android.text.style.StyleSpan;
 import android.text.style.URLSpan;
 import android.text.util.Linkify;
+import android.util.SparseIntArray;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -163,6 +164,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
     private Drawable mShareIcon;
     private MatchOffsetHighlighter.SpanFactory mMatchHighlighter;
     private String mMatchOffsets;
+    private String mSearchMatchIndexedContent;
+    private final SparseIntArray mSearchMatchCharacterLocations = new SparseIntArray();
     private int mCurrentCursorPosition;
     private HistoryBottomSheetDialog mHistoryBottomSheet;
     private LinearLayout mError;
@@ -520,7 +523,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
             String key = arguments.getString(ARG_ITEM_ID);
 
             if (arguments.containsKey(ARG_MATCH_OFFSETS)) {
-                mMatchOffsets = arguments.getString(ARG_MATCH_OFFSETS);
+                setMatchOffsets(arguments.getString(ARG_MATCH_OFFSETS));
             }
 
             mIsFromWidget = arguments.getBoolean(ARG_IS_FROM_WIDGET);
@@ -589,15 +592,48 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
 
     private int getFirstSearchMatchLocation() {
         if (getActivity() != null && getActivity() instanceof NoteEditorActivity) {
-            return ((NoteEditorActivity) getActivity()).getCurrentSearchMatchIndexLocation();
+            int byteLocation = ((NoteEditorActivity) getActivity()).getCurrentSearchMatchIndexLocation();
+            return getSearchMatchCharacterLocation(byteLocation);
         }
 
         int defaultFirstLocation = MatchOffsetHighlighter.getFirstMatchLocation(
                 mContentEditText.getText(),
-                mMatchOffsets
+                mMatchOffsets,
+                getSearchMatchIndexedContent()
         );
 
         return defaultFirstLocation;
+    }
+
+    private int getSearchMatchCharacterLocation(int byteLocation) {
+        String indexedContent = getSearchMatchIndexedContent();
+        int cachedIndex = mSearchMatchCharacterLocations.indexOfKey(byteLocation);
+        if (cachedIndex >= 0) {
+            return mSearchMatchCharacterLocations.valueAt(cachedIndex);
+        }
+
+        int characterLocation = MatchOffsetHighlighter.getCharacterLocation(
+                mContentEditText.getText(),
+                indexedContent,
+                byteLocation
+        );
+        mSearchMatchCharacterLocations.put(byteLocation, characterLocation);
+        return characterLocation;
+    }
+
+    private String getSearchMatchIndexedContent() {
+        if (mSearchMatchIndexedContent == null) {
+            mSearchMatchIndexedContent = mNote == null
+                    ? mContentEditText.getPlainTextContent()
+                    : mNote.getContent();
+        }
+        return mSearchMatchIndexedContent;
+    }
+
+    private void setMatchOffsets(String matchOffsets) {
+        mMatchOffsets = matchOffsets;
+        mSearchMatchIndexedContent = null;
+        mSearchMatchCharacterLocations.clear();
     }
 
     private void setScroll() {
@@ -637,10 +673,14 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
     }
 
     public void scrollToMatch(int location) {
-        if (isAdded()) {
+        if (isAdded() && getView() != null && mMatchOffsets != null) {
             // Calculate how far to scroll to bring the match into view
             Layout layout = mContentEditText.getLayout();
-            int lineTop = layout.getLineTop(layout.getLineForOffset(location));
+            if (layout == null) {
+                return;
+            }
+            int characterLocation = getSearchMatchCharacterLocation(location);
+            int lineTop = layout.getLineTop(layout.getLineForOffset(characterLocation));
             ((NestedScrollView) mRootView).smoothScrollTo(0, lineTop);
         }
     }
@@ -915,6 +955,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
 
     @Override
     public void onCheckboxToggled() {
+        clearSearchMatches();
+
         // Save note (using delay) after toggling a checkbox
         if (mAutoSaveHandler != null) {
             mAutoSaveHandler.removeCallbacks(mAutoSaveRunnable);
@@ -1052,8 +1094,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
         }
 
         mPlaceholderView.setVisibility(View.GONE);
-        mMatchOffsets = matchOffsets;
         saveNote();
+        setMatchOffsets(matchOffsets);
         new LoadNoteTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, noteID);
     }
 
@@ -1187,20 +1229,34 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
             mAutoSaveHandler.postDelayed(mAutoSaveRunnable, AUTOSAVE_DELAY_MILLIS);
         }
 
-        // Remove search highlight spans when note content changes
-        if (mMatchOffsets != null) {
-            mMatchOffsets = null;
-            mHighlighter.removeMatches();
-        }
-
-        if (!DisplayUtils.isLargeScreenLandscape(requireContext())) {
-            ((NoteEditorActivity) requireActivity()).setSearchMatchBarVisible(false);
-        }
+        clearSearchMatches();
 
         // Temporarily remove the text watcher as we process checklists to prevent callback looping
         mContentEditText.removeTextChangedListener(this);
         mContentEditText.processChecklists();
         mContentEditText.addTextChangedListener(this);
+    }
+
+    private void clearSearchMatches() {
+        if (mMatchOffsets != null) {
+            setMatchOffsets(null);
+            mHighlighter.removeMatches();
+
+            Bundle arguments = getArguments();
+            if (arguments != null) {
+                arguments.remove(ARG_MATCH_OFFSETS);
+            }
+
+            Activity activity = getActivity();
+            if (activity != null) {
+                activity.getIntent().removeExtra(ARG_MATCH_OFFSETS);
+            }
+        }
+
+        Activity activity = getActivity();
+        if (activity instanceof NoteEditorActivity && !DisplayUtils.isLargeScreenLandscape(activity)) {
+            ((NoteEditorActivity) activity).setSearchMatchBarVisible(false);
+        }
     }
 
     /**
@@ -1429,6 +1485,9 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
             String content = mContentEditText.getPlainTextContent();
 
             if (mNote.hasChanges(content, mNote.isPinned(), mIsMarkdownEnabled, mIsPreviewEnabled)) {
+                if (!TextUtils.equals(mNote.getContent(), content)) {
+                    clearSearchMatches();
+                }
                 mNote.setContent(content);
                 mNote.setModificationDate(Calendar.getInstance());
                 mNote.setMarkdownEnabled(mIsMarkdownEnabled);
@@ -1808,7 +1867,11 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
 
             if (fragment.mMatchOffsets != null) {
                 int columnIndex = fragment.mNote.getBucket().getSchema().getFullTextIndex().getColumnIndex(Note.CONTENT_PROPERTY);
-                fragment.mHighlighter.highlightMatches(fragment.mMatchOffsets, columnIndex);
+                fragment.mHighlighter.highlightMatches(
+                        fragment.mMatchOffsets,
+                        columnIndex,
+                        fragment.mNote.getContent()
+                );
             }
 
             fragment.mContentEditText.addTextChangedListener(fragment);

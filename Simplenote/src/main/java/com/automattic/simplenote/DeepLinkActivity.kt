@@ -61,10 +61,10 @@ class DeepLinkActivity : AppCompatActivity() {
     private fun startMagicLinkConfirmation(uri: Uri?) {
         val app = application as Simplenote
         if (app.isLoggedIn) {
-            intent.putExtra(NotesActivity.KEY_ALREADY_LOGGED_IN, true)
-            val intent = IntentUtils.maybeAliasedIntent(applicationContext)
-            intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
-            startActivity(intent)
+            val notesIntent = IntentUtils.maybeAliasedIntent(applicationContext)
+            notesIntent.putExtra(NotesActivity.KEY_ALREADY_LOGGED_IN, true)
+            notesIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(notesIntent)
             return
         }
         val base64Username = uri?.getQueryParameter(USERNAME_KEY_QUERY)

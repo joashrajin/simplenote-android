@@ -19,20 +19,21 @@ public class Account extends BucketObject {
     }
 
     public boolean hasSentEmail(String email) {
-        return email.equalsIgnoreCase((String) getProperty(FIELD_EMAIL_VERIFICATION_SENT_TO));
+        Object sentTo = getProperty(FIELD_EMAIL_VERIFICATION_SENT_TO);
+        return sentTo instanceof String && email.equalsIgnoreCase((String) sentTo);
     }
 
     public boolean hasVerifiedEmail(String email) {
         Object token = getProperty(FIELD_EMAIL_VERIFICATION_TOKEN);
 
-        if (token == null) {
+        if (!(token instanceof String)) {
             return false;
         }
 
         try {
             JSONObject json = new JSONObject((String) token);
             Object username = json.opt(FIELD_EMAIL_VERIFICATION_USERNAME);
-            return email.equalsIgnoreCase((String) username);
+            return username instanceof String && email.equalsIgnoreCase((String) username);
         } catch (JSONException exception) {
             return false;
         }

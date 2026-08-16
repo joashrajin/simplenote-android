@@ -21,20 +21,13 @@ import android.view.View;
 import com.automattic.simplenote.R;
 import com.google.android.material.snackbar.Snackbar;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class UndoBarController {
     private UndoListener mUndoListener;
 
     private List<String> mDeletedNoteIds;
-    private View.OnClickListener mOnUndoClickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View v) {
-            if (mUndoListener != null) {
-                mUndoListener.onUndo();
-            }
-        }
-    };
 
     public UndoBarController(UndoListener undoListener) {
         mUndoListener = undoListener;
@@ -43,9 +36,16 @@ public class UndoBarController {
     public void showUndoBar(View view, CharSequence message) {
         if (view == null) return;
 
+        List<String> deletedNoteIds = mDeletedNoteIds == null ? null : new ArrayList<>(mDeletedNoteIds);
+
         Snackbar
                 .make(view, message, Snackbar.LENGTH_LONG)
-                .setAction(R.string.undo, mOnUndoClickListener)
+                .setAction(R.string.undo, v -> {
+                    if (mUndoListener != null) {
+                        mDeletedNoteIds = deletedNoteIds;
+                        mUndoListener.onUndo();
+                    }
+                })
                 .show();
     }
 

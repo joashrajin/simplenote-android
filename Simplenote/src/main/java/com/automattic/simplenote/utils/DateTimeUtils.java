@@ -8,6 +8,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class DateTimeUtils {
     public static String getDateText(Context context, Calendar calendar) {
@@ -41,7 +42,8 @@ public class DateTimeUtils {
 
     public static Calendar getDateCalendar(String json) throws ParseException {
         String pattern = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
-        SimpleDateFormat dateFormat = new SimpleDateFormat(pattern, Locale.getDefault());
+        SimpleDateFormat dateFormat = new SimpleDateFormat(pattern, Locale.US);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
         Calendar date = Calendar.getInstance();
         date.setTime(dateFormat.parse(json));
         return date;

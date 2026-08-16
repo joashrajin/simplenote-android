@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.automattic.simplenote.R;
 
@@ -46,5 +47,20 @@ public class SimplenoteProgressDialogFragment extends DialogFragment {
         messageView.setText(getArguments() != null ? getArguments().getString(KEY_MESSAGE) : "");
 
         return new AlertDialog.Builder(context).setView(progressBar).create();
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void dismiss() {
+        FragmentManager fragmentManager = getFragmentManager();
+        if (fragmentManager == null) {
+            return;
+        }
+
+        if (fragmentManager.isStateSaved()) {
+            dismissAllowingStateLoss();
+        } else {
+            super.dismiss();
+        }
     }
 }

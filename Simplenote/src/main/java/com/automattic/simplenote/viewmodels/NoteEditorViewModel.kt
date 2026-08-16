@@ -20,7 +20,7 @@ class NoteEditorViewModel @Inject constructor(
     private var _uiState = MutableLiveData<UiState>()
     val uiState: LiveData<UiState> = _uiState
 
-    private var _event = MutableLiveData<NoteEditorEvent>()
+    private val _event = SingleLiveEvent<NoteEditorEvent>()
     val event: LiveData<NoteEditorEvent> = _event
 
     fun update(note: Note) {

@@ -27,28 +27,40 @@ class TagsViewModel @Inject constructor(
     val event: LiveData<TagsEvent> = _event
 
     private var jobTagsFlow: Job? = null
+    private var jobUiState: Job? = null
+    private var activeSearchQuery: String? = null
+    private var pendingSearchUpdate = false
+    private var uiStateSequence = 0L
 
     fun start() {
-        viewModelScope.launch {
-            val tagItems = getTagsUseCase.allTags()
-            _uiState.value = UiState(tagItems)
-        }
+        activeSearchQuery = null
+        pendingSearchUpdate = false
+        requestUiState()
     }
 
     fun startListeningTagChanges() {
         jobTagsFlow = viewModelScope.launch {
             tagsRepository.tagsChanged().collect {
-                val searchQuery = _uiState.value?.searchQuery
-                updateUiState(searchQuery)
+                requestUiState()
             }
         }
     }
 
-    private suspend fun updateUiState(searchQuery: String?, searchUpdate: Boolean = false) {
-        val tagItems = if (searchQuery == null) getTagsUseCase.allTags()
-            else getTagsUseCase.searchTags(searchQuery)
+    private fun requestUiState(searchUpdate: Boolean = false) {
+        pendingSearchUpdate = pendingSearchUpdate || searchUpdate
+        val searchQuery = activeSearchQuery
+        val sequence = ++uiStateSequence
+        jobUiState?.cancel()
+        jobUiState = viewModelScope.launch {
+            val tagItems = if (searchQuery == null) getTagsUseCase.allTags()
+                else getTagsUseCase.searchTags(searchQuery)
 
-        _uiState.value = UiState(tagItems, searchUpdate, searchQuery)
+            if (sequence == uiStateSequence) {
+                val deliverSearchUpdate = pendingSearchUpdate
+                pendingSearchUpdate = false
+                _uiState.value = UiState(tagItems, deliverSearchUpdate, searchQuery)
+            }
+        }
     }
 
     fun clickAddTag() {
@@ -64,13 +76,13 @@ class TagsViewModel @Inject constructor(
     }
 
     fun closeSearch() {
-        _uiState.value = _uiState.value?.copy(searchUpdate = true, searchQuery = null)
+        activeSearchQuery = null
+        requestUiState(true)
     }
 
     fun search(searchQuery: String) {
-        viewModelScope.launch {
-            updateUiState(searchQuery, true)
-        }
+        activeSearchQuery = searchQuery
+        requestUiState(true)
     }
 
     fun stopListeningTagChanges() {
@@ -80,10 +92,7 @@ class TagsViewModel @Inject constructor(
     }
 
     fun updateOnResult() {
-        viewModelScope.launch {
-            val searchQuery = _uiState.value?.searchQuery
-            updateUiState(searchQuery)
-        }
+        requestUiState()
     }
 
     fun clickEditTag(tagItem: TagItem) {

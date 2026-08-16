@@ -36,7 +36,11 @@ public class MorphSetup {
         Interpolator interpolator = AnimationUtils.loadInterpolator(activity, android.R.interpolator.fast_out_slow_in);
         MorphCircleToRectangle morphCircleToRectangle = new MorphCircleToRectangle(colorEnd, colorStart, radius, radiusStart);
         morphCircleToRectangle.setInterpolator(interpolator);
-        MorphRectangleToCircle morphRectangleToCircle = new MorphRectangleToCircle(colorStart, colorEnd, radiusStart);
+        MorphRectangleToCircle morphRectangleToCircle = new MorphRectangleToCircle(
+                colorStart,
+                colorEnd,
+                radiusStart,
+                radius);
         morphRectangleToCircle.setInterpolator(interpolator);
 
         if (target != null) {

@@ -11,11 +11,5 @@ fun AppCompatActivity.toast(@StringRes resId: Int, length: Int = Toast.LENGTH_SH
 }
 
 fun AppCompatActivity.getColorStr(@ColorRes color: Int): String {
-    val hintColor = ContextCompat.getColor(this, color)
-    val hintHexColor = hintColor.toHexString().replace("ff", "")
-    return "#$hintHexColor"
-}
-
-fun Int.toHexString(): String {
-    return Integer.toHexString(this)
+    return Integer.toHexString(ContextCompat.getColor(this, color) and 0x00ffffff).padStart(6, '0')
 }

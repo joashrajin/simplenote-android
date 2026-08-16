@@ -32,7 +32,9 @@
             android:id="@+id/confirmation_code_textfield"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:inputType="textEmailAddress" />
+            android:digits="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+            android:inputType="textNoSuggestions"
+            android:maxLength="6" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

@@ -55,7 +55,7 @@ public class NoteWidgetDark extends AppWidgetProvider {
     public void onAppWidgetOptionsChanged(Context context, AppWidgetManager appWidgetManager, int appWidgetId, Bundle newOptions) {
         RemoteViews views = new RemoteViews(context.getPackageName(), PrefUtils.getLayoutWidget(context, false));
         resizeWidget(newOptions, views);
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views);
     }
 
     @Override

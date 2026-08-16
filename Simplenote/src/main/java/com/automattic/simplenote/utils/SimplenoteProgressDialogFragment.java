@@ -8,6 +8,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.DialogFragment;
+import androidx.fragment.app.FragmentManager;
 
 import com.automattic.simplenote.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -42,5 +43,20 @@ public class SimplenoteProgressDialogFragment extends DialogFragment {
         messageView.setText(getArguments() != null ? getArguments().getString(KEY_MESSAGE) : "");
 
         return new MaterialAlertDialogBuilder(requireContext()).setView(progressBar).create();
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public void dismiss() {
+        FragmentManager fragmentManager = getFragmentManager();
+        if (fragmentManager == null) {
+            return;
+        }
+
+        if (fragmentManager.isStateSaved()) {
+            dismissAllowingStateLoss();
+        } else {
+            super.dismiss();
+        }
     }
 }

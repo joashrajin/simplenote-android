@@ -13,6 +13,7 @@ import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.MagicLinkResponseResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
@@ -27,11 +28,24 @@ class CompleteMagicLinkViewModel @Inject constructor(
 
     private var lastKnownUserName: String? = null
     private var lastKnownAuthCode: String? = null
+    private var completionJob: Job? = null
 
-    fun completeLogin(username: String, authCode: String, userInitiated: Boolean = false) = viewModelScope.launch(ioDispatcher) {
+    fun completeLogin(username: String, authCode: String, userInitiated: Boolean = false): Job {
+        completionJob?.let { job ->
+            if (!job.isCompleted) {
+                return job
+            }
+        }
+
+        return viewModelScope.launch(ioDispatcher) {
+            completeLoginRequest(username, authCode, userInitiated)
+        }.also { completionJob = it }
+    }
+
+    private suspend fun completeLoginRequest(username: String, authCode: String, userInitiated: Boolean) {
         if (!userInitiated && lastKnownUserName == username && lastKnownAuthCode == authCode) {
             Log.d(TAG, "Already checked deeplinked magic link")
-            return@launch
+            return
         }
         lastKnownUserName = username
         lastKnownAuthCode = authCode

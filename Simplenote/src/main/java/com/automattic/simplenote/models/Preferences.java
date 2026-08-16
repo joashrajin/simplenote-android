@@ -47,10 +47,10 @@ public class Preferences extends BucketObject {
             ArrayList<String> recentsList = new ArrayList<>(recents.length());
 
             for (int i = 0; i < recents.length(); i++) {
-                String recent = recents.optString(i);
+                Object recent = recents.opt(i);
 
-                if (!recent.isEmpty()) {
-                    recentsList.add(recent);
+                if (recent instanceof String && !((String) recent).isEmpty()) {
+                    recentsList.add((String) recent);
                 }
             }
 

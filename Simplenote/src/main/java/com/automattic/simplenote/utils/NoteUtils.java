@@ -57,7 +57,13 @@ public class NoteUtils {
     }
 
     public static String getWordCount(String content) {
-        int words = (content.trim().length() == 0) ? 0 : content.trim().split("([\\W]+)").length;
+        String trimmedContent = content.trim();
+        int words = 0;
+        for (String word : trimmedContent.split("([\\W]+)")) {
+            if (!word.isEmpty()) {
+                words++;
+            }
+        }
         return NumberFormat.getInstance().format(words);
     }
 

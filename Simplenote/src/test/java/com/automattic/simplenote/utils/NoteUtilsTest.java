@@ -2,9 +2,23 @@ package com.automattic.simplenote.utils;
 
 import org.junit.Test;
 
+import java.text.NumberFormat;
+
 import static org.junit.Assert.assertEquals;
 
 public class NoteUtilsTest {
+    @Test
+    public void wordCountDoesNotCountLeadingSeparatorAsAWord() {
+        assertEquals(NumberFormat.getInstance().format(2), NoteUtils.getWordCount("# Heading\nbody"));
+    }
+
+    @Test
+    public void wordCountPreservesExistingTokenRules() {
+        assertEquals(NumberFormat.getInstance().format(4), NoteUtils.getWordCount("one, two-two 123"));
+        assertEquals(NumberFormat.getInstance().format(0), NoteUtils.getWordCount("###"));
+        assertEquals(NumberFormat.getInstance().format(0), NoteUtils.getWordCount(" \n\t"));
+    }
+
     @Test
     public void contentWithoutTitlePreservesMatchingBodyText() {
         String title = "Plan [v1]";

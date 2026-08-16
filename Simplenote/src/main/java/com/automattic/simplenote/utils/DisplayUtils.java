@@ -17,6 +17,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.WindowInsetsCompat;
 
 import com.automattic.simplenote.R;
 
@@ -165,13 +166,12 @@ public class DisplayUtils {
      * @return           {@link WindowInsets} supplied from a listener.
      */
     public static WindowInsets applyWindowInsetsForFloatingActionButton(WindowInsets insets, Resources resources, View view) {
-        int bottom;
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            bottom = insets.getInsets(WindowInsets.Type.systemBars()).bottom;
-        } else {
-            bottom = insets.getSystemWindowInsetBottom();
-        }
+        int systemBottom = Build.VERSION.SDK_INT >= Build.VERSION_CODES.R
+                ? insets.getInsets(WindowInsets.Type.systemBars()).bottom
+                : insets.getSystemWindowInsetBottom();
+        int cutoutBottom = WindowInsetsCompat.toWindowInsetsCompat(insets, view)
+                .getInsets(WindowInsetsCompat.Type.displayCutout()).bottom;
+        int bottom = Math.max(systemBottom, cutoutBottom);
 
         int button = (int) resources.getDimension(R.dimen.button_floating);
         int margin = (int) resources.getDimension(R.dimen.margin_default);

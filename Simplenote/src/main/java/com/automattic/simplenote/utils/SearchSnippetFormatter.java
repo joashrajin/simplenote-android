@@ -44,7 +44,7 @@ public class SearchSnippetFormatter {
             if (inMatch) {
                 int close = snippet.indexOf(CLOSE_MATCH, position);
                 if (close == -1) {
-                    builder.append(snippet.substring(position));
+                    builder.append(OPEN_MATCH).append(snippet.substring(position));
                     break;
                 }
                 String highlighted = snippet.substring(position, close);

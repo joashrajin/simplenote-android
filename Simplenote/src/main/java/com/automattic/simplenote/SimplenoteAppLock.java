@@ -32,7 +32,9 @@ public class SimplenoteAppLock extends DefaultAppLock {
     @Override
     public void onActivityDestroyed(Activity activity) {
         super.onActivityDestroyed(activity);
-        if (activity instanceof NoteWidgetLightConfigureActivity || activity instanceof NoteWidgetDarkConfigureActivity) {
+        if ((activity instanceof NoteWidgetLightConfigureActivity
+            || activity instanceof NoteWidgetDarkConfigureActivity)
+            && !activity.isChangingConfigurations()) {
             isAlreadyLocked = false;
         }
     }

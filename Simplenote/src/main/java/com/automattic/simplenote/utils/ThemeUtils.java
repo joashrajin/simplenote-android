@@ -105,11 +105,7 @@ public class ThemeUtils {
             return 0;
         }
 
-        TypedArray ta = context.obtainStyledAttributes(new int[]{R.attr.noteEditorTextColor});
-        int textColorId = ta.getResourceId(0, android.R.color.black);
-        ta.recycle();
-
-        return textColorId;
+        return getResourceIdFromAttribute(context, R.attr.noteEditorTextColor);
     }
 
     public static int getColorFromAttribute(@NonNull Context context, @AttrRes int attribute) {
@@ -117,10 +113,28 @@ public class ThemeUtils {
     }
 
     public static int getColorResourceFromAttribute(@NonNull Context context, @AttrRes int attribute) {
-        TypedArray typedArray = context.obtainStyledAttributes(new int[]{attribute});
-        int colorResId = typedArray.getResourceId(0, android.R.color.black);
-        typedArray.recycle();
-        return colorResId;
+        return getResourceIdFromAttribute(context, attribute);
+    }
+
+    private static int getResourceIdFromAttribute(Context context, @AttrRes int attribute) {
+        TypedArray attributes = context.obtainStyledAttributes(new int[]{attribute});
+        Throwable failure = null;
+        try {
+            return attributes.getResourceId(0, android.R.color.black);
+        } catch (RuntimeException | Error exception) {
+            failure = exception;
+            throw exception;
+        } finally {
+            try {
+                attributes.recycle();
+            } catch (RuntimeException | Error recycleFailure) {
+                if (failure != null) {
+                    failure.addSuppressed(recycleFailure);
+                } else {
+                    throw recycleFailure;
+                }
+            }
+        }
     }
 
     public static String getCssFromStyle(Context context) {

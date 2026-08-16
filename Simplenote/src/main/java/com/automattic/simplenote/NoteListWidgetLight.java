@@ -7,6 +7,7 @@ import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIS
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIST_WIDGET_LAST_DELETED;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIST_WIDGET_SIGN_IN_TAPPED;
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIST_WIDGET_TAPPED;
+import static com.automattic.simplenote.utils.NoteListWidgetQuery.hasActiveNotes;
 import static com.automattic.simplenote.utils.WidgetUtils.MINIMUM_HEIGHT_FOR_BUTTON;
 import static com.automattic.simplenote.utils.WidgetUtils.MINIMUM_WIDTH_FOR_BUTTON;
 import static com.automattic.simplenote.utils.WidgetUtils.getNoteListWidgetButtonPendingIntent;
@@ -27,7 +28,6 @@ import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
-import com.simperium.client.Query;
 import com.simperium.client.User;
 
 public class NoteListWidgetLight extends AppWidgetProvider {
@@ -131,10 +131,7 @@ public class NoteListWidgetLight extends AppWidgetProvider {
             views.setViewVisibility(R.id.widget_button, View.GONE);
         } else {
             Bucket<Note> notesBucket = currentApp.getNotesBucket();
-            Query<Note> query = Note.all(notesBucket);
-            query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
-            PrefUtils.sortNoteQuery(query, context, true);
-            if (query.count() > 0) {
+            if (hasActiveNotes(notesBucket)) {
                 // Create intent to navigate to notes activity on widget click while loading
                 views.setOnClickPendingIntent(
                     R.id.widget_layout,

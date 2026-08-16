@@ -12,6 +12,7 @@ import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.MagicLinkResponseResult
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import java.io.IOException
 import javax.inject.Inject
@@ -25,31 +26,48 @@ class RequestMagicLinkViewModel @Inject constructor(
 ) : ViewModel() {
     private val _magicLinkRequestUiState = MutableLiveData<MagicLinkRequestUiState>(MagicLinkRequestUiState.Waiting)
     val magicLinkRequestUiState: LiveData<MagicLinkRequestUiState> get() = _magicLinkRequestUiState
+    private var requestJob: Job? = null
 
-    fun requestLogin(username: String) = viewModelScope.launch(ioDispatcher) {
-        _magicLinkRequestUiState.postValue(MagicLinkRequestUiState.Loading(
-            messageRes = R.string.magic_link_request_login_loading_message)
-        )
-        try {
-            when (val response = magicLinkRepository.requestLogin(username)) {
-                is MagicLinkResponseResult.MagicLinkRequestSuccess -> {
-                    Log.d(TAG, "Request magic link login success: ${response.code}")
-                    _magicLinkRequestUiState.postValue(MagicLinkRequestUiState.Success(username = username))
-                }
-                is MagicLinkResponseResult.MagicLinkError -> {
-                    Log.e(TAG, "Request magic link login error: ${response.code}")
-                    _magicLinkRequestUiState.postValue(
-                        MagicLinkRequestUiState.Error(
-                            response.code,
-                            if (response.code == 429) R.string.magic_link_error_too_many_requests_enter_password_message else R.string.magic_link_request_error_message
+    fun requestLogin(username: String): Job {
+        requestJob?.let { job ->
+            if (!job.isCompleted) {
+                return job
+            }
+        }
+
+        return viewModelScope.launch(ioDispatcher) {
+            _magicLinkRequestUiState.postValue(MagicLinkRequestUiState.Loading(
+                messageRes = R.string.magic_link_request_login_loading_message)
+            )
+            try {
+                when (val response = magicLinkRepository.requestLogin(username)) {
+                    is MagicLinkResponseResult.MagicLinkRequestSuccess -> {
+                        Log.d(TAG, "Request magic link login success: ${response.code}")
+                        _magicLinkRequestUiState.postValue(MagicLinkRequestUiState.Success(username = username))
+                    }
+                    is MagicLinkResponseResult.MagicLinkError -> {
+                        Log.e(TAG, "Request magic link login error: ${response.code}")
+                        _magicLinkRequestUiState.postValue(
+                            MagicLinkRequestUiState.Error(
+                                response.code,
+                                if (response.code == 429) {
+                                    R.string.magic_link_error_too_many_requests_enter_password_message
+                                } else {
+                                    R.string.magic_link_request_error_message
+                                }
+                            )
                         )
+                    }
+                    else -> _magicLinkRequestUiState.postValue(
+                        MagicLinkRequestUiState.Error(null, R.string.magic_link_request_error_message)
                     )
                 }
-                else -> _magicLinkRequestUiState.postValue(MagicLinkRequestUiState.Error(null, R.string.magic_link_request_error_message))
+            } catch (exception: IOException) {
+                _magicLinkRequestUiState.postValue(
+                    MagicLinkRequestUiState.Error(null, R.string.magic_link_request_error_message)
+                )
             }
-        } catch (exception: IOException) {
-            _magicLinkRequestUiState.postValue(MagicLinkRequestUiState.Error(null, R.string.magic_link_request_error_message))
-        }
+        }.also { requestJob = it }
     }
 
     fun resetState() {

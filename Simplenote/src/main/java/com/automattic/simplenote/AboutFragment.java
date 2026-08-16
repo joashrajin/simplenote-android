@@ -32,7 +32,7 @@ import java.util.Locale;
 import java.util.Objects;
 
 public class AboutFragment extends Fragment implements SpeedListener {
-    private static final String PLAY_STORE_URL = "http://play.google.com/store/apps/details?id=";
+    private static final String PLAY_STORE_URL = "https://play.google.com/store/apps/details?id=";
     private static final String PLAY_STORE_URI = "market://details?id=";
     private static final String SIMPLENOTE_BLOG_URL = "https://simplenote.com/blog";
     private static final String SIMPLENOTE_HELP_URL = "https://simplenote.com/help";
@@ -102,8 +102,9 @@ public class AboutFragment extends Fragment implements SpeedListener {
         store.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                String url = PLAY_STORE_URI + requireActivity().getPackageName();
-                Intent goToMarket = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                String packageName = requireActivity().getPackageName();
+                String marketUrl = PLAY_STORE_URI + packageName;
+                Intent goToMarket = new Intent(Intent.ACTION_VIEW, Uri.parse(marketUrl));
                 goToMarket.addFlags(
                     Intent.FLAG_ACTIVITY_NO_HISTORY |
                     Intent.FLAG_ACTIVITY_NEW_DOCUMENT |
@@ -111,13 +112,9 @@ public class AboutFragment extends Fragment implements SpeedListener {
                 );
 
                 try {
-                    if (BrowserUtils.isBrowserInstalled(requireContext())) {
-                        startActivity(goToMarket);
-                    } else {
-                        BrowserUtils.showDialogErrorBrowser(requireContext(), url);
-                    }
+                    startActivity(goToMarket);
                 } catch (ActivityNotFoundException e) {
-                    BrowserUtils.launchBrowserOrShowError(requireContext(), url);
+                    BrowserUtils.launchBrowserOrShowError(requireContext(), PLAY_STORE_URL + packageName);
                 }
             }
         });

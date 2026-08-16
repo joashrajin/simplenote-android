@@ -7,7 +7,10 @@ import java.util.List;
 import java.util.Map;
 
 public final class AnalyticsTracker {
+    private static final Object LOCK = new Object();
     private static final List<Tracker> TRACKERS = new ArrayList<>();
+    private static String sPendingUsername;
+    private static boolean sHasPendingMetadata;
     public static String CATEGORY_NOTE = "note";
     public static String CATEGORY_LINK = "link";
     public static String CATEGORY_SEARCH = "search";
@@ -20,69 +23,76 @@ public final class AnalyticsTracker {
     }
 
     public static void registerTracker(Tracker tracker) {
-        if (tracker != null) {
-            TRACKERS.add(tracker);
+        synchronized (LOCK) {
+            if (tracker != null) {
+                TRACKERS.add(tracker);
+            }
         }
     }
 
     public static void track(Stat stat, String category, String label) {
-        if (!Simplenote.analyticsIsEnabled()) {
-            return;
-        }
-
-        for (Tracker tracker : TRACKERS) {
-            tracker.track(stat, category, label, null);
-        }
+        trackIfEnabled(tracker -> tracker.track(stat, category, label, null));
     }
 
     public static void track(Stat stat, String category, String label, Map<String, ?> properties) {
-        if (!Simplenote.analyticsIsEnabled()) {
-            return;
-        }
-
-        for (Tracker tracker : TRACKERS) {
-            tracker.track(stat, category, label, properties);
-        }
+        trackIfEnabled(tracker -> tracker.track(stat, category, label, properties));
     }
 
     public static void refreshMetadata(String username) {
-        if (!Simplenote.analyticsIsEnabled()) {
-            return;
-        }
+        synchronized (LOCK) {
+            sPendingUsername = username;
+            sHasPendingMetadata = true;
 
-        for (Tracker tracker : TRACKERS) {
-            tracker.refreshMetadata(username);
+            if (Simplenote.analyticsIsEnabled()) {
+                applyPendingMetadataLocked();
+            }
         }
     }
 
     public static void flush() {
-        if (!Simplenote.analyticsIsEnabled()) {
-            return;
-        }
+        synchronized (LOCK) {
+            if (!Simplenote.analyticsIsEnabled()) {
+                return;
+            }
 
-        for (Tracker tracker : TRACKERS) {
-            tracker.flush();
+            for (Tracker tracker : TRACKERS) {
+                tracker.flush();
+            }
         }
     }
 
     public static void track(Stat stat) {
-        if (!Simplenote.analyticsIsEnabled()) {
-            return;
-        }
-
-        for (Tracker tracker : TRACKERS) {
-            tracker.track(stat, null, null);
-        }
+        trackIfEnabled(tracker -> tracker.track(stat, null, null));
     }
 
     public static void track(Stat stat, Map<String, ?> properties) {
-        if (!Simplenote.analyticsIsEnabled()) {
+        trackIfEnabled(tracker -> tracker.track(stat, null, null, properties));
+    }
+
+    private static void trackIfEnabled(TrackAction action) {
+        synchronized (LOCK) {
+            if (!Simplenote.analyticsIsEnabled()) {
+                return;
+            }
+
+            applyPendingMetadataLocked();
+            for (Tracker tracker : TRACKERS) {
+                action.track(tracker);
+            }
+        }
+    }
+
+    private static void applyPendingMetadataLocked() {
+        if (!sHasPendingMetadata || TRACKERS.isEmpty()) {
             return;
         }
 
         for (Tracker tracker : TRACKERS) {
-            tracker.track(stat, null, null, properties);
+            tracker.refreshMetadata(sPendingUsername);
         }
+
+        sPendingUsername = null;
+        sHasPendingMetadata = false;
     }
 
     @SuppressWarnings("unused")
@@ -185,5 +195,9 @@ public final class AnalyticsTracker {
         void refreshMetadata(String username);
 
         void flush();
+    }
+
+    private interface TrackAction {
+        void track(Tracker tracker);
     }
 }

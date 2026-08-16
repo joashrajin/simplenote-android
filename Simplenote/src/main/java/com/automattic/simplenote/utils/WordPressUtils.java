@@ -103,6 +103,7 @@ public class WordPressUtils {
 
         // Sanity checks
         if (userEmail == null || spToken == null ||
+                TextUtils.isEmpty(authState) || TextUtils.isEmpty(authResponse.state) ||
                 !StrUtils.isSameStr(authResponse.state, authState)) {
             return false;
         }

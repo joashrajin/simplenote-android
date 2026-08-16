@@ -1,5 +1,6 @@
 package com.automattic.simplenote;
 
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -12,6 +13,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentManager;
 
 import com.automattic.simplenote.models.Note;
@@ -41,44 +43,7 @@ public class HistoryBottomSheetDialog extends BottomSheetDialogBase {
     private View mProgressBar;
     private View mSliderView;
     private boolean mDidTapButton;
-    private final Bucket.RevisionsRequestCallbacks<Note> mRevisionsRequestCallbacks = new
-            Bucket.RevisionsRequestCallbacks<Note>() {
-                // Note: These callbacks won't be running on the main thread
-                @Override
-                public void onComplete(Map<Integer, Note> revisionsMap) {
-                    if (!mFragment.isAdded() || mNote == null) {
-                        return;
-                    }
-
-                    // Convert map to an array list, to work better with the 0-index based seekbar
-                    mNoteRevisionsList = new ArrayList<>(revisionsMap.values());
-                    mFragment.requireActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            updateProgressBar();
-                        }
-                    });
-                }
-
-                @Override
-                public void onRevision(String key, int version, JSONObject object) {
-                }
-
-                @Override
-                public void onError(Throwable exception) {
-                    if (!mFragment.isAdded() || getDialog() != null && !getDialog().isShowing()) {
-                        return;
-                    }
-
-                    mFragment.requireActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mProgressBar.setVisibility(View.GONE);
-                            mErrorText.setVisibility(View.VISIBLE);
-                        }
-                    });
-                }
-            };
+    private long mRevisionsRequestGeneration;
 
     public HistoryBottomSheetDialog(@NonNull final Fragment fragment, @NonNull final HistorySheetListener historySheetListener) {
         mFragment = fragment;
@@ -159,8 +124,10 @@ public class HistoryBottomSheetDialog extends BottomSheetDialogBase {
             getDialog().setOnDismissListener(new DialogInterface.OnDismissListener() {
                 @Override
                 public void onDismiss(DialogInterface dialog) {
-                    mListener.onHistoryDismissed();
+                    mRevisionsRequestGeneration++;
+                    mNoteRevisionsList = null;
                     mNote = null;
+                    mListener.onHistoryDismissed();
                 }
             });
 
@@ -188,9 +155,10 @@ public class HistoryBottomSheetDialog extends BottomSheetDialogBase {
 
     public void show(FragmentManager manager, Note note) {
         if (mFragment.isAdded()) {
-            showNow(manager, TAG);
             mNote = note;
+            mNoteRevisionsList = null;
             mDidTapButton = false;
+            showNow(manager, TAG);
             setProgressBar();
         }
     }
@@ -206,7 +174,54 @@ public class HistoryBottomSheetDialog extends BottomSheetDialogBase {
     }
 
     public Bucket.RevisionsRequestCallbacks<Note> getRevisionsRequestCallbacks() {
-        return mRevisionsRequestCallbacks;
+        final long requestGeneration = ++mRevisionsRequestGeneration;
+        mNoteRevisionsList = null;
+        return new Bucket.RevisionsRequestCallbacks<Note>() {
+            // Note: These callbacks won't be running on the main thread
+            @Override
+            public void onComplete(Map<Integer, Note> revisionsMap) {
+                ArrayList<Note> revisions = new ArrayList<>(revisionsMap.values());
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (requestGeneration != mRevisionsRequestGeneration || mNote == null) {
+                            return;
+                        }
+
+                        mNoteRevisionsList = revisions;
+                        updateProgressBar();
+                    }
+                });
+            }
+
+            @Override
+            public void onRevision(String key, int version, JSONObject object) {
+            }
+
+            @Override
+            public void onError(Throwable exception) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Dialog dialog = getDialog();
+                        if (requestGeneration != mRevisionsRequestGeneration || dialog == null || !dialog.isShowing()
+                                || mProgressBar == null || mErrorText == null) {
+                            return;
+                        }
+
+                        mProgressBar.setVisibility(View.GONE);
+                        mErrorText.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
+        };
+    }
+
+    private void runOnUiThread(@NonNull Runnable runnable) {
+        FragmentActivity activity = mFragment.getActivity();
+        if (activity != null) {
+            activity.runOnUiThread(runnable);
+        }
     }
 
     private void setProgressBar() {

@@ -75,15 +75,22 @@ public class SyncWorker extends ListenableWorker {
 
                     Log.d("SyncWorker.startWork", "Started buckets");
 
-                    new Handler(Looper.getMainLooper()).postDelayed(
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                stopBuckets("startWork");
-                                completer.set(Result.success());
+                    Handler handler = new Handler(Looper.getMainLooper());
+                    Runnable completion = new Runnable() {
+                        @Override
+                        public void run() {
+                            if (isStopped()) {
+                                return;
                             }
-                        },
-                        TEN_SECONDS_MILLIS
+
+                            stopBuckets("startWork");
+                            completer.set(Result.success());
+                        }
+                    };
+                    handler.postDelayed(completion, TEN_SECONDS_MILLIS);
+                    completer.addCancellationListener(
+                        () -> handler.removeCallbacks(completion),
+                        Runnable::run
                     );
 
                     return null;

@@ -16,9 +16,24 @@ public class TextHighlighter
     @SuppressLint("ResourceType")
     public TextHighlighter(Context context, int foregroundResId, int backgroundResId) {
         TypedArray colors = context.obtainStyledAttributes(new int[]{foregroundResId, backgroundResId});
-        mForegroundColor = colors.getColor(0, 0xFFFF0000);
-        mBackgroundColor = colors.getColor(1, 0xFF00FFFF);
-        colors.recycle();
+        Throwable failure = null;
+        try {
+            mForegroundColor = colors.getColor(0, 0xFFFF0000);
+            mBackgroundColor = colors.getColor(1, 0xFF00FFFF);
+        } catch (RuntimeException | Error exception) {
+            failure = exception;
+            throw exception;
+        } finally {
+            try {
+                colors.recycle();
+            } catch (RuntimeException | Error recycleFailure) {
+                if (failure != null) {
+                    failure.addSuppressed(recycleFailure);
+                } else {
+                    throw recycleFailure;
+                }
+            }
+        }
     }
 
     @Override

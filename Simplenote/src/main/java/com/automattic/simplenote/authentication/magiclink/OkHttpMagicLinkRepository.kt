@@ -22,10 +22,14 @@ class OkHttpMagicLinkRepository @Inject constructor(private val simpleHttp: Simp
         ).use { response ->
             val body = response.body?.string()
             if (response.isSuccessful) {
-                val json = JSONObject(body ?: "")
-                val syncToken = json.getString("sync_token")
-                val user = json.getString("username")
-                return MagicLinkResponseResult.MagicLinkCompleteSuccess(user, syncToken)
+                try {
+                    val json = JSONObject(body ?: "")
+                    val syncToken = json.getString("sync_token")
+                    val user = json.getString("username")
+                    return MagicLinkResponseResult.MagicLinkCompleteSuccess(user, syncToken)
+                } catch (exception: JSONException) {
+                    throw IOException("Unable to parse complete-login response", exception)
+                }
             }
             val authError = getErrorFromJson(body)
             val errorStringRes = when (authError) {

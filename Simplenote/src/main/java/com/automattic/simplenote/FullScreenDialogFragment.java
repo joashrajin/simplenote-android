@@ -44,6 +44,7 @@ public class FullScreenDialogFragment extends DialogFragment {
     private static final String ARG_HIDE_ACTIVITY_BAR = "ARG_HIDE_ACTIVITY_BAR";
     private static final String ARG_SUBTITLE = "ARG_SUBTITLE";
     private static final String ARG_TITLE = "ARG_TITLE";
+    private static final String STATE_SHOW_BACK_STACK_ID = "STATE_SHOW_BACK_STACK_ID";
     private static final int ID_ACTION = 1;
 
     private Fragment mFragment;
@@ -56,6 +57,7 @@ public class FullScreenDialogFragment extends DialogFragment {
     private Toolbar mToolbar;
     private boolean mHideActivityBar;
     private float mElevation;
+    private int mShowBackStackId = -1;
     @IdRes private int mContainer;
 
     public interface FullScreenDialogContent {
@@ -123,6 +125,7 @@ public class FullScreenDialogFragment extends DialogFragment {
 
         if (savedInstanceState != null) {
             mFragment = getChildFragmentManager().findFragmentById(R.id.full_screen_dialog_fragment_content);
+            mShowBackStackId = savedInstanceState.getInt(STATE_SHOW_BACK_STACK_ID, -1);
         }
 
         mController = new FullScreenDialogController() {
@@ -136,6 +139,15 @@ public class FullScreenDialogFragment extends DialogFragment {
                 FullScreenDialogFragment.this.dismiss();
             }
         };
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+
+        if (mShowBackStackId >= 0) {
+            outState.putInt(STATE_SHOW_BACK_STACK_ID, mShowBackStackId);
+        }
     }
 
     @NonNull
@@ -193,7 +205,12 @@ public class FullScreenDialogFragment extends DialogFragment {
             showActivityBar();
         }
 
-        super.dismiss();
+        if (mShowBackStackId >= 0) {
+            getParentFragmentManager().popBackStack(mShowBackStackId, FragmentManager.POP_BACK_STACK_INCLUSIVE);
+            mShowBackStackId = -1;
+        } else {
+            super.dismiss();
+        }
     }
 
     @Override
@@ -211,7 +228,8 @@ public class FullScreenDialogFragment extends DialogFragment {
             R.anim.full_screen_dialog_fragment_slide_down
         );
         @IdRes int container = mContainer != 0 ? mContainer : android.R.id.content;
-        return transaction.add(container, this, tag).addToBackStack(null).commit();
+        mShowBackStackId = transaction.add(container, this, tag).addToBackStack(null).commit();
+        return mShowBackStackId;
     }
 
     protected void confirm(Bundle result) {

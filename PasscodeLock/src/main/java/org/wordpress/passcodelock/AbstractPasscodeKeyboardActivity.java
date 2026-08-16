@@ -3,6 +3,7 @@ package org.wordpress.passcodelock;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.pm.ActivityInfo;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.Spanned;
@@ -15,8 +16,13 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.graphics.Insets;
 import androidx.core.hardware.fingerprint.FingerprintManagerCompat;
 import androidx.core.os.CancellationSignal;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 public abstract class AbstractPasscodeKeyboardActivity extends Activity {
     public static final String KEY_MESSAGE = "message";
@@ -38,7 +44,23 @@ public abstract class AbstractPasscodeKeyboardActivity extends Activity {
             setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         }
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+            WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(
+                    getWindow(),
+                    getWindow().getDecorView()
+            );
+            if (controller != null) {
+                controller.setAppearanceLightStatusBars(false);
+                controller.setAppearanceLightNavigationBars(false);
+            }
+        }
+
         setContentView(R.layout.app_passcode_keyboard);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            applyKeyboardInsets(findViewById(R.id.passcodelock_root));
+        }
 
         topMessage = (TextView) findViewById(R.id.passcodelock_prompt);
 
@@ -85,6 +107,31 @@ public abstract class AbstractPasscodeKeyboardActivity extends Activity {
                 });
 
         mFingerprintManager = FingerprintManagerCompat.from(this);
+    }
+
+    static void applyKeyboardInsets(View root) {
+        int initialLeft = root.getPaddingLeft();
+        int initialTop = root.getPaddingTop();
+        int initialRight = root.getPaddingRight();
+        int initialBottom = root.getPaddingBottom();
+        ViewCompat.setOnApplyWindowInsetsListener(root, (view, windowInsets) -> {
+            Insets safeDrawing = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout()
+            );
+            view.setPadding(
+                    initialLeft + safeDrawing.left,
+                    initialTop + safeDrawing.top,
+                    initialRight + safeDrawing.right,
+                    initialBottom + safeDrawing.bottom
+            );
+            return windowInsets.inset(
+                    safeDrawing.left,
+                    safeDrawing.top,
+                    safeDrawing.right,
+                    safeDrawing.bottom
+            );
+        });
+        ViewCompat.requestApplyInsets(root);
     }
 
     @Override

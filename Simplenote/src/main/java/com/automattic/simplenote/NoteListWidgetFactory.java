@@ -2,7 +2,9 @@ package com.automattic.simplenote;
 
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteException;
 import android.text.SpannableStringBuilder;
+import android.util.Log;
 import android.view.View;
 import android.widget.RemoteViews;
 import android.widget.RemoteViewsService.RemoteViewsFactory;
@@ -103,15 +105,28 @@ public class NoteListWidgetFactory implements RemoteViewsFactory {
 
     @Override
     public synchronized void onDataSetChanged() {
-        if (mCursor != null) {
-            mCursor.close();
+        Bucket.ObjectCursor<Note> candidate = null;
+        try {
+            Bucket<Note> notesBucket = ((Simplenote) mContext.getApplicationContext()).getNotesBucket();
+            Query<Note> query = Note.all(notesBucket);
+            query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
+            PrefUtils.sortNoteQuery(query, mContext, true);
+            candidate = query.execute();
+            // Simperium executes the SQLite query lazily when the cursor is first counted.
+            candidate.getCount();
+        } catch (SQLiteException exception) {
+            if (candidate != null) {
+                candidate.close();
+            }
+            Log.e(Simplenote.TAG, "Unable to refresh note-list widget", exception);
+            return;
         }
 
-        Bucket<Note> notesBucket = ((Simplenote) mContext.getApplicationContext()).getNotesBucket();
-        Query<Note> query = Note.all(notesBucket);
-        query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
-        PrefUtils.sortNoteQuery(query, mContext, true);
-        mCursor = query.execute();
+        Bucket.ObjectCursor<Note> previousCursor = mCursor;
+        mCursor = candidate;
+        if (previousCursor != null) {
+            previousCursor.close();
+        }
     }
 
     @Override

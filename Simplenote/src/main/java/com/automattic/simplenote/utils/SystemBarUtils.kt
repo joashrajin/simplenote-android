@@ -27,6 +27,8 @@ object SystemBarUtils {
     // androidx.activity's default dark scrim: navigation bar icons are always white before
     // API 26, so a light theme keeps a translucent dark scrim behind them there.
     private val NAVIGATION_BAR_DARK_SCRIM = Color.argb(0x80, 0x1B, 0x1B, 0x1B)
+    private val SAFE_DRAWING_INSETS =
+        WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
 
     /**
      * Goes edge to edge with transparent system bars whose icon appearance follows the theme:
@@ -46,10 +48,10 @@ object SystemBarUtils {
     }
 
     /**
-     * Standard insets wiring for a toolbar screen: the root absorbs cutout/horizontal insets,
-     * the toolbar drops below the status bar, and the content keeps clear of the navigation bar
-     * and the IME. [keepContentBottomPadding] keeps the content view's own bottom padding as a
-     * floor instead of overwriting it with the inset.
+     * Standard insets wiring for a toolbar screen: the root absorbs horizontal safe insets,
+     * the toolbar drops below the status bar or a top cutout, and the content keeps clear of the
+     * navigation bar, bottom cutouts, and the IME. [keepContentBottomPadding] keeps the content
+     * view's own bottom padding as a floor instead of overwriting it with the inset.
      */
     @JvmStatic
     @JvmOverloads
@@ -61,17 +63,17 @@ object SystemBarUtils {
     ) {
         rootView?.let {
             ViewCompat.setOnApplyWindowInsetsListener(it) { view, windowInsets ->
-                val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                val safeDrawing = windowInsets.getInsets(SAFE_DRAWING_INSETS)
                 // Horizontal insets only: the toolbar and content handle top and bottom.
-                view.setPadding(systemBars.left, 0, systemBars.right, 0)
+                view.setPadding(safeDrawing.left, 0, safeDrawing.right, 0)
                 windowInsets
             }
         }
         toolbar?.let {
             ViewCompat.setOnApplyWindowInsetsListener(it) { view, windowInsets ->
-                val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                val safeDrawing = windowInsets.getInsets(SAFE_DRAWING_INSETS)
                 (view.layoutParams as? MarginLayoutParams)?.let { params ->
-                    params.topMargin = systemBars.top
+                    params.topMargin = safeDrawing.top
                     view.layoutParams = params
                 }
                 windowInsets
@@ -80,16 +82,16 @@ object SystemBarUtils {
         contentView?.let {
             val minimumBottomPadding = if (keepContentBottomPadding) it.paddingBottom else 0
             ViewCompat.setOnApplyWindowInsetsListener(it) { view, windowInsets ->
-                val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+                val safeDrawing = windowInsets.getInsets(SAFE_DRAWING_INSETS)
                 val ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime())
                 view.setPadding(
                     view.paddingLeft,
                     view.paddingTop,
                     view.paddingRight,
-                    maxOf(systemBars.bottom, ime.bottom, minimumBottomPadding)
+                    maxOf(safeDrawing.bottom, ime.bottom, minimumBottomPadding)
                 )
                 // Pass the IME insets through so scrolling children can react to the keyboard.
-                windowInsets.inset(0, 0, 0, systemBars.bottom)
+                windowInsets.inset(0, 0, 0, safeDrawing.bottom)
             }
         }
     }

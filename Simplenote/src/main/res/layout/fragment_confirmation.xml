@@ -1,45 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:orientation="vertical">
+    android:fillViewport="true">
 
-    <androidx.appcompat.widget.AppCompatImageView
-        android:layout_width="72dp"
-        android:layout_height="72dp"
-        android:layout_gravity="center"
-        android:layout_marginBottom="@dimen/padding_large"
-        android:src="@drawable/ic_mail"
-        app:tint="?attr/emptyImageColor" />
-
-    <com.automattic.simplenote.widgets.RobotoRegularTextView
-        android:id="@+id/email_confirmation_text"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/padding_extra_extra_large"
-        android:layout_marginEnd="@dimen/padding_extra_extra_large"
-        android:layout_marginBottom="@dimen/padding_extra_large"
         android:gravity="center"
-        android:textColor="@color/text_title"
-        android:textSize="@dimen/text_content_title"
-        tools:text="We've sent an email to example@email.com. Please check your inbox and follow the instructions." />
+        android:orientation="vertical">
 
-    <com.automattic.simplenote.widgets.RobotoRegularTextView
-        android:id="@+id/support_text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/padding_extra_extra_large"
-        android:layout_marginEnd="@dimen/padding_extra_extra_large"
-        android:layout_marginBottom="@dimen/padding_extra_large"
-        android:gravity="center"
-        android:textColor="@color/text_subtitle"
-        android:textColorLink="@color/text_link"
-        android:textSize="@dimen/text_content"
-        tools:text="Didn't get an email? You may already have an account. Contact simplenote@support.com for help." />
+        <androidx.appcompat.widget.AppCompatImageView
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:layout_gravity="center"
+            android:layout_marginBottom="@dimen/padding_large"
+            android:src="@drawable/ic_mail"
+            app:tint="?attr/emptyImageColor" />
 
-</LinearLayout>
+        <com.automattic.simplenote.widgets.RobotoRegularTextView
+            android:id="@+id/email_confirmation_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/padding_extra_extra_large"
+            android:layout_marginEnd="@dimen/padding_extra_extra_large"
+            android:layout_marginBottom="@dimen/padding_extra_large"
+            android:gravity="center"
+            android:textColor="@color/text_title"
+            android:textSize="@dimen/text_content_title"
+            tools:text="We've sent an email to example@email.com. Please check your inbox and follow the instructions." />
+
+        <com.automattic.simplenote.widgets.RobotoRegularTextView
+            android:id="@+id/support_text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/padding_extra_extra_large"
+            android:layout_marginEnd="@dimen/padding_extra_extra_large"
+            android:layout_marginBottom="@dimen/padding_extra_large"
+            android:gravity="center"
+            android:textColor="@color/text_subtitle"
+            android:textColorLink="@color/text_link"
+            android:textSize="@dimen/text_content"
+            tools:text="Didn't get an email? You may already have an account. Contact simplenote@support.com for help." />
+
+    </LinearLayout>
+
+</ScrollView>

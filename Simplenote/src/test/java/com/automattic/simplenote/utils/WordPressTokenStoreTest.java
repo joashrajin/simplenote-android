@@ -71,6 +71,17 @@ public class WordPressTokenStoreTest {
     }
 
     @Test
+    public void getTokenMigratesLegacyTokenWhenDedicatedTokenIsBlank() {
+        setStoredState(" \t\n", false, "legacy-token");
+
+        assertEquals("legacy-token", mStore.getToken());
+
+        verify(mEditor).putString(TOKEN_KEY, "legacy-token");
+        verify(mEditor, never()).putString(TOKEN_KEY, " \t\n");
+        verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
     public void getTokenKeepsLegacyTokenWhenDedicatedWriteFails() {
         setStoredState("", false, "legacy-token");
         when(mEditor.commit()).thenReturn(false);
@@ -102,6 +113,39 @@ public class WordPressTokenStoreTest {
 
         verify(mEditor, never()).putString(TOKEN_KEY, "legacy-token");
         verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
+    public void getTokenScrubsBlankTokenAfterMigration() {
+        setStoredState(" \t\n", true, "legacy-token");
+
+        assertEquals("", mStore.getToken());
+
+        verify(mEditor).remove(TOKEN_KEY);
+        verify(mEditor, never()).putString(TOKEN_KEY, " \t\n");
+        verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
+    public void getTokenTreatsBlankLegacyTokenAsEmpty() {
+        setStoredState("", false, " \t\r\n");
+
+        assertEquals("", mStore.getToken());
+
+        verify(mEditor).remove(TOKEN_KEY);
+        verify(mEditor, never()).putString(TOKEN_KEY, " \t\r\n");
+        verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
+    public void getTokenLeavesBlankTombstoneWriteFreeWithoutLegacyToken() {
+        setStoredState(" \t\n", true, "");
+        when(mLegacyPreferences.contains(LEGACY_TOKEN_KEY)).thenReturn(false);
+
+        assertEquals("", mStore.getToken());
+
+        verify(mPreferences, never()).edit();
+        verify(mLegacyPreferences, never()).edit();
     }
 
     @Test
@@ -298,6 +342,17 @@ public class WordPressTokenStoreTest {
     }
 
     @Test
+    public void prepareForBackupMigratesLegacyTokenWhenDedicatedTokenIsBlank() {
+        setStoredState(" \t\n", false, "legacy-token");
+
+        assertTrue(mStore.prepareForBackup());
+
+        verify(mEditor).putString(TOKEN_KEY, "legacy-token");
+        verify(mEditor, never()).putString(TOKEN_KEY, " \t\n");
+        verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
     public void prepareForBackupFailsWhenTombstonedLegacyTokenCannotBeDeleted() {
         setStoredState("", true, "legacy-token");
         when(mLegacyEditor.commit()).thenReturn(false);
@@ -319,7 +374,7 @@ public class WordPressTokenStoreTest {
     }
 
     @Test
-    public void setTokenWithNullOrEmptyClearsStoredTokenAndLegacyToken() {
+    public void setTokenWithNullEmptyOrBlankClearsStoredTokenAndLegacyToken() {
         setStoredState("existing-token", true, "legacy-token");
 
         assertTrue(mStore.setToken(null));
@@ -334,6 +389,27 @@ public class WordPressTokenStoreTest {
 
         verify(mEditor).remove(TOKEN_KEY);
         verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+
+        clearInvocations(mEditor, mLegacyEditor);
+
+        assertTrue(mStore.setToken(" \t\n"));
+
+        verify(mEditor).remove(TOKEN_KEY);
+        verify(mEditor, never()).putString(TOKEN_KEY, " \t\n");
+        verify(mLegacyEditor).remove(LEGACY_TOKEN_KEY);
+    }
+
+    @Test
+    public void getAndSetTokenPreserveNonBlankBytes() {
+        String token = " token ";
+        setStoredState(token, true, "");
+        when(mLegacyPreferences.contains(LEGACY_TOKEN_KEY)).thenReturn(false);
+
+        assertEquals(token, mStore.getToken());
+
+        assertTrue(mStore.setToken(token));
+
+        verify(mEditor).putString(TOKEN_KEY, token);
     }
 
     @Test

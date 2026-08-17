@@ -55,11 +55,12 @@ public final class WordPressTokenStore {
 
     public boolean setToken(String token) {
         synchronized (TOKEN_LOCK) {
-            if (token == null || token.isEmpty()) {
+            String tokenToStore = emptyIfBlank(token);
+            if (tokenToStore.isEmpty()) {
                 return clearTokenLocked();
             }
 
-            if (!commitState(token)) {
+            if (!commitState(tokenToStore)) {
                 return false;
             }
 
@@ -136,9 +137,13 @@ public final class WordPressTokenStore {
     private static String getString(SharedPreferences preferences, String key) {
         try {
             String value = preferences.getString(key, "");
-            return value == null ? "" : value;
+            return emptyIfBlank(value);
         } catch (ClassCastException exception) {
             return "";
         }
+    }
+
+    private static String emptyIfBlank(String value) {
+        return value == null || value.trim().isEmpty() ? "" : value;
     }
 }

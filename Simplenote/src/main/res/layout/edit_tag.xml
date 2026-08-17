@@ -30,6 +30,7 @@
             android:imeOptions="flagNoExtractUi"
             android:layout_height="match_parent"
             android:layout_width="match_parent">
+            <requestFocus />
         </com.google.android.material.textfield.TextInputEditText>
 
     </com.google.android.material.textfield.TextInputLayout>

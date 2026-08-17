@@ -1,6 +1,8 @@
 package com.automattic.simplenote.viewmodels
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.Observer
+import androidx.lifecycle.SavedStateHandle
 import com.automattic.simplenote.CoroutineTestRule
 import com.automattic.simplenote.R
 import com.automattic.simplenote.models.Note
@@ -32,7 +34,8 @@ class AddTagViewModelTest {
         coroutinesTestRule.testDispatcher
     )
     private val validateTagUseCase = ValidateTagUseCase(fakeTagsRepository, collaboratorsRepository)
-    private val viewModel = AddTagViewModel(fakeTagsRepository, validateTagUseCase)
+    private val savedStateHandle = SavedStateHandle()
+    private val viewModel = AddTagViewModel(fakeTagsRepository, validateTagUseCase, savedStateHandle)
 
     @Test
     fun startShouldSetupUiState() {
@@ -41,6 +44,52 @@ class AddTagViewModelTest {
         assertEquals(viewModel.event.value, AddTagViewModel.Event.START)
         assertNull(viewModel.uiState.value?.errorMsg)
         assertEquals(viewModel.uiState.value!!.tagName, "")
+    }
+
+    @Test
+    fun repeatedStartShouldPreserveUiState() {
+        val tagName = "tag1"
+        `when`(fakeTagsRepository.isTagValid(tagName)).thenReturn(true)
+        `when`(fakeTagsRepository.isTagMissing(tagName)).thenReturn(true)
+        viewModel.start()
+        viewModel.updateUiState(tagName)
+
+        viewModel.start()
+
+        assertEquals(AddTagViewModel.UiState(tagName), viewModel.uiState.value)
+    }
+
+    @Test
+    fun repeatedStartShouldNotEmitAnotherStartEvent() {
+        val events = recordEvents(viewModel) {
+            viewModel.start()
+            viewModel.start()
+        }
+
+        assertEquals(listOf(AddTagViewModel.Event.START), events)
+    }
+
+    @Test
+    fun restoredStartShouldWaitForRestoredInputWithoutEmittingStart() {
+        val tagName = "tag1"
+        `when`(fakeTagsRepository.isTagValid(tagName)).thenReturn(true)
+        `when`(fakeTagsRepository.isTagMissing(tagName)).thenReturn(true)
+        viewModel.start()
+        val restoredState = savedStateHandle.keys().associateWith { key -> savedStateHandle.get<Any?>(key) }
+        val restoredViewModel = AddTagViewModel(
+            fakeTagsRepository,
+            validateTagUseCase,
+            SavedStateHandle(restoredState)
+        )
+        val events = recordEvents(restoredViewModel) {
+            restoredViewModel.start()
+
+            assertNull(restoredViewModel.uiState.value)
+        }
+        restoredViewModel.updateUiState(tagName)
+
+        assertEquals(AddTagViewModel.UiState(tagName), restoredViewModel.uiState.value)
+        assertEquals(emptyList<AddTagViewModel.Event>(), events)
     }
 
     @Test
@@ -117,5 +166,17 @@ class AddTagViewModelTest {
         viewModel.saveTag()
 
         assertEquals(viewModel.event.value, AddTagViewModel.Event.SHOW_ERROR)
+    }
+
+    private fun recordEvents(viewModel: AddTagViewModel, action: () -> Unit): List<AddTagViewModel.Event> {
+        val events = mutableListOf<AddTagViewModel.Event>()
+        val observer = Observer<AddTagViewModel.Event> { events.add(it) }
+        viewModel.event.observeForever(observer)
+        return try {
+            action()
+            events
+        } finally {
+            viewModel.event.removeObserver(observer)
+        }
     }
 }

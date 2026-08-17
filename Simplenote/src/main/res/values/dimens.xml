@@ -37,8 +37,8 @@
     <dimen name="widget_margin">8dp</dimen>
 
     <!-- PASSCODE -->
-    <dimen name="passcodelock_button_text_size">24dp</dimen>
-    <dimen name="passcodelock_pin_text_size">34dp</dimen>
+    <dimen name="passcodelock_button_text_size">24sp</dimen>
+    <dimen name="passcodelock_pin_text_size">34sp</dimen>
 
     <!-- SIZE -->
     <dimen name="about_logo">56dp</dimen>

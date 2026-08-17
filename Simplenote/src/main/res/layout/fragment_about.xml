@@ -230,7 +230,9 @@
             <com.automattic.simplenote.widgets.RobotoRegularTextView
                 android:id="@+id/about_privacy"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_width="wrap_content"
+                android:textAlignment="viewEnd"
                 tools:text="Privacy Policy"
                 style="@style/Theme.Simplestyle.About.Link">
             </com.automattic.simplenote.widgets.RobotoRegularTextView>
@@ -246,6 +248,7 @@
             <com.automattic.simplenote.widgets.RobotoRegularTextView
                 android:id="@+id/about_terms"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
                 android:layout_width="wrap_content"
                 tools:text="Terms of Service"
                 style="@style/Theme.Simplestyle.About.Link">

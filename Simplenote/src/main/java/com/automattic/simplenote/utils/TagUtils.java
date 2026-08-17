@@ -6,6 +6,7 @@ import com.automattic.simplenote.models.Tag;
 import com.simperium.client.Bucket;
 import com.simperium.client.BucketObjectMissingException;
 import com.simperium.client.BucketObjectNameInvalid;
+import com.simperium.client.Query;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
@@ -17,6 +18,7 @@ import java.util.Locale;
 
 public class TagUtils {
     private static int MAXIMUM_LENGTH_ENCODED_HASH = 256;
+    private static final String TAG_INDEX_PROPERTY = "index";
 
     /**
      * Create a tag with the @param key and @param name in the @param bucket.
@@ -45,7 +47,23 @@ public class TagUtils {
      */
     public static void createTagIfMissing(Bucket<Tag> bucket, String name) throws BucketObjectNameInvalid {
         if (isTagMissing(bucket, name)) {
-            createTag(bucket, name, bucket.count());
+            createTag(bucket, name, getNextTagIndex(bucket));
+        }
+    }
+
+    private static int getNextTagIndex(Bucket<Tag> bucket) {
+        int tagCount = bucket.count();
+        Query<Tag> highestIndexQuery = bucket.query()
+            .order(TAG_INDEX_PROPERTY, Query.SortType.DESCENDING)
+            .limit(1);
+
+        try (Bucket.ObjectCursor<Tag> cursor = highestIndexQuery.execute()) {
+            if (!cursor.moveToNext()) {
+                return tagCount;
+            }
+
+            Integer highestIndex = cursor.getObject().getIndex();
+            return highestIndex == null ? tagCount : Math.max(tagCount, highestIndex + 1);
         }
     }
 

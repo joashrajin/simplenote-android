@@ -24,6 +24,7 @@ public class AboutActivity extends AppCompatActivity {
             getSupportActionBar().setHomeAsUpIndicator(DrawableUtils.tintDrawableWithResource(
                 this, R.drawable.ic_cross_24dp, android.R.color.white
             ));
+            getSupportActionBar().setHomeActionContentDescription(R.string.description_close);
         }
         
         // The About screen is blue in both modes, so force light bar icons.

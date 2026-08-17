@@ -1,5 +1,6 @@
 package com.automattic.simplenote.utils.crashlogging
 
+import android.content.SharedPreferences
 import android.util.Log
 import com.automattic.android.tracks.crashlogging.CrashLoggingDataProvider
 import com.automattic.android.tracks.crashlogging.CrashLoggingUser
@@ -11,11 +12,16 @@ import com.automattic.simplenote.BuildConfig
 import com.automattic.simplenote.Simplenote
 import com.automattic.simplenote.repositories.PreferencesRepository
 import com.automattic.simplenote.utils.locale.LocaleProvider
-import com.simperium.client.User
+import com.simperium.android.AndroidClient
+import com.simperium.android.AsyncAuthClient.USER_ACCESS_TOKEN_PREFERENCE
+import com.simperium.android.AsyncAuthClient.USER_EMAIL_PREFERENCE
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Provider
@@ -83,21 +89,32 @@ class SimplenoteCrashLoggingDataProvider @Inject constructor(
     }
 
     private fun provideUser(): Flow<CrashLoggingUser?> =
-        flow {
-            emit(app.simperium?.user?.toCrashLoggingUser())
-        }.catch { e ->
+        callbackFlow {
+            val preferences = AndroidClient.sharedPreferences(app)
+            val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+                if (key == null || key == USER_ACCESS_TOKEN_PREFERENCE || key == USER_EMAIL_PREFERENCE) {
+                    trySend(preferences)
+                }
+            }
+            preferences.registerOnSharedPreferenceChangeListener(listener)
+            try {
+                trySend(preferences)
+                awaitClose()
+            } finally {
+                preferences.unregisterOnSharedPreferenceChangeListener(listener)
+            }
+        }.map { it.toCrashLoggingUser() }.distinctUntilChanged().catch { e ->
             Log.e(TAG, "Exception getting the user", e)
             emit(null)
         }
 
-    private fun User.toCrashLoggingUser(): CrashLoggingUser? {
-        if (userId.isNullOrEmpty()) return null
+    private fun SharedPreferences.toCrashLoggingUser(): CrashLoggingUser? {
+        val snapshot = all
+        val accessToken = snapshot[USER_ACCESS_TOKEN_PREFERENCE] as? String
+        val email = snapshot[USER_EMAIL_PREFERENCE] as? String
+        if (accessToken.isNullOrBlank() || email.isNullOrBlank()) return null
 
-        return CrashLoggingUser(
-            userID = userId,
-            email = email.orEmpty(),
-            username = ""
-        )
+        return CrashLoggingUser(email = email)
     }
 
     companion object {

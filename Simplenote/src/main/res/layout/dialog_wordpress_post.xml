@@ -75,7 +75,6 @@
             android:layout_gravity="center_vertical"
             android:layout_height="wrap_content"
             android:layout_width="fill_parent"
-            android:maxLines="1"
             android:text="@string/uploading_post"
             android:textColor="?attr/noteTitleColor"
             tools:ignore="RtlSymmetry">

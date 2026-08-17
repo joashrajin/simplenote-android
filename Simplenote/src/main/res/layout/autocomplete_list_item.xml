@@ -6,6 +6,7 @@
     android:id="@+id/text"
     android:layout_height="match_parent"
     android:layout_width="match_parent"
+    android:minHeight="@dimen/minimum_target"
     android:padding="@dimen/padding_medium"
     android:maxLines="1"
     android:textAppearance="@android:style/TextAppearance.Medium"

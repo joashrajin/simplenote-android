@@ -20,7 +20,7 @@
 
         <ImageView
             android:id="@+id/image"
-            android:contentDescription="@string/description_warning"
+            android:importantForAccessibility="no"
             android:layout_centerHorizontal="true"
             android:layout_alignParentTop="true"
             android:layout_height="@dimen/icon_fullscreen"

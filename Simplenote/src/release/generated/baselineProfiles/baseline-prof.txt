@@ -5610,10 +5610,10 @@ Lcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider
 HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$1;-><init>(Lcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider;Lkotlin/coroutines/Continuation;)V
 HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$1;->create(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Lkotlin/coroutines/Continuation;
 HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$1;->invoke(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
-HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$1;->invoke(Lkotlinx/coroutines/flow/FlowCollector;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$1;->invoke(Lkotlinx/coroutines/channels/ProducerScope;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
 HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
-Lcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$2;
-HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$2;-><init>(Lkotlin/coroutines/Continuation;)V
+Lcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$3;
+HSPLcom/automattic/simplenote/utils/crashlogging/SimplenoteCrashLoggingDataProvider$provideUser$3;-><init>(Lkotlin/coroutines/Continuation;)V
 Lcom/automattic/simplenote/utils/locale/ContextBasedLocaleProvider;
 HSPLcom/automattic/simplenote/utils/locale/ContextBasedLocaleProvider;-><clinit>()V
 HSPLcom/automattic/simplenote/utils/locale/ContextBasedLocaleProvider;-><init>(Landroid/content/Context;)V

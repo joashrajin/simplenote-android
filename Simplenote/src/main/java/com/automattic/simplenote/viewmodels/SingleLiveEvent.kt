@@ -44,7 +44,6 @@ open class SingleLiveEvent<T> : MutableLiveData<T>() {
     }
 
     override fun postValue(value: T) {
-        pending.set(true)
         super.postValue(value)
     }
 
@@ -57,7 +56,6 @@ open class SingleLiveEvent<T> : MutableLiveData<T>() {
     }
 
     fun asyncCall() {
-        pending.set(true)
         super.postValue(null)
     }
 

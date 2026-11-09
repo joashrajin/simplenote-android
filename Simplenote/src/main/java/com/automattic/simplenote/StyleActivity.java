@@ -76,8 +76,6 @@ public class StyleActivity extends ThemedAppCompatActivity {
         if (getIntent().hasExtra(EXTRA_SCROLL)) {
             mLayoutManager.onRestoreInstanceState(getIntent().getParcelableExtra(EXTRA_SCROLL));
         }
-
-        SystemBarUtils.setupEdgeToEdgeWithAutoTheming(this, findViewById(R.id.main_parent_view), toolbar, list);
     }
 
     /**

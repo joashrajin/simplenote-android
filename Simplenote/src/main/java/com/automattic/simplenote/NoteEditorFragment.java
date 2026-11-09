@@ -941,6 +941,9 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
     }
 
     private void deleteNote() {
+        // Flush pending edits before the trash write moves to the IO dispatcher, so the
+        // onPause save that follows finish() has nothing left to race it with.
+        saveNote();
         NoteUtils.deleteNote(mNote, getActivity());
         requireActivity().finish();
     }

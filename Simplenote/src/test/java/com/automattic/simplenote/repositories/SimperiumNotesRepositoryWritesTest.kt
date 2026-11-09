@@ -150,11 +150,24 @@ class SimperiumNotesRepositoryWritesTest {
         val note = mock<Note>()
         whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
         whenever(notesBucket.get("key2")).thenReturn(note)
+        objectStoreWith()
 
         repository.setTrashed(listOf("missing", "key2"), true)
 
         verify(note).setDeleted(true)
         verify(note).save()
+    }
+
+    @Test
+    fun setTrashedMissingFromTheBucketFallsBackToTheObjectStoreScan() = runTest {
+        whenever(notesBucket.get("key1")).thenThrow(BucketObjectMissingException())
+        val ghostless = noteWithKey("key1")
+        objectStoreWith(ghostless)
+
+        repository.setTrashed(listOf("key1"), true)
+
+        verify(ghostless).setDeleted(true)
+        verify(ghostless).save()
     }
 
     @Test
@@ -195,6 +208,7 @@ class SimperiumNotesRepositoryWritesTest {
         val note = mock<Note>()
         whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
         whenever(notesBucket.get("key2")).thenReturn(note)
+        objectStoreWith()
 
         repository.setPinned(listOf("missing", "key2"), true)
 
@@ -215,8 +229,20 @@ class SimperiumNotesRepositoryWritesTest {
     @Test
     fun permanentlyDeleteToleratesAMissingNote() = runTest {
         whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
+        objectStoreWith()
 
         repository.permanentlyDelete("missing")
+    }
+
+    @Test
+    fun permanentlyDeleteMissingFromTheBucketFallsBackToTheObjectStoreScan() = runTest {
+        whenever(notesBucket.get("key1")).thenThrow(BucketObjectMissingException())
+        val ghostless = noteWithKey("key1")
+        objectStoreWith(ghostless)
+
+        repository.permanentlyDelete("key1")
+
+        verify(ghostless).delete()
     }
 
     @Test
@@ -237,6 +263,7 @@ class SimperiumNotesRepositoryWritesTest {
     @Test
     fun setPreviewEnabledToleratesAMissingNote() = runTest {
         whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
+        objectStoreWith()
 
         repository.setPreviewEnabled("missing", true)
     }
@@ -259,6 +286,7 @@ class SimperiumNotesRepositoryWritesTest {
     @Test
     fun setPublishedToleratesAMissingNote() = runTest {
         whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
+        objectStoreWith()
 
         repository.setPublished("missing", false)
     }
@@ -312,6 +340,7 @@ class SimperiumNotesRepositoryWritesTest {
     @Test
     fun getRevisionsWithAMissingNoteReturnsFailureWithoutRequestingRevisions() = runTest {
         whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
+        objectStoreWith()
 
         assertEquals(RevisionsResult.Failure, repository.getRevisions("missing", 30))
         verify(notesBucket, never()).getRevisions(any<Note>(), any(), any())
@@ -377,6 +406,19 @@ class SimperiumNotesRepositoryWritesTest {
         val note = mock<Note>()
         whenever(note.simperiumKey).thenReturn(key)
         return note
+    }
+
+    // A missing-key write falls back to the object-store scan the way reads do; these stubs
+    // model the store's contents for that scan.
+    private fun objectStoreWith(vararg notes: Note): Bucket.ObjectCursor<Note> {
+        val allCursor = mock<Bucket.ObjectCursor<Note>>()
+        whenever(notesBucket.allObjects()).thenReturn(allCursor)
+        val moves = notes.map { true } + false
+        whenever(allCursor.moveToNext()).thenReturn(moves.first(), *moves.drop(1).toTypedArray())
+        if (notes.isNotEmpty()) {
+            whenever(allCursor.getObject()).thenReturn(notes.first(), *notes.drop(1).toTypedArray())
+        }
+        return allCursor
     }
 
     private fun revisionCallbacks(note: Note): Bucket.RevisionsRequestCallbacks<Note> =

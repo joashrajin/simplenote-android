@@ -172,6 +172,15 @@ class SimperiumNotesRepositoryTest {
     }
 
     @Test
+    fun getNoteFallbackScanSkipsNullRowsAndKeepsScanning() = runTest {
+        whenever(notesBucket.get("key2")).thenThrow(BucketObjectMissingException())
+        val match = noteWithKey("key2")
+        allObjectsCursor(noteWithKey("key1"), null, match)
+
+        assertSame(match, repository.getNote("key2"))
+    }
+
+    @Test
     fun trashedNoteCountCountsTheAllDeletedQuery() = runTest {
         whenever(notesBucket.count(any<Query<Note>>())).thenReturn(3)
 
@@ -289,7 +298,7 @@ class SimperiumNotesRepositoryTest {
         return note
     }
 
-    private fun allObjectsCursor(vararg notes: Note): Bucket.ObjectCursor<Note> {
+    private fun allObjectsCursor(vararg notes: Note?): Bucket.ObjectCursor<Note> {
         val allCursor = mock<Bucket.ObjectCursor<Note>>()
         whenever(notesBucket.allObjects()).thenReturn(allCursor)
         val moves = notes.map { true } + false

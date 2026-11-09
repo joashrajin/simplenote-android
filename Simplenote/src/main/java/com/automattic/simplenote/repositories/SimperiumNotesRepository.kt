@@ -53,11 +53,7 @@ class SimperiumNotesRepository @Inject constructor(
     }
 
     override suspend fun getNote(key: String): Note? = withContext(ioDispatcher) {
-        try {
-            notesBucket.get(key)
-        } catch (exception: BucketObjectMissingException) {
-            scanObjectStore(key)
-        }
+        getOrSkip(key)
     }
 
     // The LoadNoteTask fallback: a note the bucket cannot get yet may still sit in the object store.
@@ -185,11 +181,10 @@ class SimperiumNotesRepository @Inject constructor(
         }
     }
 
-    override suspend fun permanentlyDelete(key: String) = withContext(ioDispatcher) {
-        try {
-            notesBucket.get(key).delete()
-        } catch (exception: BucketObjectMissingException) {
-            // Already gone: the outcome the delete sought.
+    override suspend fun permanentlyDelete(key: String) {
+        withContext(ioDispatcher) {
+            // A key absent from the bucket and the object store is already the sought outcome.
+            getOrSkip(key)?.delete()
         }
     }
 
@@ -248,10 +243,13 @@ class SimperiumNotesRepository @Inject constructor(
         // callback, so the stream buffers losslessly instead of conflating.
     }.buffer(Channel.UNLIMITED).flowOn(ioDispatcher)
 
+    // Writes get the same missing-ghost fallback as reads: the legacy callers mutated held
+    // instances, which worked without a ghost entry, so a note the editor can open must also
+    // accept its pin/trash/preview/delete writes.
     private fun getOrSkip(key: String): Note? = try {
         notesBucket.get(key)
     } catch (exception: BucketObjectMissingException) {
-        null
+        scanObjectStore(key)
     }
 
     private fun applySortOrder(query: Query<Note>, sort: SortOrder) {

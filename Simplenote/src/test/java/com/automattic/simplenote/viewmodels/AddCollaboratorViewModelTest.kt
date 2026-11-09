@@ -1,9 +1,10 @@
 package com.automattic.simplenote.viewmodels
 
+import android.content.Context
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.automattic.simplenote.CoroutineTestRule
-import com.automattic.simplenote.authentication.SessionManager
 import com.automattic.simplenote.models.Note
+import com.automattic.simplenote.repositories.SimperiumAccountRepository
 import com.automattic.simplenote.repositories.SimperiumCollaboratorsRepository
 import com.simperium.Simperium
 import com.simperium.client.Bucket
@@ -18,6 +19,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mockito
 import org.mockito.kotlin.any
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
 @ExperimentalCoroutinesApi
@@ -33,7 +35,17 @@ class AddCollaboratorViewModelTest {
         coroutinesTestRule.testDispatcher
     )
     private val simperium = Mockito.mock(Simperium::class.java)
-    private val viewModel = AddCollaboratorViewModel(collaboratorsRepository, SessionManager(simperium))
+    private val accountRepository = SimperiumAccountRepository(
+        simperium,
+        mock(),
+        mock(),
+        mock(),
+        mock(),
+        coroutinesTestRule.testDispatcher,
+        coroutinesTestRule.testDispatcher,
+        Mockito.mock(Context::class.java)
+    )
+    private val viewModel = AddCollaboratorViewModel(collaboratorsRepository, accountRepository)
 
     private val noteId = "key1"
     private val note = Note(noteId).apply {

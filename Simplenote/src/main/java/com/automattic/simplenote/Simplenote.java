@@ -1,8 +1,5 @@
 package com.automattic.simplenote;
 
-import static com.simperium.android.AsyncAuthClient.USER_ACCESS_TOKEN_PREFERENCE;
-import static com.simperium.android.AsyncAuthClient.USER_EMAIL_PREFERENCE;
-
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
@@ -18,6 +15,7 @@ import android.util.Log;
 import androidx.annotation.IdRes;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatDelegate;
+import androidx.core.util.Consumer;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.work.BackoffPolicy;
@@ -36,20 +34,18 @@ import com.automattic.simplenote.models.NoteCountIndexer;
 import com.automattic.simplenote.models.NoteTagger;
 import com.automattic.simplenote.models.Preferences;
 import com.automattic.simplenote.models.Tag;
+import com.automattic.simplenote.repositories.AccountStatus;
 import com.automattic.simplenote.repositories.PreferencesRepository;
-import com.automattic.simplenote.utils.AccountVerificationWatcher;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
 import com.automattic.simplenote.utils.DisplayUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SyncWorker;
 import com.simperium.Simperium;
-import com.simperium.android.AndroidClient;
 import com.simperium.android.WebSocketManager;
 import com.simperium.client.Bucket;
 import com.simperium.client.BucketNameInvalid;
 import com.simperium.client.ChannelProvider.HeartbeatListener;
-import com.simperium.client.User;
 
 import dagger.hilt.EntryPoint;
 import dagger.hilt.InstallIn;
@@ -145,14 +141,15 @@ public class Simplenote extends Application implements HeartbeatListener {
             mTagsBucket = mSimperium.bucket(tagSchema);
             mPreferencesBucket = mSimperium.bucket(new Preferences.Schema());
             mAccountBucket = mSimperium.bucket(new Account.Schema());
-            mAccountBucket.addOnNetworkChangeListener(
-                    new AccountVerificationWatcher(this, new VerificationListener())
-            );
             // Every time a note changes or is deleted we need to reindex the tag counts
             mNotesBucket.addListener(new NoteTagger(mTagsBucket));
         } catch (BucketNameInvalid e) {
             throw new RuntimeException("Could not create bucket", e);
         }
+
+        // Replaces the AccountVerificationWatcher bucket listener; the collection delivers on
+        // the main thread, where the listener's fragment transactions always belonged.
+        AccountStreams.watchAccountStatus(AccountStreams.accountRepository(this), new VerificationListener());
 
         AppCompatDelegate.setCompatVectorFromResourcesEnabled(true);
 
@@ -237,28 +234,12 @@ public class Simplenote extends Application implements HeartbeatListener {
         return mIsInBackground;
     }
 
-    public void loginWithToken(String email, String spToken) {
-        // Manually authorize the user with Simperium
-        User user = mSimperium.getUser();
-        user.setAccessToken(spToken);
-        user.setEmail(email);
-        user.setStatus(User.Status.AUTHORIZED);
-
-        // Store the user data in Simperium shared preferences
-        SharedPreferences.Editor editor = AndroidClient.sharedPreferences(this).edit();
-        editor.putString(USER_ACCESS_TOKEN_PREFERENCE, user.getAccessToken());
-        editor.putString(USER_EMAIL_PREFERENCE, user.getEmail());
-        editor.apply();
-    }
-
     public boolean isLoggedIn() {
-        User user = mSimperium.getUser();
-        return user != null && user.getStatus() == User.Status.AUTHORIZED;
+        return AccountStreams.accountRepository(this).isLoggedIn();
     }
 
     public String getUserEmail() {
-        User user = mSimperium.getUser();
-        return user != null ? user.getEmail() : null;
+        return AccountStreams.accountRepository(this).userEmail();
     }
 
     private void showUnverifiedAccount() {
@@ -298,6 +279,13 @@ public class Simplenote extends Application implements HeartbeatListener {
             fragmentManager = ((NoteEditorActivity) activity).getSupportFragmentManager();
             container = android.R.id.content;
         } else {
+            return;
+        }
+
+        // If isStateSaved() is true, it means that the application is not in the foreground, thus, we cannot
+        // show the dialog because it would cause an IllegalStateException (the same guard
+        // FullScreenDialogFragment.dismiss already applies).
+        if (activity.isFinishing() || activity.isDestroyed() || fragmentManager.isStateSaved()) {
             return;
         }
 
@@ -478,20 +466,17 @@ public class Simplenote extends Application implements HeartbeatListener {
         }
     }
 
-    private class VerificationListener implements AccountVerificationWatcher.VerificationStateListener {
+    private class VerificationListener implements Consumer<AccountStatus> {
         @Override
-        public void onUpdate(AccountVerificationWatcher.Status status) {
-            switch (status) {
-                case VERIFIED:
-                    dismissReviewAccountDialog();
-                    return;
-
-                case SENT_EMAIL:
+        public void accept(AccountStatus status) {
+            if (status instanceof AccountStatus.Verified) {
+                dismissReviewAccountDialog();
+            } else if (status instanceof AccountStatus.Unverified) {
+                if (((AccountStatus.Unverified) status).getHasSentEmail()) {
                     showWaitingOnEmailConfirmation();
-                    return;
-
-                case UNVERIFIED:
+                } else {
                     showUnverifiedAccount();
+                }
             }
         }
     }

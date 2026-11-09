@@ -35,6 +35,7 @@ import com.automattic.simplenote.TagsActivity
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.utils.assertToastShown
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.hamcrest.CoreMatchers.allOf
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -47,6 +48,7 @@ import org.junit.runner.RunWith
  * (list, search, FAB, delete-confirm dialog) drive compose-test APIs; the surfaces that stayed in
  * the View world (AddTagActivity, the rename TagDialogFragment) keep their Espresso assertions.
  */
+@HiltAndroidTest
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4ClassRunner::class)
 @MediumTest

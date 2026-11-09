@@ -117,8 +117,9 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
     private static String STATE_NOTE_LIST_WIDGET_BUTTON_TAPPED = "STATE_NOTE_LIST_WIDGET_BUTTON_TAPPED";
 
-    protected Bucket<Note> mNotesBucket;
-    protected Bucket<Tag> mTagsBucket;
+    @Inject protected Bucket<Note> mNotesBucket;
+    @Inject protected Bucket<Tag> mTagsBucket;
+    @Inject protected Simperium mSimperium;
     private boolean mHasTappedNoteListWidgetButton;
     private boolean mIsSettingsClicked;
     private boolean mIsShowingMarkdown;
@@ -206,15 +207,6 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
         mFragmentsContainer = findViewById(R.id.note_fragment_container);
 
-        Simplenote currentApp = (Simplenote) getApplication();
-        if (mNotesBucket == null) {
-            mNotesBucket = currentApp.getNotesBucket();
-        }
-
-        if (mTagsBucket == null) {
-            mTagsBucket = currentApp.getTagsBucket();
-        }
-
         mNotesActivityStreams = new NotesActivityStreams(notesRepository, LifecycleOwnerKt.getLifecycleScope(this));
         mNotesActivityStreams.start(getLifecycle(), this);
 
@@ -264,8 +256,8 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             checkForSharedContent(getIntent());
         }
 
-        currentApp.getSimperium().setOnUserCreatedListener(this);
-        currentApp.getSimperium().setUserStatusChangeListener(this);
+        mSimperium.setOnUserCreatedListener(this);
+        mSimperium.setUserStatusChangeListener(this);
     }
 
     @Override

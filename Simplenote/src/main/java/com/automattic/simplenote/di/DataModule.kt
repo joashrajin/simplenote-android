@@ -1,6 +1,8 @@
 package com.automattic.simplenote.di
 
-import com.automattic.simplenote.Simplenote
+import android.content.Context
+import com.automattic.simplenote.BuildConfig
+import com.automattic.simplenote.SimperiumBuckets
 import com.automattic.simplenote.SyncTimes
 import com.automattic.simplenote.authentication.magiclink.OkHttpMagicLinkRepository
 import com.automattic.simplenote.models.Account
@@ -24,49 +26,81 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataModule {
     companion object {
+        private const val SIMPERIUM_AUTH_PROVIDER = "simplenote.com"
+
+        // The client construction and the static auth provider moved here from Simplenote.onCreate;
+        // the heartbeat watchdog stays in Simplenote, which registers itself as the listener.
         @Provides
-        fun providesTagsBucket(simplenote: Simplenote): Bucket<Tag> = simplenote.tagsBucket
+        @Singleton
+        fun providesSimperium(@ApplicationContext context: Context): Simperium = Simperium.newClient(
+            BuildConfig.SIMPERIUM_APP_ID,
+            BuildConfig.SIMPERIUM_APP_KEY,
+            context,
+        ).apply {
+            setAuthProvider(SIMPERIUM_AUTH_PROVIDER)
+        }
 
         @Provides
-        fun providesNotesBucket(simplenote: Simplenote): Bucket<Note> = simplenote.notesBucket
+        @Singleton
+        fun providesSimperiumBuckets(@ApplicationContext context: Context, simperium: Simperium): SimperiumBuckets =
+            SimperiumBuckets(context, simperium)
 
         @Provides
-        fun providesPreferencesBucket(simplenote: Simplenote): Bucket<Preferences> = simplenote.preferencesBucket
+        @Singleton
+        fun providesTagsBucket(buckets: SimperiumBuckets): Bucket<Tag> = buckets.tags
 
         @Provides
-        fun providesAccountBucket(simplenote: Simplenote): Bucket<Account> = simplenote.accountBucket
+        @Singleton
+        fun providesNotesBucket(buckets: SimperiumBuckets): Bucket<Note> = buckets.notes
 
         @Provides
-        fun providesSimperium(simplenote: Simplenote): Simperium = simplenote.simperium
+        @Singleton
+        fun providesPreferencesBucket(buckets: SimperiumBuckets): Bucket<Preferences> = buckets.preferences
 
         @Provides
-        fun providesNoteSyncTimes(simplenote: Simplenote): SyncTimes<Note> = simplenote.noteSyncTimes
+        @Singleton
+        fun providesAccountBucket(buckets: SimperiumBuckets): Bucket<Account> = buckets.account
+
+        @Provides
+        @Singleton
+        fun providesNoteSyncTimes(buckets: SimperiumBuckets): SyncTimes<Note> = buckets.noteSyncTimes
     }
 
-    // Repository binds stay unscoped until bucket ownership moves into DI: a singleton
-    // repository would freeze the SimplenoteTest.useTestBucket seam at first injection
-    // for the whole instrumentation process.
+    // The buckets are constructed once in [SimperiumBuckets] and are never replaced for the life
+    // of the process — logout resets and stops them in place (SimperiumAccountRepository.logout) —
+    // so singleton repositories hold valid bucket references forever.
     @Binds
+    @Singleton
     abstract fun bindsTagsRepository(repository: SimperiumTagsRepository): TagsRepository
 
     @Binds
+    @Singleton
     abstract fun bindsCollaboratorsRepository(repository: SimperiumCollaboratorsRepository): CollaboratorsRepository
 
     @Binds
+    @Singleton
     abstract fun bindsMagicLinkRepository(repository: OkHttpMagicLinkRepository): MagicLinkRepository
 
     @Binds
+    @Singleton
     abstract fun bindsNotesRepository(repository: SimperiumNotesRepository): NotesRepository
 
+    // Deliberately unscoped: the repository reads its analytics snapshot from the bucket at
+    // construction, so per-injection construction is what keeps the synchronous analytics gate
+    // (Simplenote.analyticsIsEnabled, SimplenoteCrashLoggingDataProvider) fresh. See the
+    // analyticsSnapshot comment in SimperiumPreferencesRepository before scoping this.
     @Binds
     abstract fun bindsPreferencesRepository(repository: SimperiumPreferencesRepository): PreferencesRepository
 
     @Binds
+    @Singleton
     abstract fun bindsAccountRepository(repository: SimperiumAccountRepository): AccountRepository
 }

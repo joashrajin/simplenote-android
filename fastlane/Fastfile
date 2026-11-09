@@ -227,8 +227,10 @@ platform :android do
       # Because the screenshot tests are together with other UI tests, we need
       # to specify to run only them and not all of the others.
       use_tests_in_classes: "#{APP_PACKAGE_NAME}.screenshots.ScreenshotTest",
-      # Must match `testInstrumentationRunner` in Simplenote/build.gradle
-      test_instrumentation_runner: "#{APP_PACKAGE_NAME}.SimplenoteAppRunner",
+      # Deliberately NOT the `testInstrumentationRunner` from Simplenote/build.gradle: that one
+      # installs HiltTestApplication for the UI tests, while ScreenshotTest signs in to a real
+      # account and needs the production application class.
+      test_instrumentation_runner: "#{APP_PACKAGE_NAME}.ScreenshotAppRunner",
       use_timestamp_suffix: false,
       # Need to use this in order to get access to the screenshots on the
       # emulator. Also note that you might need to run on a Google API

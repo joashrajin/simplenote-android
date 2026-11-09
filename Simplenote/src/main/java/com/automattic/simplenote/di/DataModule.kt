@@ -1,6 +1,7 @@
 package com.automattic.simplenote.di
 
 import com.automattic.simplenote.Simplenote
+import com.automattic.simplenote.SyncTimes
 import com.automattic.simplenote.authentication.magiclink.OkHttpMagicLinkRepository
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Preferences
@@ -37,6 +38,9 @@ abstract class DataModule {
 
         @Provides
         fun providesSimperium(simplenote: Simplenote): Simperium = simplenote.simperium
+
+        @Provides
+        fun providesNoteSyncTimes(simplenote: Simplenote): SyncTimes<Note> = simplenote.noteSyncTimes
     }
 
     // Repository binds stay unscoped until bucket ownership moves into DI: a singleton

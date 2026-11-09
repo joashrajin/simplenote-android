@@ -13,28 +13,37 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
+import androidx.lifecycle.LifecycleOwnerKt;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
-import com.automattic.simplenote.models.Reference;
+import com.automattic.simplenote.repositories.NoteReference;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.DateTimeUtils;
 import com.automattic.simplenote.utils.DisplayUtils;
 import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.SimplenoteLinkify;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.simperium.client.Bucket;
 
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
+@AndroidEntryPoint
 public class InfoBottomSheetDialog extends BottomSheetDialogBase {
     public static final String TAG = InfoBottomSheetDialog.class.getSimpleName();
 
     private final Fragment mFragment;
+
+    @Inject NotesRepository notesRepository;
+    @Inject SyncTimes<Note> noteSyncTimes;
 
     private LinearLayout mDateTimeSyncedLayout;
     private LinearLayout mReferencesLayout;
@@ -92,7 +101,7 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
             mCountWords.setText(NoteUtils.getWordCount(note.getContent()));
             mDateTimeCreated.setText(DateTimeUtils.getDateTextString(requireContext(), note.getCreationDate()));
             mDateTimeModified.setText(DateTimeUtils.getDateTextString(requireContext(), note.getModificationDate()));
-            Calendar sync = ((Simplenote) requireActivity().getApplication()).getNoteSyncTimes().getLastSyncTime(note.getSimperiumKey());
+            Calendar sync = noteSyncTimes.getLastSyncTime(note.getSimperiumKey());
 
             if (sync != null) {
                 mDateTimeSynced.setText(DateTimeUtils.getDateTextString(requireContext(), sync));
@@ -106,24 +115,30 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
     }
 
     private void getReferences(Note note) {
-        Simplenote application = (Simplenote) mFragment.requireActivity().getApplicationContext();
-        Bucket<Note> bucket = application.getNotesBucket();
-        List<Reference> references = Note.getReferences(bucket, note.getSimperiumKey());
+        // Hidden until the off-Main query lands, so an empty section never flashes.
+        mReferencesLayout.setVisibility(View.GONE);
+        NoteEditorStreams streams =
+                new NoteEditorStreams(notesRepository, LifecycleOwnerKt.getLifecycleScope(this));
+        streams.referencesTo(note.getSimperiumKey(), references -> {
+            if (!isAdded()) {
+                return;
+            }
 
-        if (references.size() > 0) {
-            mReferencesLayout.setVisibility(View.VISIBLE);
-            ReferenceAdapter adapter = new ReferenceAdapter(references);
-            mReferences.setAdapter(adapter);
-            mReferences.setLayoutManager(new LinearLayoutManager(requireContext()));
-        } else {
-            mReferencesLayout.setVisibility(View.GONE);
-        }
+            if (references.size() > 0) {
+                mReferencesLayout.setVisibility(View.VISIBLE);
+                ReferenceAdapter adapter = new ReferenceAdapter(references);
+                mReferences.setAdapter(adapter);
+                mReferences.setLayoutManager(new LinearLayoutManager(requireContext()));
+            } else {
+                mReferencesLayout.setVisibility(View.GONE);
+            }
+        });
     }
 
     private class ReferenceAdapter extends RecyclerView.Adapter<ReferenceAdapter.ViewHolder> {
-        private final List<Reference> mReferences;
+        private final List<NoteReference> mReferences;
 
-        private ReferenceAdapter(List<Reference> references) {
+        private ReferenceAdapter(List<NoteReference> references) {
             mReferences = new ArrayList<>(references);
         }
 
@@ -134,7 +149,7 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
 
         @Override
         public void onBindViewHolder(@NonNull final ViewHolder holder, final int position) {
-            final Reference reference = mReferences.get(position);
+            final NoteReference reference = mReferences.get(position);
             holder.mTitle.setText(reference.getTitle());
             holder.mSubtitle.setText(
                 getResources().getQuantityString(

@@ -2,15 +2,14 @@ package com.automattic.simplenote;
 
 import android.net.Uri;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.fragment.app.FragmentActivity;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
-import com.automattic.simplenote.models.Tag;
+import com.automattic.simplenote.repositories.NotesRepository;
+import com.automattic.simplenote.repositories.TagsRepository;
 import com.automattic.simplenote.utils.FileUtils;
-import com.automattic.simplenote.utils.TagUtils;
-import com.simperium.client.Bucket;
-import com.simperium.client.BucketObjectNameInvalid;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -21,18 +20,23 @@ import java.text.ParseException;
 import java.util.ArrayList;
 
 public class Importer {
-    private final Bucket<Note> mNotesBucket;
-    private final Bucket<Tag> mTagsBucket;
+    private final NotesRepository mNotesRepository;
+    private final TagsRepository mTagsRepository;
 
-    public Importer(Simplenote simplenote) {
-        mNotesBucket = simplenote.getNotesBucket();
-        mTagsBucket = simplenote.getTagsBucket();
+    public Importer(NotesRepository notesRepository, TagsRepository tagsRepository) {
+        mNotesRepository = notesRepository;
+        mTagsRepository = tagsRepository;
     }
 
-    public static void fromUri(FragmentActivity activity, Uri uri) throws ImportException {
+    public static void fromUri(
+            FragmentActivity activity,
+            Uri uri,
+            NotesRepository notesRepository,
+            TagsRepository tagsRepository
+    ) throws ImportException {
         try {
             String fileType = FileUtils.getFileExtension(activity, uri);
-            new Importer((Simplenote) activity.getApplication())
+            new Importer(notesRepository, tagsRepository)
                     .dispatchFileImport(
                             fileType,
                             FileUtils.readFile(activity, uri)
@@ -48,7 +52,8 @@ public class Importer {
         }
     }
 
-    private void dispatchFileImport(String fileType, String content) throws ImportException {
+    @VisibleForTesting
+    void dispatchFileImport(String fileType, String content) throws ImportException {
         switch (fileType) {
             case "json":
                 importJsonFile(content);
@@ -65,11 +70,11 @@ public class Importer {
     }
 
     private void importPlaintext(String content) {
-        addNote(Note.fromContent(mNotesBucket, content));
+        addNote(mNotesRepository.noteForImport(content));
     }
 
     private void importMarkdown(String content) {
-        Note note = Note.fromContent(mNotesBucket, content);
+        Note note = mNotesRepository.noteForImport(content);
         note.enableMarkdown();
 
         addNote(note);
@@ -77,15 +82,13 @@ public class Importer {
 
     private void addNote(Note note) {
         for (String tagName : note.getTags()) {
-            try {
-                TagUtils.createTagIfMissing(mTagsBucket, tagName);
-            } catch (BucketObjectNameInvalid e) {
+            if (!mTagsRepository.saveTag(tagName)) {
                 // if it can't be added then remove it, we can't keep it anyway
                 note.removeTag(tagName);
             }
         }
 
-        note.save();
+        mNotesRepository.saveImportedNote(note);
     }
 
     private void importJsonFile(String content) throws ImportException {
@@ -103,12 +106,12 @@ public class Importer {
         ArrayList<Note> notesList = new ArrayList<>();
 
         for (int i = 0; activeNotes != null && i < activeNotes.length(); i++) {
-            Note note = Note.fromExportedJson(mNotesBucket, activeNotes.getJSONObject(i));
+            Note note = mNotesRepository.noteForImport(activeNotes.getJSONObject(i));
             notesList.add(note);
         }
 
         for (int j = 0; trashedNotes != null && j < trashedNotes.length(); j++) {
-            Note note = Note.fromExportedJson(mNotesBucket, trashedNotes.getJSONObject(j));
+            Note note = mNotesRepository.noteForImport(trashedNotes.getJSONObject(j));
             note.setDeleted(true);
 
             notesList.add(note);

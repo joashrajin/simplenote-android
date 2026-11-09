@@ -18,6 +18,7 @@ import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SortOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
+import org.json.JSONObject
 
 /**
  * Deterministic in-memory repositories backing the screenshot surfaces. They replace the
@@ -68,6 +69,9 @@ class ScreenshotNotesRepository : NotesRepository {
     override suspend fun allNotesForExport(): List<Note> = emptyList()
     override suspend fun createNote(content: String, key: String?): Note = Note(key ?: "screenshot-note")
     override suspend fun saveNote(note: Note) = Unit
+    override fun noteForImport(content: String): Note = Note("screenshot-import")
+    override fun noteForImport(exportedJson: JSONObject): Note = Note("screenshot-import")
+    override fun saveImportedNote(note: Note) = Unit
     override suspend fun setTrashed(keys: List<String>, trashed: Boolean) = Unit
     override suspend fun emptyTrash() = Unit
     override suspend fun setPinned(keys: List<String>, pinned: Boolean) = Unit

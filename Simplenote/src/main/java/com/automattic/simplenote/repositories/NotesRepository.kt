@@ -5,6 +5,9 @@ import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SortOrder
 import com.simperium.client.Bucket
 import kotlinx.coroutines.flow.Flow
+import org.json.JSONException
+import org.json.JSONObject
+import java.text.ParseException
 import java.util.Calendar
 
 /**
@@ -24,6 +27,11 @@ import java.util.Calendar
  * NoteUtils.showDialogDeletePermanently single-note delete, [setPreviewEnabled] and
  * [setPublished] the editor toggles, [getRevisions] the history sheet request, and
  * [noteChanges] the bucket listeners NotesActivity registers.
+ *
+ * The import surface ([noteForImport], [saveImportedNote]) stays split and non-suspending so the
+ * Importer can reproduce its legacy sequence on the caller's thread: every note of a JSON export
+ * built before the first save, the tag fixups (whose removeTag carries its own save) in between,
+ * then exactly one closing save per note.
  */
 interface NotesRepository {
     suspend fun search(request: NoteSearchRequest): NoteQueryResult
@@ -37,6 +45,15 @@ interface NotesRepository {
     // A non-null key can throw BucketObjectNameInvalid; the caller owns key validity.
     suspend fun createNote(content: String = "", key: String? = null): Note
     suspend fun saveNote(note: Note)
+
+    /** An unsaved note built exactly as Note.fromContent built the txt/md imports. */
+    fun noteForImport(content: String): Note
+
+    /** An unsaved note built exactly as Note.fromExportedJson built the JSON imports. */
+    @Throws(JSONException::class, ParseException::class)
+    fun noteForImport(exportedJson: JSONObject): Note
+
+    fun saveImportedNote(note: Note)
     suspend fun setTrashed(keys: List<String>, trashed: Boolean)
     suspend fun emptyTrash()
     suspend fun setPinned(keys: List<String>, pinned: Boolean)

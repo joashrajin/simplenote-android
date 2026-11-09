@@ -245,7 +245,6 @@
     </style>
 
     <style name="ToolbarTheme" parent="@style/ThemeOverlay.Material3.Light">
-        <item name="android:textColorPrimary">?attr/colorOnSurface</item>
         <item name="android:textColorSecondary">?attr/toolbarIconColor</item>
     </style>
 

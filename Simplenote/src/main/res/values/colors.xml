@@ -37,7 +37,6 @@
     <color name="background_dark_sepia_1">#23211f</color>
     <color name="background_dark_sepia_2">#282624</color>
     <color name="background_dark_sepia_3">#2b2927</color>
-    <color name="background_dark_sepia_4">#2d2b29</color>
     <color name="background_dark_sepia_6">#33302e</color>
     <color name="background_dark_sepia_8">#343230</color>
     <color name="background_dark_sepia_12">#393735</color>
@@ -164,7 +163,6 @@
     <color name="gray_10">#c3c4c7</color>
     <color name="gray_20">#a7aaad</color>
     <color name="gray_30">#8c8f94</color>
-    <color name="gray_40">#787c82</color>
     <color name="gray_50">#646970</color>
     <color name="gray_60">#50575e</color>
     <color name="gray_70">#3c434a</color>

@@ -40,7 +40,7 @@
         android:layout_gravity="start"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        android:background="?attr/drawerBackgroundColor"
+        android:background="?attr/colorSurfaceContainerLow"
         android:elevation="@dimen/navigation_elevation"
         android:fitsSystemWindows="true"
         android:orientation="vertical">
@@ -49,11 +49,9 @@
             android:id="@+id/navigation_view"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:background="?attr/drawerBackgroundColor"
+            android:theme="@style/NavigationMenuItem"
             app:elevation="0dp"
-            app:insetForeground="@android:color/transparent"
-            app:itemShapeFillColor="?attr/drawerBackgroundSelector"
-            app:theme="@style/NavigationMenuItem" />
+            app:insetForeground="@android:color/transparent" />
 
         <View
             android:id="@+id/empty_tags_hint_divider"

@@ -31,20 +31,17 @@
             android:id="@+id/empty"
             layout="@layout/empty_view" />
 
-        <ImageButton
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/button_add"
-            android:layout_width="@dimen/button_floating"
-            android:layout_height="@dimen/button_floating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignParentBottom="true"
             android:layout_marginEnd="@dimen/padding_large"
             android:layout_marginBottom="@dimen/padding_large"
-            android:background="@drawable/bg_ripple_oval_fab_color"
             android:contentDescription="@string/add_tag"
-            android:elevation="@dimen/elevation_button"
             android:src="@drawable/ic_add_24dp"
-            android:stateListAnimator="@animator/button_raise"
-            app:tint="?attr/fabIconColor" />
+            style="@style/Widget.Simplenote.Fab" />
 
     </RelativeLayout>
 

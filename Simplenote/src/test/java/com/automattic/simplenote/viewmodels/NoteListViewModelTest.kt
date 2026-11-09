@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -473,6 +474,9 @@ class NoteListViewModelTest {
         override suspend fun setPublished(key: String, published: Boolean) = Unit
         override suspend fun getRevisions(key: String, max: Int): RevisionsResult = RevisionsResult.Failure
         override fun noteChanges(): Flow<NoteChange> = emptyFlow()
+        override fun noteForImport(content: String): Note = Note("fake-import")
+        override fun noteForImport(exportedJson: JSONObject): Note = Note("fake-import")
+        override fun saveImportedNote(note: Note) = Unit
     }
 
     private class FakePreferencesRepository : PreferencesRepository {

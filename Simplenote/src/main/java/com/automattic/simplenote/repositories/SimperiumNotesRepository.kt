@@ -23,7 +23,9 @@ import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import org.json.JSONException
 import org.json.JSONObject
+import java.text.ParseException
 import java.util.Calendar
 import javax.inject.Inject
 import kotlin.coroutines.resume
@@ -148,6 +150,15 @@ class SimperiumNotesRepository @Inject constructor(
     override suspend fun saveNote(note: Note) = withContext(ioDispatcher) {
         note.save()
     }
+
+    // The import surface delegates to the legacy factories unchanged, and runs synchronously on
+    // the caller's thread the way the whole import path always did.
+    override fun noteForImport(content: String): Note = Note.fromContent(notesBucket, content)
+
+    @Throws(JSONException::class, ParseException::class)
+    override fun noteForImport(exportedJson: JSONObject): Note = Note.fromExportedJson(notesBucket, exportedJson)
+
+    override fun saveImportedNote(note: Note) = note.save()
 
     override suspend fun setTrashed(keys: List<String>, trashed: Boolean) = withContext(ioDispatcher) {
         for (key in keys) {

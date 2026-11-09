@@ -22,6 +22,7 @@ import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -354,5 +355,11 @@ class NotesActivityStreamsTest {
 
         override suspend fun getRevisions(key: String, max: Int): RevisionsResult =
             error("unused in these tests")
+
+        override fun noteForImport(content: String): Note = error("unused in these tests")
+
+        override fun noteForImport(exportedJson: JSONObject): Note = error("unused in these tests")
+
+        override fun saveImportedNote(note: Note) = error("unused in these tests")
     }
 }

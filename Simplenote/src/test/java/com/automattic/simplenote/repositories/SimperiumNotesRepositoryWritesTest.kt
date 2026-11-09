@@ -13,8 +13,11 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.json.JSONArray
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -27,6 +30,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.text.ParseException
 import java.util.Calendar
 
 @ExperimentalCoroutinesApi
@@ -85,6 +89,70 @@ class SimperiumNotesRepositoryWritesTest {
             verify(note).title
             verify(note).save()
         }
+    }
+
+    @Test
+    fun noteForImportFromContentReproducesTheLegacyFactoryWithoutSaving() {
+        val note = mock<Note>()
+        whenever(note.creationDate).thenReturn(Calendar.getInstance())
+        whenever(notesBucket.newObject()).thenReturn(note)
+
+        val built = repository.noteForImport("imported text")
+
+        assertSame(note, built)
+        inOrder(notesBucket, note) {
+            verify(notesBucket).newObject()
+            verify(note).setContent("imported text")
+            verify(note).setCreationDate(any())
+            verify(note).setModificationDate(any())
+        }
+        verify(note, never()).save()
+    }
+
+    @Test
+    fun noteForImportFromExportedJsonReproducesTheLegacyFactoryWithoutSaving() {
+        val note = mock<Note>()
+        whenever(notesBucket.newObject()).thenReturn(note)
+        val exported = JSONObject()
+            .put("content", "imported")
+            .put("creationDate", "2016-03-01T17:18:39.267Z")
+            .put("lastModified", "2016-03-02T08:00:00.000Z")
+            .put("tags", JSONArray(listOf("tag1")))
+            .put("pinned", true)
+            .put("markdown", true)
+
+        val built = repository.noteForImport(exported)
+
+        assertSame(note, built)
+        inOrder(notesBucket, note) {
+            verify(notesBucket).newObject()
+            verify(note).setContent("imported")
+            verify(note).setCreationDate(any())
+            verify(note).setModificationDate(any())
+            verify(note).setTags(any<JSONArray>())
+            verify(note).setPinned(true)
+            verify(note).setMarkdownEnabled(true)
+        }
+        verify(note, never()).save()
+    }
+
+    @Test
+    fun noteForImportFromExportedJsonPropagatesAnUnparseableDate() {
+        val note = mock<Note>()
+        whenever(notesBucket.newObject()).thenReturn(note)
+        val exported = JSONObject().put("content", "imported").put("creationDate", "not a date")
+
+        assertThrows(ParseException::class.java) { repository.noteForImport(exported) }
+        verify(note, never()).save()
+    }
+
+    @Test
+    fun saveImportedNoteSavesTheNote() {
+        val note = mock<Note>()
+
+        repository.saveImportedNote(note)
+
+        verify(note).save()
     }
 
     @Test

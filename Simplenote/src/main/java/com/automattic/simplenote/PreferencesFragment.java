@@ -18,12 +18,12 @@ import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_DESCENDING
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -35,6 +35,7 @@ import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.core.app.ShareCompat;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.LifecycleOwnerKt;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
@@ -44,6 +45,8 @@ import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.authentication.SimplenoteAuthenticationActivity;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Preferences;
+import com.automattic.simplenote.repositories.NotesRepository;
+import com.automattic.simplenote.repositories.TagsRepository;
 import com.automattic.simplenote.utils.AccountNetworkUtils;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
@@ -70,9 +73,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
 /**
  * A simple {@link Fragment} subclass.
  */
+@AndroidEntryPoint
 public class PreferencesFragment extends PreferenceFragmentCompat implements User.StatusChangeListener, Simperium.OnUserCreatedListener {
     private static final int REQUEST_EXPORT_DATA = 9001;
     private static final int REQUEST_EXPORT_UNSYNCED = 9002;
@@ -81,6 +89,9 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     private Bucket<Preferences> mPreferencesBucket;
     private SwitchPreferenceCompat mAnalyticsSwitch;
     private SimplenoteProgressDialogFragment mProgressDialogFragment;
+
+    @Inject NotesRepository notesRepository;
+    @Inject TagsRepository tagsRepository;
 
     public PreferencesFragment() {
         // Required empty public constructor
@@ -121,7 +132,11 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                     Intent loginIntent = new Intent(getActivity(), SimplenoteAuthenticationActivity.class);
                     startActivityForResult(loginIntent, Simperium.SIGNUP_SIGNIN_REQUEST);
                 } else {
-                    new LogOutTask(PreferencesFragment.this).execute();
+                    PreferencesStreams.hasUnsyncedNotes(
+                            LifecycleOwnerKt.getLifecycleScope(PreferencesFragment.this),
+                            notesRepository,
+                            PreferencesFragment.this::onUnsyncedNotesChecked
+                    );
                 }
                 return true;
             }
@@ -535,18 +550,39 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         }
     }
 
-    private boolean hasUnsyncedNotes() {
-        Simplenote application = (Simplenote) getActivity().getApplication();
-        Bucket<Note> notesBucket = application.getNotesBucket();
-        Bucket.ObjectCursor<Note> notesCursor = notesBucket.allObjects();
-        while (notesCursor.moveToNext()) {
-            Note note = notesCursor.getObject();
-            if (note.isNew() || note.isModified()) {
-                return true;
-            }
+    // LogOutTask's onPostExecute: the lifecycle scope cancels this delivery when the fragment
+    // dies, which is when the legacy WeakReference guard returned early.
+    private void onUnsyncedNotesChecked(Boolean hasUnsyncedNotes) {
+        // Safety first! Check if any notes are unsynced and warn the user if so.
+        if (hasUnsyncedNotes) {
+            new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), R.style.Dialog))
+                .setTitle(R.string.unsynced_notes)
+                .setMessage(R.string.unsynced_notes_message)
+                .setPositiveButton(R.string.log_out_anyway,
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            logOut();
+                        }
+                    }
+                )
+                .setNeutralButton(R.string.export_unsynced_notes,
+                    new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                            intent.addCategory(Intent.CATEGORY_OPENABLE);
+                            intent.setType("application/json");
+                            intent.putExtra(Intent.EXTRA_TITLE, getString(R.string.export_file));
+                            startActivityForResult(intent, REQUEST_EXPORT_UNSYNCED);
+                        }
+                    }
+                )
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+        } else {
+            logOut();
         }
-
-        return false;
     }
 
     private void logOut() {
@@ -594,10 +630,19 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     }
 
     private void exportData(Uri uri, boolean isUnsyncedNotes) {
-        Simplenote currentApp = (Simplenote) requireActivity().getApplication();
-        Bucket<Note> noteBucket = currentApp.getNotesBucket();
+        // The resolver is captured while the fragment is attached; the write itself must not
+        // touch fragment lifecycle, since it completes even when the fragment dies mid-export.
+        final ContentResolver resolver = requireContext().getContentResolver();
+        PreferencesStreams.exportNotes(
+                LifecycleOwnerKt.getLifecycleScope(this),
+                notesRepository,
+                notes -> writeExportedNotes(resolver, uri, isUnsyncedNotes, notes),
+                success -> toast(success ? R.string.export_message_success : R.string.export_message_failure)
+        );
+    }
+
+    private boolean writeExportedNotes(ContentResolver resolver, Uri uri, boolean isUnsyncedNotes, List<Note> notes) {
         JSONObject account = new JSONObject();
-        Bucket.ObjectCursor<Note> cursor = noteBucket.allObjects();
 
         try {
             JSONArray activeNotes = new JSONArray();
@@ -609,9 +654,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 }
             };
 
-            while (cursor.moveToNext()) {
-                Note note = cursor.getObject();
-
+            for (Note note : notes) {
                 if (isUnsyncedNotes && !note.isNew() && !note.isModified()) {
                     continue;
                 }
@@ -651,18 +694,18 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             account.put("activeNotes", activeNotes);
             account.put("trashedNotes", trashedNotes);
 
-            ParcelFileDescriptor parcelFileDescriptor = requireContext().getContentResolver().openFileDescriptor(uri, "w");
+            ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(uri, "w");
 
             if (parcelFileDescriptor != null) {
                 FileOutputStream fileOutputStream = new FileOutputStream(parcelFileDescriptor.getFileDescriptor());
                 fileOutputStream.write(account.toString(2).replace("\\/","/").getBytes());
                 parcelFileDescriptor.close();
-                toast(R.string.export_message_success);
+                return true;
             } else {
-                toast(R.string.export_message_failure);
+                return false;
             }
         } catch (Exception e) {
-            toast(R.string.export_message_failure);
+            return false;
         }
     }
 
@@ -676,7 +719,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 return;
             }
 
-            Importer.fromUri(activity, uri);
+            Importer.fromUri(activity, uri, notesRepository, tagsRepository);
             toast(R.string.import_message_success);
 
             AppLog.add(Type.IMPORT, "Notes imported correctly!");
@@ -721,60 +764,6 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 prefs.save();
             } catch (BucketObjectNameInvalid bucketObjectNameInvalid) {
                 bucketObjectNameInvalid.printStackTrace();
-            }
-        }
-    }
-
-    private static class LogOutTask extends AsyncTask<Void, Void, Boolean> {
-        private WeakReference<PreferencesFragment> mPreferencesFragmentReference;
-
-        LogOutTask(PreferencesFragment fragment) {
-            mPreferencesFragmentReference = new WeakReference<>(fragment);
-        }
-
-        @Override
-        protected Boolean doInBackground(Void... voids) {
-            PreferencesFragment fragment = mPreferencesFragmentReference.get();
-            return fragment == null || fragment.hasUnsyncedNotes();
-        }
-
-        @Override
-        protected void onPostExecute(Boolean hasUnsyncedNotes) {
-            final PreferencesFragment fragment = mPreferencesFragmentReference.get();
-
-            if (fragment == null) {
-                return;
-            }
-
-            // Safety first! Check if any notes are unsynced and warn the user if so.
-            if (hasUnsyncedNotes) {
-                new AlertDialog.Builder(new ContextThemeWrapper(fragment.requireContext(), R.style.Dialog))
-                    .setTitle(R.string.unsynced_notes)
-                    .setMessage(R.string.unsynced_notes_message)
-                    .setPositiveButton(R.string.log_out_anyway,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                fragment.logOut();
-                            }
-                        }
-                    )
-                    .setNeutralButton(R.string.export_unsynced_notes,
-                        new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialogInterface, int i) {
-                                Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                                intent.addCategory(Intent.CATEGORY_OPENABLE);
-                                intent.setType("application/json");
-                                intent.putExtra(Intent.EXTRA_TITLE, fragment.getString(R.string.export_file));
-                                fragment.startActivityForResult(intent, REQUEST_EXPORT_UNSYNCED);
-                            }
-                        }
-                    )
-                    .setNegativeButton(R.string.cancel, null)
-                    .show();
-            } else {
-                fragment.logOut();
             }
         }
     }

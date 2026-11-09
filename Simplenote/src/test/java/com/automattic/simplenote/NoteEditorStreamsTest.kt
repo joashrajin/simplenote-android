@@ -24,6 +24,7 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
@@ -546,5 +547,11 @@ class NoteEditorStreamsTest {
         override suspend fun hasUnsyncedNotes(): Boolean = error("unused in these tests")
 
         override suspend fun allNotesForExport(): List<Note> = error("unused in these tests")
+
+        override fun noteForImport(content: String): Note = error("unused in these tests")
+
+        override fun noteForImport(exportedJson: JSONObject): Note = error("unused in these tests")
+
+        override fun saveImportedNote(note: Note) = error("unused in these tests")
     }
 }

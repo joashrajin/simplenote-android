@@ -21,13 +21,12 @@ import android.widget.RemoteViews;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.ChecklistUtils;
 import com.automattic.simplenote.utils.IntentUtils;
 import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.simperium.Simperium;
-import com.simperium.client.Bucket;
-import com.simperium.client.BucketObjectMissingException;
 import com.simperium.client.User;
 
 public class NoteWidgetDark extends AppWidgetProvider {
@@ -44,11 +43,16 @@ public class NoteWidgetDark extends AppWidgetProvider {
     }
 
     @Override
-    public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        for (int appWidgetId : appWidgetIds) {
-            Bundle appWidgetOptions = appWidgetManager.getAppWidgetOptions(appWidgetId);
-            updateWidget(context, appWidgetManager, appWidgetId, appWidgetOptions);
-        }
+    public void onUpdate(final Context context, final AppWidgetManager appWidgetManager, final int[] appWidgetIds) {
+        // The note read behind each update ran synchronously on Main; goAsync keeps the
+        // broadcast alive while the whole update runs on IO instead.
+        final PendingResult pendingResult = goAsync();
+        WidgetStreams.runAsync(pendingResult, () -> {
+            for (int appWidgetId : appWidgetIds) {
+                Bundle appWidgetOptions = appWidgetManager.getAppWidgetOptions(appWidgetId);
+                updateWidget(context, appWidgetManager, appWidgetId, appWidgetOptions);
+            }
+        });
     }
 
     @Override
@@ -126,13 +130,10 @@ public class NoteWidgetDark extends AppWidgetProvider {
             String key =  PrefUtils.getStringPref(context, PrefUtils.PREF_NOTE_WIDGET_NOTE + appWidgetId);
 
             if (!key.isEmpty()) {
-                // Get notes bucket
-                Bucket<Note> notesBucket = currentApp.getNotesBucket();
+                NotesRepository repository = WidgetStreams.notesRepository(context);
+                Note updatedNote = WidgetStreams.getNoteBlocking(repository, key);
 
-                try {
-                    // Update note
-                    Note updatedNote = notesBucket.get(key);
-
+                if (updatedNote != null) {
                     // Prepare bundle for NoteEditorActivity
                     Bundle arguments = new Bundle();
                     arguments.putBoolean(NoteEditorFragment.ARG_IS_FROM_WIDGET, true);
@@ -166,7 +167,7 @@ public class NoteWidgetDark extends AppWidgetProvider {
                             ChecklistUtils.CHECKLIST_REGEX
                     );
                     views.setTextViewText(R.id.widget_text_content, contentSpan);
-                } catch (BucketObjectMissingException e) {
+                } else {
                     // Create intent to navigate to widget configure activity on widget click
                     Intent intent = new Intent(context, NoteWidgetDarkConfigureActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);

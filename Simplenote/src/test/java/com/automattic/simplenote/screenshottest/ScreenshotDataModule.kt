@@ -1,5 +1,6 @@
 package com.automattic.simplenote.screenshottest
 
+import com.automattic.simplenote.SimperiumBuckets
 import com.automattic.simplenote.SyncTimes
 import com.automattic.simplenote.di.DataModule
 import com.automattic.simplenote.models.Note
@@ -45,7 +46,8 @@ object ScreenshotDataModule {
     fun providesAccountRepository(): AccountRepository = ScreenshotAccountRepository()
 
     // Never exercised by the screenshot surfaces; provided only to keep the object graph of the
-    // replaced module complete for bindings that inject Simperium types.
+    // replaced module complete for bindings that inject Simperium types (including the
+    // Simplenote application's own members injector, which asks for Simperium and the holder).
     @Provides
     fun providesTagsBucket(): Bucket<Tag> = mock()
 
@@ -54,6 +56,9 @@ object ScreenshotDataModule {
 
     @Provides
     fun providesSimperium(): Simperium = mock()
+
+    @Provides
+    fun providesSimperiumBuckets(): SimperiumBuckets = mock()
 
     // InfoBottomSheetDialog injects the sync-time lookup; with no Simperium session every
     // screenshot note reads as never synced.

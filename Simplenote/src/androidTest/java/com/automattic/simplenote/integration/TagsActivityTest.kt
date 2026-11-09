@@ -21,12 +21,14 @@ import com.automattic.simplenote.utils.assertToastShown
 import com.automattic.simplenote.utils.waitForItemCount
 import com.automattic.simplenote.utils.withItemCount
 import com.automattic.simplenote.utils.withRecyclerView
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.not
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@HiltAndroidTest
 @RunWith(AndroidJUnit4ClassRunner::class)
 @MediumTest
 class TagsActivityTest : BaseUITest() {

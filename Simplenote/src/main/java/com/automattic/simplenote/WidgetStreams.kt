@@ -23,8 +23,8 @@ import kotlinx.coroutines.runBlocking
  * The coroutine seam between the Java widget stack — the four AppWidgetProviders,
  * NoteListWidgetFactory, and the two configure activities — and [NotesRepository]. Providers
  * and the factory take no constructor injection, so they reach the repository through
- * [NotesRepositoryEntryPoint] at each use, which re-reads the current notes bucket the way
- * every legacy call site re-read Simplenote.getNotesBucket. Providers also have no lifecycle
+ * [NotesRepositoryEntryPoint] at each use (now a singleton over the singleton notes bucket,
+ * so each use resolves the same instance). Providers also have no lifecycle
  * or DI for a dispatcher, so [runAsync] builds its scope on [Dispatchers.IO] directly.
  */
 object WidgetStreams {

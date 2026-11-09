@@ -6,6 +6,11 @@ import androidx.annotation.StyleRes
 import androidx.fragment.app.DialogFragment
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.assertion.ViewAssertions.matches
+import androidx.test.espresso.matcher.RootMatchers.isDialog
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.isRoot
 import com.automattic.simplenote.HiltTestActivity
 import com.automattic.simplenote.R
 
@@ -25,6 +30,22 @@ inline fun <reified T : DialogFragment> launchDialogFragmentInHiltContainer(
     @StyleRes themeResId: Int = R.style.Base_Theme_Simplestyle,
     crossinline instantiate: () -> T
 ): ActivityScenario<HiltTestActivity> {
+    val activityScenario = launchHiltTestActivity(themeResId)
+    activityScenario.onActivity { activity ->
+        val fragment: DialogFragment = instantiate()
+        fragment.show(activity.supportFragmentManager.beginTransaction(), "dialog_tag")
+    }
+
+    // Wait until the dialog window has focus. Otherwise the next onView() call can pick the activity
+    // window as its root and fail with RootViewWithoutFocusException.
+    onView(isRoot()).inRoot(isDialog()).check(matches(isDisplayed()))
+
+    return activityScenario
+}
+
+fun launchHiltTestActivity(
+    @StyleRes themeResId: Int = R.style.Base_Theme_Simplestyle
+): ActivityScenario<HiltTestActivity> {
     val startActivityIntent = Intent.makeMainActivity(
         ComponentName(
             ApplicationProvider.getApplicationContext(),
@@ -35,11 +56,5 @@ inline fun <reified T : DialogFragment> launchDialogFragmentInHiltContainer(
         themeResId
     )
 
-    val activityScenario: ActivityScenario<HiltTestActivity> = ActivityScenario.launch(startActivityIntent)
-    activityScenario.onActivity { activity ->
-        val fragment: DialogFragment = instantiate()
-        fragment.show(activity.supportFragmentManager.beginTransaction(), "dialog_tag")
-    }
-
-    return activityScenario
+    return ActivityScenario.launch(startActivityIntent)
 }

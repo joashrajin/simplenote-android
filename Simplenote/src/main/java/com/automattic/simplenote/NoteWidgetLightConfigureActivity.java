@@ -206,9 +206,12 @@ public class NoteWidgetLightConfigureActivity extends AppCompatActivity {
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     PendingIntent pendingIntent = PendingIntent.getActivity(context, mAppWidgetId, intent, PendingIntent.FLAG_IMMUTABLE);
 
-                    // Remove title from content
+                    // Body is everything after the title line; title text is never searched for
                     String title = note.getTitle();
-                    String content = NoteUtils.getContentWithoutTitle(note.getContent(), title);
+                    String content = note.getContentAfterTitleLine();
+                    if (content.startsWith(Note.NEW_LINE)) {
+                        content = content.substring(1);
+                    }
 
                     // Set widget content
                     mRemoteViews.setOnClickPendingIntent(R.id.widget_layout, pendingIntent);

@@ -1,5 +1,18 @@
+2.40
+-----
+* Fixed the note share sheet missing installed apps (e.g. Gmail, WhatsApp) by launching the system share sheet [#1578](https://github.com/Automattic/simplenote-android/issues/1578)
+* Fixed markdown headings showing their "#" marker in the note list title [#1878](https://github.com/Automattic/simplenote-android/issues/1878)
+* Fixed the Markdown preview of notes edited in the desktop apps, where text after a code block or a table did not render correctly [#1877](https://github.com/Automattic/simplenote-android/issues/1877)
+* Fixed a crash when using the back gesture after closing the account verification screen on Android 16 and later [#1897](https://github.com/Automattic/simplenote-android/issues/1897)
+
 2.39
 -----
+* Unlocked all styles, including the pure-black AMOLED style, for everyone now that Simplenote Sustainer is discontinued [#1771](https://github.com/Automattic/simplenote-android/issues/1771) [#1661](https://github.com/Automattic/simplenote-android/issues/1661)
+* Added search to the Collaborators screen [#1764](https://github.com/Automattic/simplenote-android/pull/1764)
+* Improved typing responsiveness when editing very large notes [#1857](https://github.com/Automattic/simplenote-android/pull/1857)
+* Updated the app for Android 16, including support for the predictive back gesture [#1873](https://github.com/Automattic/simplenote-android/pull/1873)
+* Fixed autocorrect not being applied in the editor on Samsung devices [#1841](https://github.com/Automattic/simplenote-android/pull/1841)
+* Fixed the History and Share sheets not opening again after being closed, and appearing unexpectedly when returning to the note [#1765](https://github.com/Automattic/simplenote-android/issues/1765)
 * Updated Android backup rules to exclude the pending Tracks delivery queue [#14](https://github.com/joashrajin/simplenote-android/pull/14)
 * Retired the legacy Android Wear companion app [#15](https://github.com/joashrajin/simplenote-android/pull/15)
 * WordPress publishing authorization is no longer restored through Android backup or device transfer; restored users reconnect WordPress publishing [#16](https://github.com/joashrajin/simplenote-android/pull/16)

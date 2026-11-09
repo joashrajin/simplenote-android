@@ -1,5 +1,6 @@
 package com.automattic.simplenote
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -22,5 +23,15 @@ class NoteMarkdownFragmentTest {
         assertTrue(html.contains("<meta name=\"viewport\""))
         assertTrue(html.contains(css))
         assertTrue(html.contains("<h1>Local heading</h1>"))
+    }
+
+    @Test
+    fun `crlf and lf notes render identically`() {
+        val lf = "```\ncode\n```\n\ntext after"
+        val crlf = lf.replace("\n", "\r\n")
+        assertEquals(
+            NoteMarkdownFragment.getMarkdownFormattedContent("", lf),
+            NoteMarkdownFragment.getMarkdownFormattedContent("", crlf)
+        )
     }
 }

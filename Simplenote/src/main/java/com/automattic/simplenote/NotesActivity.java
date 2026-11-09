@@ -52,6 +52,7 @@ import android.widget.ListView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.DrawableRes;
 import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
@@ -410,14 +411,12 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         }
     }
 
-    @Override
-    public void onBackPressed() {
-        if (mDrawerLayout != null && mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+    private final OnBackPressedCallback mCloseDrawerOnBack = new OnBackPressedCallback(false) {
+        @Override
+        public void handleOnBackPressed() {
             mDrawerLayout.closeDrawer(GravityCompat.START);
-        } else {
-            super.onBackPressed();
         }
-    }
+    };
 
     @Override
     public void onActionModeCreated() {
@@ -508,6 +507,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         mDrawerToggle = new ActionBarDrawerToggle(this, mDrawerLayout, toolbar, R.string.open_drawer,
             R.string.close_drawer) {
             public void onDrawerClosed(View view) {
+                mCloseDrawerOnBack.setEnabled(false);
                 supportInvalidateOptionsMenu();
 
                 if (mIsSettingsClicked) {
@@ -518,7 +518,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             }
 
             public void onDrawerOpened(View drawerView) {
-                // noop
+                mCloseDrawerOnBack.setEnabled(true);
             }
 
             @Override
@@ -1460,6 +1460,11 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         super.onPostCreate(savedInstanceState);
         // Sync the toggle state after onRestoreInstanceState has occurred.
         mDrawerToggle.syncState();
+        // onDrawerOpened() does not fire for a drawer restored as open, so sync the callback too.
+        mCloseDrawerOnBack.setEnabled(mDrawerLayout.isDrawerOpen(GravityCompat.START));
+        // Registered here, after the fragments are attached, so an open drawer still wins over any
+        // back-stack callback they add. The dispatcher gives precedence to whatever is added last.
+        getOnBackPressedDispatcher().addCallback(this, mCloseDrawerOnBack);
     }
 
     @Override

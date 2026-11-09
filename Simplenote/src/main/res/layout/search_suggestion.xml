@@ -31,7 +31,7 @@
         android:layout_width="0dp"
         android:paddingBottom="@dimen/padding_medium"
         android:paddingTop="@dimen/padding_medium"
-        android:textColor="?attr/noteTitleColor"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="@dimen/text_suggestion"
         tools:text="tag:work"
         style="?android:attr/textAppearanceMedium">

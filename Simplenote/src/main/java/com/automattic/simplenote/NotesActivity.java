@@ -454,7 +454,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
         int[] colors = new int[] {
             getResources().getColor(R.color.text_title_disabled, getTheme()),
             ThemeUtils.getColorFromAttribute(NotesActivity.this, R.attr.colorAccent),
-            ThemeUtils.getColorFromAttribute(NotesActivity.this, R.attr.noteTitleColor)
+            ThemeUtils.getColorFromAttribute(NotesActivity.this, R.attr.colorOnSurface)
         };
 
         return new ColorStateList(states, colors);

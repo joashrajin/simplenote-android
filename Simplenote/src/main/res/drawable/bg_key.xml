@@ -8,7 +8,7 @@
     </corners>
 
     <solid
-        android:color="?attr/keyBackgroundColor">
+        android:color="?attr/colorSurfaceContainerHigh">
     </solid>
 
 </shape>

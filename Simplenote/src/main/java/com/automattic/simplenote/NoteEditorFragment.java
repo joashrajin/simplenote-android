@@ -14,7 +14,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.database.Cursor;
 import android.graphics.Typeface;
@@ -338,13 +337,13 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
 
         mNoteEditorStreams = new NoteEditorStreams(notesRepository, LifecycleOwnerKt.getLifecycleScope(this));
 
-        mCallIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_call_white_24dp, R.attr.actionModeTextColor);
-        mEmailIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_email_24dp, R.attr.actionModeTextColor);
-        mLinkIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_note_24dp, R.attr.actionModeTextColor);
-        mMapIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_map_24dp, R.attr.actionModeTextColor);
-        mBrowserIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_browser_24dp, R.attr.actionModeTextColor);
-        mCopyIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_copy_24dp, R.attr.actionModeTextColor);
-        mShareIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_share_24dp, R.attr.actionModeTextColor);
+        mCallIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_call_white_24dp, R.attr.colorPrimary);
+        mEmailIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_email_24dp, R.attr.colorPrimary);
+        mLinkIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_note_24dp, R.attr.colorPrimary);
+        mMapIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_map_24dp, R.attr.colorPrimary);
+        mBrowserIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_browser_24dp, R.attr.colorPrimary);
+        mCopyIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_copy_24dp, R.attr.colorPrimary);
+        mShareIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_share_24dp, R.attr.colorPrimary);
 
         mAutoSaveHandler = new Handler();
         mPublishTimeoutHandler = new Handler();
@@ -1883,20 +1882,6 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         }
     }
 
-    private ColorStateList getChipBackgroundColor() {
-        int[][] states = new int[][] {
-            new int[] { android.R.attr.state_checked}, // checked
-            new int[] {-android.R.attr.state_checked}  // unchecked
-        };
-
-        int[] colors = new int[] {
-            ThemeUtils.getColorFromAttribute(requireContext(), R.attr.chipCheckedOnBackgroundColor),
-            ThemeUtils.getColorFromAttribute(requireContext(), R.attr.chipCheckedOffBackgroundColor)
-        };
-
-        return new ColorStateList(states, colors);
-    }
-
     private void setChips(List<String> tags) {
         mTagPadding.setVisibility(tags.size() > 0 ? View.VISIBLE : View.GONE);
         mTagChips.setVisibility(tags.size() > 0 ? View.VISIBLE : View.GONE);
@@ -1904,12 +1889,10 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         mTagChips.removeAllViews();
 
         for (String tag : tags) {
-            final Chip chip = new Chip(requireContext());
+            final Chip chip = (Chip) getLayoutInflater().inflate(R.layout.tag_chip, mTagChips, false);
             chip.setText(tag);
-            chip.setCheckable(true);
             chip.setCheckedIcon(null);
-            chip.setChipBackgroundColor(getChipBackgroundColor());
-            chip.setTextColor(ThemeUtils.getColorFromAttribute(requireContext(), R.attr.chipTextColor));
+            chip.setCloseIconVisible(false);
             chip.setStateListAnimator(null);
             chip.setOnCheckedChangeListener((buttonView, isChecked) -> chip.setCloseIconVisible(isChecked));
             chip.setOnCloseIconClickListener(view -> {

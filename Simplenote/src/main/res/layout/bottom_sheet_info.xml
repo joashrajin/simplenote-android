@@ -137,7 +137,7 @@
 
             <View
                 android:id="@+id/divider"
-                android:background="?attr/simplenoteDividerColor"
+                android:background="?attr/colorOutlineVariant"
                 android:layout_height="1dp"
                 android:layout_width="match_parent">
             </View>
@@ -149,7 +149,7 @@
                 android:minHeight="@dimen/bottom_sheet_row_height"
                 android:padding="@dimen/padding_large"
                 android:text="@string/references"
-                android:textColor="?attr/notePreviewColor"
+                android:textColor="?attr/colorOnSurfaceVariant"
                 android:textSize="@dimen/text_bottom_sheet">
             </com.automattic.simplenote.widgets.RobotoRegularTextView>
 

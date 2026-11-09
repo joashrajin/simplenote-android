@@ -20,7 +20,7 @@
         android:layout_width="match_parent"
         android:lines="1"
         android:singleLine="true"
-        android:textColor="?attr/noteTitleColor"
+        android:textColor="?attr/colorOnSurface"
         android:textSize="@dimen/text_content_title"
         tools:text="Internote Link References">
     </com.automattic.simplenote.widgets.RobotoMediumTextView>
@@ -35,7 +35,7 @@
         android:layout_marginTop="@dimen/padding_extra_extra_small"
         android:layout_width="match_parent"
         android:maxLines="1"
-        android:textColor="?attr/notePreviewColor"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:textSize="@dimen/text_content"
         tools:text="5 References, Last modified 08/24/2020">
     </TextView>

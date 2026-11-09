@@ -181,7 +181,7 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         mCallbacks.onActionModeCreated();
         MenuInflater inflater = actionMode.getMenuInflater();
         inflater.inflate(R.menu.bulk_edit, menu);
-        DrawableUtils.tintMenuWithAttribute(getActivity(), menu, R.attr.actionModeTextColor);
+        DrawableUtils.tintMenuWithAttribute(getActivity(), menu, R.attr.colorPrimary);
         mActionMode = actionMode;
         return true;
     }

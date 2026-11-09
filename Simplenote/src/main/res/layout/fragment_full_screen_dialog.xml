@@ -11,7 +11,7 @@
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/full_screen_dialog_fragment_toolbar"
-        android:background="?attr/toolbarColor"
+        android:background="?attr/colorSurfaceContainerLow"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         android:theme="@style/Widget.AppCompat.SearchView.ActionBar"

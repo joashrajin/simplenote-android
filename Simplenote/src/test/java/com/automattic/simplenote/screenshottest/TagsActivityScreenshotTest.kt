@@ -38,6 +38,17 @@ class TagsActivityScreenshotTest {
     @Config(qualifiers = ScreenshotHarness.NIGHT)
     fun darkBlack() = capture(AppStyle.BLACK, darkMode = true, goldenName = "tags_activity_dark_black")
 
+    // Matrix and Sepia night record the accepted attr-retirement deltas: their top bars moved off
+    // the per-style toolbarColor values onto colorSurfaceContainerLow, which the drawer already
+    // owns (Matrix #000000 -> #121416, Sepia #2d2b29 -> #23211f).
+    @Test
+    @Config(qualifiers = ScreenshotHarness.NIGHT)
+    fun darkMatrix() = capture(AppStyle.MATRIX, darkMode = true, goldenName = "tags_activity_dark_matrix")
+
+    @Test
+    @Config(qualifiers = ScreenshotHarness.NIGHT)
+    fun darkSepia() = capture(AppStyle.SEPIA, darkMode = true, goldenName = "tags_activity_dark_sepia")
+
     private fun capture(style: AppStyle, darkMode: Boolean, goldenName: String) {
         ScreenshotHarness.launchSettled(TagsActivity::class.java, style, darkMode).use { scenario ->
             scenario.onActivity { activity ->

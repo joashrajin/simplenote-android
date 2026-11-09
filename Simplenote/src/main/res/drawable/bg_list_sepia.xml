@@ -6,7 +6,7 @@
 
     <item
         android:id="@android:id/mask"
-        android:drawable="?attr/mainBackgroundColor">
+        android:drawable="?attr/colorSurface">
     </item>
 
     <item>

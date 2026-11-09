@@ -208,7 +208,7 @@ public class WordPressDialogFragment extends AppCompatDialogFragment {
                 Spanned rowText = Html.fromHtml(String.format(
                         Locale.ENGLISH,
                         "%s<br/><small><span style=\"color:#" +
-                        Integer.toHexString(DrawableUtils.getColor(requireContext(), R.attr.notePreviewColor) & 0xffffff) +
+                        Integer.toHexString(DrawableUtils.getColor(requireContext(), R.attr.colorOnSurfaceVariant) & 0xffffff) +
                         "\">%s</span></small>",
                         site.getString(API_FIELD_NAME),
                         site.getString(API_FIELD_URL)

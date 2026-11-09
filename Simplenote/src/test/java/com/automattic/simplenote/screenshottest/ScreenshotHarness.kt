@@ -73,7 +73,6 @@ object ScreenshotHarness {
     fun applyStyle(style: AppStyle, darkMode: Boolean) {
         val context = ApplicationProvider.getApplicationContext<Context>()
         PreferenceManager.getDefaultSharedPreferences(context).edit()
-            .putBoolean(PrefUtils.PREF_PREMIUM, true)
             .putInt(PrefUtils.PREF_STYLE_INDEX, style.prefIndex)
             .putString(PrefUtils.PREF_THEME, if (darkMode) THEME_DARK else THEME_LIGHT)
             .commit()

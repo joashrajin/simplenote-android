@@ -44,7 +44,7 @@ class ScreenshotTagsRepository : TagsRepository {
 
 class ScreenshotCollaboratorsRepository : CollaboratorsRepository {
     override fun isValidCollaborator(collaborator: String): Boolean = false
-    override suspend fun getCollaborators(noteId: String): CollaboratorsActionResult =
+    override suspend fun getCollaborators(noteId: String, query: String?): CollaboratorsActionResult =
         CollaboratorsActionResult.CollaboratorsList(emptyList())
 
     override suspend fun addCollaborator(noteId: String, collaborator: String): CollaboratorsActionResult =

@@ -24,10 +24,11 @@ import android.widget.RemoteViews;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
+import com.automattic.simplenote.repositories.NoteQueryResult;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.simperium.Simperium;
-import com.simperium.client.Bucket;
-import com.simperium.client.Query;
+import com.simperium.client.Bucket.ObjectCursor;
 import com.simperium.client.User;
 
 public class NoteListWidgetDark extends AppWidgetProvider {
@@ -82,11 +83,16 @@ public class NoteListWidgetDark extends AppWidgetProvider {
     }
 
     @Override
-    public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-        for (int appWidgetId : appWidgetIds) {
-            Bundle appWidgetOptions = appWidgetManager.getAppWidgetOptions(appWidgetId);
-            updateWidget(context, appWidgetManager, appWidgetId, appWidgetOptions);
-        }
+    public void onUpdate(final Context context, final AppWidgetManager appWidgetManager, final int[] appWidgetIds) {
+        // The note-count query behind each update ran synchronously on Main; goAsync keeps the
+        // broadcast alive while the whole update runs on IO instead.
+        final PendingResult pendingResult = goAsync();
+        WidgetStreams.runAsync(pendingResult, () -> {
+            for (int appWidgetId : appWidgetIds) {
+                Bundle appWidgetOptions = appWidgetManager.getAppWidgetOptions(appWidgetId);
+                updateWidget(context, appWidgetManager, appWidgetId, appWidgetOptions);
+            }
+        });
     }
 
     private void resizeWidget(Context context, Bundle appWidgetOptions, RemoteViews views) {
@@ -130,11 +136,21 @@ public class NoteListWidgetDark extends AppWidgetProvider {
             views.setViewVisibility(R.id.widget_list, View.GONE);
             views.setViewVisibility(R.id.widget_button, View.GONE);
         } else {
-            Bucket<Note> notesBucket = currentApp.getNotesBucket();
-            Query<Note> query = Note.all(notesBucket);
-            query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
-            PrefUtils.sortNoteQuery(query, context, true);
-            if (query.count() > 0) {
+            NotesRepository repository = WidgetStreams.notesRepository(context);
+            NoteQueryResult result =
+                WidgetStreams.searchBlocking(repository, WidgetStreams.widgetListRequest(context));
+            boolean hasNotes = false;
+
+            if (result instanceof NoteQueryResult.Notes) {
+                ObjectCursor<Note> cursor = ((NoteQueryResult.Notes) result).getCursor();
+                try {
+                    hasNotes = cursor.getCount() > 0;
+                } finally {
+                    cursor.close();
+                }
+            }
+
+            if (hasNotes) {
                 // Create intent to navigate to notes activity on widget click while loading
                 views.setOnClickPendingIntent(
                     R.id.widget_layout,

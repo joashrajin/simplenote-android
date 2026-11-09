@@ -31,22 +31,30 @@ import androidx.preference.PreferenceManager;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
+import com.automattic.simplenote.repositories.NoteQueryResult;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.ChecklistUtils;
 import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.ThemeUtils;
 import com.simperium.Simperium;
-import com.simperium.client.Bucket;
 import com.simperium.client.Bucket.ObjectCursor;
-import com.simperium.client.Query;
 import com.simperium.client.User;
 
+import javax.inject.Inject;
+
+import dagger.hilt.android.AndroidEntryPoint;
+
+@AndroidEntryPoint
 public class NoteWidgetDarkConfigureActivity extends AppCompatActivity {
     private AppWidgetManager mWidgetManager;
     private NotesCursorAdapter mNotesAdapter;
+    private ObjectCursor<Note> mDialogCursor;
     private RemoteViews mRemoteViews;
-    private Simplenote mApplication;
     private int mAppWidgetId = AppWidgetManager.INVALID_APPWIDGET_ID;
+
+    @Inject NotesRepository notesRepository;
+    @Inject Simperium simperium;
 
     public NoteWidgetDarkConfigureActivity() {
         super();
@@ -63,8 +71,6 @@ public class NoteWidgetDarkConfigureActivity extends AppCompatActivity {
         setContentView(R.layout.note_widget_configure);
 
         // Verify user authentication.
-        mApplication = (Simplenote) getApplicationContext();
-        Simperium simperium = mApplication.getSimperium();
         User user = simperium.getUser();
 
         if (user.getStatus().equals(User.Status.NOT_AUTHORIZED)) {
@@ -99,12 +105,30 @@ public class NoteWidgetDarkConfigureActivity extends AppCompatActivity {
         }
     }
 
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        // The dialog's CursorAdapter never closes its cursor, which leaked on every configure
+        // pass; the activity owns the cursor from delivery until here.
+        if (mDialogCursor != null) {
+            mDialogCursor.close();
+            mDialogCursor = null;
+        }
+    }
+
     private void showDialog() {
-        Bucket<Note> mNotesBucket = mApplication.getNotesBucket();
-        Query<Note> query = Note.all(mNotesBucket);
-        query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
-        PrefUtils.sortNoteQuery(query, NoteWidgetDarkConfigureActivity.this, true);
-        ObjectCursor<Note> cursor = query.execute();
+        WidgetStreams.search(this, notesRepository, WidgetStreams.widgetListRequest(this), result -> {
+            if (result instanceof NoteQueryResult.Notes) {
+                showDialog(((NoteQueryResult.Notes) result).getCursor());
+            } else {
+                finish();
+            }
+        });
+    }
+
+    private void showDialog(ObjectCursor<Note> cursor) {
+        mDialogCursor = cursor;
 
         Context context = new ContextThemeWrapper(NoteWidgetDarkConfigureActivity.this, PrefUtils.getStyleWidgetDialog(NoteWidgetDarkConfigureActivity.this));
         AlertDialog.Builder builder = new AlertDialog.Builder(context);

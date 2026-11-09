@@ -10,10 +10,11 @@ import android.widget.RemoteViewsService.RemoteViewsFactory;
 import androidx.annotation.LayoutRes;
 
 import com.automattic.simplenote.models.Note;
+import com.automattic.simplenote.repositories.NoteQueryResult;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.ChecklistUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.simperium.client.Bucket;
-import com.simperium.client.Query;
 
 import static com.automattic.simplenote.analytics.AnalyticsTracker.Stat.NOTE_LIST_WIDGET_NOTE_TAPPED;
 import static com.automattic.simplenote.utils.WidgetUtils.KEY_LIST_WIDGET_CLICK;
@@ -107,11 +108,11 @@ public class NoteListWidgetFactory implements RemoteViewsFactory {
             mCursor.close();
         }
 
-        Bucket<Note> notesBucket = ((Simplenote) mContext.getApplicationContext()).getNotesBucket();
-        Query<Note> query = Note.all(notesBucket);
-        query.include(Note.TITLE_INDEX_NAME, Note.CONTENT_PREVIEW_INDEX_NAME);
-        PrefUtils.sortNoteQuery(query, mContext, true);
-        mCursor = query.execute();
+        // RemoteViewsService delivers onDataSetChanged on a binder thread, never Main, which is
+        // what lets the blocking bridge stand in for the legacy synchronous query.
+        NotesRepository repository = WidgetStreams.notesRepository(mContext);
+        NoteQueryResult result = WidgetStreams.searchBlocking(repository, WidgetStreams.widgetListRequest(mContext));
+        mCursor = result instanceof NoteQueryResult.Notes ? ((NoteQueryResult.Notes) result).getCursor() : null;
     }
 
     @Override

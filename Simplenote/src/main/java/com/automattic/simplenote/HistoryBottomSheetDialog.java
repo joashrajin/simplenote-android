@@ -15,16 +15,13 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 
 import com.automattic.simplenote.models.Note;
+import com.automattic.simplenote.repositories.RevisionsResult;
 import com.automattic.simplenote.utils.DateTimeUtils;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
-import com.simperium.client.Bucket;
-
-import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Map;
 
 public class HistoryBottomSheetDialog extends BottomSheetDialogBase {
     public static final String TAG = HistoryBottomSheetDialog.class.getSimpleName();
@@ -41,44 +38,6 @@ public class HistoryBottomSheetDialog extends BottomSheetDialogBase {
     private View mProgressBar;
     private View mSliderView;
     private boolean mDidTapButton;
-    private final Bucket.RevisionsRequestCallbacks<Note> mRevisionsRequestCallbacks = new
-            Bucket.RevisionsRequestCallbacks<Note>() {
-                // Note: These callbacks won't be running on the main thread
-                @Override
-                public void onComplete(Map<Integer, Note> revisionsMap) {
-                    if (!mFragment.isAdded() || mNote == null) {
-                        return;
-                    }
-
-                    // Convert map to an array list, to work better with the 0-index based seekbar
-                    mNoteRevisionsList = new ArrayList<>(revisionsMap.values());
-                    mFragment.requireActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            updateProgressBar();
-                        }
-                    });
-                }
-
-                @Override
-                public void onRevision(String key, int version, JSONObject object) {
-                }
-
-                @Override
-                public void onError(Throwable exception) {
-                    if (!mFragment.isAdded() || getDialog() != null && !getDialog().isShowing()) {
-                        return;
-                    }
-
-                    mFragment.requireActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            mProgressBar.setVisibility(View.GONE);
-                            mErrorText.setVisibility(View.VISIBLE);
-                        }
-                    });
-                }
-            };
 
     public HistoryBottomSheetDialog(@NonNull final Fragment fragment, @NonNull final HistorySheetListener historySheetListener) {
         mFragment = fragment;
@@ -205,8 +164,23 @@ public class HistoryBottomSheetDialog extends BottomSheetDialogBase {
         }
     }
 
-    public Bucket.RevisionsRequestCallbacks<Note> getRevisionsRequestCallbacks() {
-        return mRevisionsRequestCallbacks;
+    public void onRevisionsResult(RevisionsResult result) {
+        if (result instanceof RevisionsResult.Success) {
+            if (!mFragment.isAdded() || mNote == null) {
+                return;
+            }
+
+            // Copy into an array list, to work better with the 0-index based seekbar
+            mNoteRevisionsList = new ArrayList<>(((RevisionsResult.Success) result).getRevisions());
+            updateProgressBar();
+        } else {
+            if (!mFragment.isAdded() || getDialog() != null && !getDialog().isShowing()) {
+                return;
+            }
+
+            mProgressBar.setVisibility(View.GONE);
+            mErrorText.setVisibility(View.VISIBLE);
+        }
     }
 
     private void setProgressBar() {

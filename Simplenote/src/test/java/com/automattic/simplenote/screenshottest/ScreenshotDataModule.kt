@@ -1,5 +1,6 @@
 package com.automattic.simplenote.screenshottest
 
+import com.automattic.simplenote.SyncTimes
 import com.automattic.simplenote.di.DataModule
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Tag
@@ -49,4 +50,9 @@ object ScreenshotDataModule {
 
     @Provides
     fun providesSimperium(): Simperium = mock()
+
+    // InfoBottomSheetDialog injects the sync-time lookup; with no Simperium session every
+    // screenshot note reads as never synced.
+    @Provides
+    fun providesNoteSyncTimes(): SyncTimes<Note> = SyncTimes(emptyMap())
 }

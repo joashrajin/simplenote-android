@@ -68,7 +68,9 @@ import androidx.preference.PreferenceManager;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Tag;
+import com.automattic.simplenote.repositories.NoteQueryResult;
 import com.automattic.simplenote.repositories.NotesRepository;
+import com.automattic.simplenote.search.SortOrder;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
 import com.automattic.simplenote.utils.AutoBullet;
@@ -99,14 +101,14 @@ import com.simperium.client.Query;
 
 import java.util.Calendar;
 import java.util.List;
-import java.util.Set;
 
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
-public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note>,
+public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdateObjectListener<Note>,
+        NoteEditorStreams.ChangeListener,
         TextWatcher, OnTagAddedListener, View.OnFocusChangeListener,
         SimplenoteEditText.OnSelectionChangedListener,
         ShareBottomSheetDialog.ShareSheetListener,
@@ -410,14 +412,15 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
                     return null;
                 }
 
-                Simplenote application = (Simplenote) mActivity.getApplication();
-                Query<Note> query = application.getNotesBucket().query();
-                query.include(Note.PINNED_INDEX_NAME);
-                query.include(Note.TITLE_INDEX_NAME);
-                query.where(Note.DELETED_PROPERTY, Query.ComparisonType.NOT_EQUAL_TO, true);
-                query.where(Note.TITLE_INDEX_NAME, Query.ComparisonType.LIKE, String.format("%%%s%%", filter));
-                PrefUtils.sortNoteQuery(query, requireContext(), true);
-                Cursor cursor = query.execute();
+                SortOrder sortOrder = SortOrder.Companion.fromPreference(
+                        PrefUtils.getIntPref(requireContext(), PrefUtils.PREF_SORT_ORDER));
+                NoteQueryResult result = mNoteEditorStreams.interlinkSuggestions(filter.toString(), sortOrder);
+
+                if (!(result instanceof NoteQueryResult.Notes)) {
+                    return null;
+                }
+
+                Cursor cursor = ((NoteQueryResult.Notes) result).getCursor();
 
                 final int heightAutocomplete = DisplayUtils.dpToPx(requireContext(), cursor.getCount() * 48);
                 final int heightDisplay = DisplayUtils.getDisplayPixelSize(requireContext()).y;
@@ -661,7 +664,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
         super.onResume();
         checkWebView();
         mIsPaused = false;
-        mNotesBucket.addListener(this);
+        mNoteEditorStreams.startChangeCollection(this);
+        mNotesBucket.addOnBeforeUpdateObjectListener(this);
         AppLog.add(Type.SYNC, "Added note bucket listener (NoteEditorFragment)");
         mTagInput.setOnTagAddedListener(this);
 
@@ -728,7 +732,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
     @Override
     public void onDestroy() {
         super.onDestroy();
-        mNotesBucket.removeListener(this);
+        mNoteEditorStreams.stopChangeCollection();
+        mNotesBucket.removeOnBeforeUpdateObjectListener(this);
         AppLog.add(Type.SYNC, "Removed note bucket listener (NoteEditorFragment)");
         AppLog.add(Type.SCREEN, "Destroyed (NoteEditorFragment)");
     }
@@ -1586,11 +1591,16 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
 
     private void setPublishedNote(boolean isPublished) {
         if (mNote != null) {
-            mNote.setPublished(isPublished);
-            mNote.save();
+            mNoteEditorStreams.setPublished(mNote.getSimperiumKey(), isPublished, refreshed -> {
+                if (refreshed != null) {
+                    mNote = refreshed;
+                }
 
-            // reset publish status in 20 seconds if we don't hear back from Simperium
-            mPublishTimeoutHandler.postDelayed(mPublishTimeoutRunnable, PUBLISH_TIMEOUT);
+                // reset publish status in 20 seconds if we don't hear back from Simperium
+                if (mPublishTimeoutHandler != null) {
+                    mPublishTimeoutHandler.postDelayed(mPublishTimeoutRunnable, PUBLISH_TIMEOUT);
+                }
+            });
 
             AnalyticsTracker.track(
                 isPublished ? EDITOR_NOTE_PUBLISHED : EDITOR_NOTE_UNPUBLISHED,
@@ -1717,45 +1727,36 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
     private void showHistorySheet() {
         if (isAdded() && mHistoryBottomSheet != null && !mHistoryBottomSheet.isAdded()) {
             // Request revisions for the current note
-            mNotesBucket.getRevisions(mNote, MAX_REVISIONS, mHistoryBottomSheet.getRevisionsRequestCallbacks());
+            mNoteEditorStreams.getRevisions(mNote.getSimperiumKey(), MAX_REVISIONS,
+                    mHistoryBottomSheet::onRevisionsResult);
             saveNote();
 
             mHistoryBottomSheet.show(requireFragmentManager(), mNote);
         }
     }
 
+    /* Note change stream, collected on Main by NoteEditorStreams */
     @Override
-    public void onDeleteObject(Bucket<Note> noteBucket, Note note) {
+    public String currentNoteKey() {
+        return mNote == null ? null : mNote.getSimperiumKey();
     }
 
+    // the open note changed on the network, apply the refreshed copy
     @Override
-    public void onNetworkChange(Bucket<Note> noteBucket, Bucket.ChangeType changeType, final String key) {
-        if (changeType == Bucket.ChangeType.MODIFY) {
-            if (getNote() != null && getNote().getSimperiumKey().equals(key)) {
-                try {
-                    final Note updatedNote = noteBucket.get(key);
-
-                    if (getActivity() != null) {
-                        getActivity().runOnUiThread(() -> {
-                            if (mPublishTimeoutHandler != null) {
-                                mPublishTimeoutHandler.removeCallbacks(mPublishTimeoutRunnable);
-                            }
-
-                            updateNote(updatedNote);
-                            updatePublishedState(true);
-                        });
-                    }
-                } catch (BucketObjectMissingException e) {
-                    e.printStackTrace();
-                }
-            }
+    public void onNoteModifiedRemotely(@NonNull Note updatedNote) {
+        if (mPublishTimeoutHandler != null) {
+            mPublishTimeoutHandler.removeCallbacks(mPublishTimeoutRunnable);
         }
+
+        updateNote(updatedNote);
+        updatePublishedState(true);
     }
 
     @Override
-    public void onSaveObject(Bucket<Note> noteBucket, Note note) {
+    public void onNoteSaved(@NonNull Note note) {
         if (mIsPaused) {
-            mNotesBucket.removeListener(this);
+            mNoteEditorStreams.stopChangeCollection();
+            mNotesBucket.removeOnBeforeUpdateObjectListener(this);
             AppLog.add(Type.SYNC, "Removed note bucket listener (NoteEditorFragment)");
         }
 
@@ -1779,16 +1780,6 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
             return;
 
         note.setContent(mContentEditText.getPlainTextContent());
-    }
-
-    @Override
-    public void onLocalQueueChange(Bucket<Note> bucket, Set<String> queuedObjects) {
-
-    }
-
-    @Override
-    public void onSyncObject(Bucket<Note> bucket, String key) {
-
     }
 
     private void loadNote(String noteID) {

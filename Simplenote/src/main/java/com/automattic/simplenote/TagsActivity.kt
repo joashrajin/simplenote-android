@@ -137,9 +137,9 @@ class TagsActivity : ThemedAppCompatActivity() {
     private fun ActivityTagsBinding.startAddTagActivity() {
         val intent = Intent(this@TagsActivity, AddTagActivity::class.java)
         intent.putExtra(MorphSetup.EXTRA_SHARED_ELEMENT_COLOR_END,
-            ThemeUtils.getColorFromAttribute(this@TagsActivity, R.attr.drawerBackgroundColor))
+            ThemeUtils.getColorFromAttribute(this@TagsActivity, R.attr.colorSurface))
         intent.putExtra(MorphSetup.EXTRA_SHARED_ELEMENT_COLOR_START,
-            ThemeUtils.getColorFromAttribute(this@TagsActivity, R.attr.fabColor))
+            ThemeUtils.getColorFromAttribute(this@TagsActivity, R.attr.colorPrimary))
         val options = ActivityOptions.makeSceneTransitionAnimation(this@TagsActivity, buttonAdd, "shared_button")
         startActivityForResult(intent, REQUEST_ADD_TAG, options.toBundle())
     }

@@ -8,7 +8,7 @@
 
     <color name="sn_primary">@color/item_default_light</color>
     <color name="sn_on_primary">@android:color/white</color>
-    <color name="sn_secondary_container">@color/gray_10</color>
+    <color name="sn_secondary_container">@color/background_light_highlight</color>
     <color name="sn_surface">@color/background_light</color>
     <color name="sn_surface_container">@color/background_light</color>
     <color name="sn_surface_container_low">@color/background_light</color>
@@ -16,6 +16,8 @@
     <color name="sn_surface_container_highest">@color/gray_10</color>
     <color name="sn_on_surface">@color/text_title_light</color>
     <color name="sn_on_surface_variant">@color/text_content_light</color>
+    <!-- colorOnSurface (gray_80) at the 38% alpha the M2 outlined text field stroke resolves. -->
+    <color name="sn_outline">#612c3338</color>
     <color name="sn_outline_variant">@color/divider_light</color>
 
 </resources>

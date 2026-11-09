@@ -20,12 +20,11 @@
         />
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/confirmation_code_input_layout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_margin="@dimen/margin_default_quarter"
         android:hint="@string/magic_link_code_hint"
-        android:theme="@style/TextInput"
         app:errorEnabled="true">
 
         <com.google.android.material.textfield.TextInputEditText
@@ -36,9 +35,9 @@
 
     </com.google.android.material.textfield.TextInputLayout>
 
-    <androidx.appcompat.widget.AppCompatButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/confirmation_code_button"
-        style="@style/Widget.AppCompat.Button"
+        style="@style/Widget.Material3.Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="@dimen/margin_default_quarter"
@@ -56,13 +55,12 @@
         android:layout_marginVertical="10dp"
         />
 
-    <androidx.appcompat.widget.AppCompatButton
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/login_with_password_button"
-        style="@style/Widget.AppCompat.Button.Borderless"
+        style="@style/Widget.Material3.Button.TextButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:rippleColor="?attr/colorControlHighlight"
-        android:backgroundTint="@color/button_disabled_selector"
         android:layout_marginTop="@dimen/margin_default_quarter"
         android:layout_marginBottom="@dimen/margin_default_quarter"
         android:minHeight="@dimen/height_button"

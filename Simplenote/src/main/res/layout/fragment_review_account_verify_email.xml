@@ -70,29 +70,29 @@
             android:layout_width="match_parent"
             android:orientation="vertical">
 
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_primary"
-                android:backgroundTint="?attr/fabColor"
+                android:backgroundTint="?attr/colorPrimary"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/padding_medium"
                 android:layout_width="match_parent"
                 android:minHeight="@dimen/minimum_target"
                 android:text="@string/fullscreen_review_account_button_primary"
                 android:textAllCaps="true"
-                android:textColor="?attr/fabIconColor"
-                style="@style/Widget.AppCompat.Button">
-            </androidx.appcompat.widget.AppCompatButton>
+                android:textColor="?attr/colorOnPrimary"
+                style="@style/Widget.Material3.Button">
+            </com.google.android.material.button.MaterialButton>
 
-            <androidx.appcompat.widget.AppCompatButton
+            <com.google.android.material.button.MaterialButton
                 android:id="@+id/button_secondary"
                 android:layout_height="wrap_content"
                 android:layout_width="match_parent"
                 android:minHeight="@dimen/minimum_target"
                 android:text="@string/fullscreen_review_account_button_secondary"
                 android:textAllCaps="true"
-                android:textColor="?attr/fabColor"
-                style="@style/Widget.AppCompat.Button.Borderless">
-            </androidx.appcompat.widget.AppCompatButton>
+                android:textColor="?attr/colorPrimary"
+                style="@style/Widget.Material3.Button.TextButton">
+            </com.google.android.material.button.MaterialButton>
 
         </LinearLayout>
 

@@ -13,7 +13,7 @@
         android:elevation="0dp"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        app:theme="@style/ThemeOverlay.MaterialComponents"/>
+        android:theme="@style/ThemeOverlay.Material3"/>
 
     <fragment
         android:id="@+id/about_fragment"

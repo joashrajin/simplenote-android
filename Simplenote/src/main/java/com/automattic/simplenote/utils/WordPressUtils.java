@@ -5,6 +5,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.text.TextUtils;
 
+import com.automattic.simplenote.AccountStreams;
 import com.automattic.simplenote.BuildConfig;
 import com.automattic.simplenote.Simplenote;
 
@@ -117,7 +118,7 @@ public class WordPressUtils {
             return true;
         }
 
-        app.loginWithToken(userEmail, spToken);
+        AccountStreams.logInWithToken(AccountStreams.accountRepository(app), userEmail, spToken);
 
         return true;
     }

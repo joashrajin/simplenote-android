@@ -4,6 +4,7 @@ import com.automattic.simplenote.SyncTimes
 import com.automattic.simplenote.di.DataModule
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Tag
+import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.NotesRepository
@@ -40,8 +41,11 @@ object ScreenshotDataModule {
     @Provides
     fun providesMagicLinkRepository(): MagicLinkRepository = ScreenshotMagicLinkRepository()
 
+    @Provides
+    fun providesAccountRepository(): AccountRepository = ScreenshotAccountRepository()
+
     // Never exercised by the screenshot surfaces; provided only to keep the object graph of the
-    // replaced module complete for bindings that inject Simperium types (e.g. SessionManager).
+    // replaced module complete for bindings that inject Simperium types.
     @Provides
     fun providesTagsBucket(): Bucket<Tag> = mock()
 

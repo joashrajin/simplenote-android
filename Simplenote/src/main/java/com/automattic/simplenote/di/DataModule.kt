@@ -3,13 +3,16 @@ package com.automattic.simplenote.di
 import com.automattic.simplenote.Simplenote
 import com.automattic.simplenote.SyncTimes
 import com.automattic.simplenote.authentication.magiclink.OkHttpMagicLinkRepository
+import com.automattic.simplenote.models.Account
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Preferences
 import com.automattic.simplenote.models.Tag
+import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.MagicLinkRepository
 import com.automattic.simplenote.repositories.NotesRepository
 import com.automattic.simplenote.repositories.PreferencesRepository
+import com.automattic.simplenote.repositories.SimperiumAccountRepository
 import com.automattic.simplenote.repositories.SimperiumCollaboratorsRepository
 import com.automattic.simplenote.repositories.SimperiumNotesRepository
 import com.automattic.simplenote.repositories.SimperiumPreferencesRepository
@@ -37,6 +40,9 @@ abstract class DataModule {
         fun providesPreferencesBucket(simplenote: Simplenote): Bucket<Preferences> = simplenote.preferencesBucket
 
         @Provides
+        fun providesAccountBucket(simplenote: Simplenote): Bucket<Account> = simplenote.accountBucket
+
+        @Provides
         fun providesSimperium(simplenote: Simplenote): Simperium = simplenote.simperium
 
         @Provides
@@ -60,4 +66,7 @@ abstract class DataModule {
 
     @Binds
     abstract fun bindsPreferencesRepository(repository: SimperiumPreferencesRepository): PreferencesRepository
+
+    @Binds
+    abstract fun bindsAccountRepository(repository: SimperiumAccountRepository): AccountRepository
 }

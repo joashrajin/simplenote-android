@@ -1,7 +1,5 @@
 package com.automattic.simplenote;
 
-import static com.automattic.simplenote.models.Account.KEY_EMAIL_VERIFICATION;
-
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -17,18 +15,17 @@ import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LifecycleOwnerKt;
 
 import com.automattic.simplenote.FullScreenDialogFragment.FullScreenDialogContent;
 import com.automattic.simplenote.FullScreenDialogFragment.FullScreenDialogController;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
-import com.automattic.simplenote.models.Account;
+import com.automattic.simplenote.repositories.AccountStatus;
 import com.automattic.simplenote.utils.AccountNetworkUtils;
 import com.automattic.simplenote.utils.AccountVerificationEmailHandler;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.BrowserUtils;
 import com.automattic.simplenote.utils.NetworkUtils;
-import com.simperium.client.Bucket;
-import com.simperium.client.BucketObjectMissingException;
 
 /**
  * A {@link FullScreenDialogFragment} for reviewing an account and verifying an email address.  When
@@ -44,7 +41,6 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
 
     private AppCompatButton mButtonPrimary;
     private AppCompatButton mButtonSecondary;
-    private Bucket<Account> mBucketAccount;
     private FullScreenDialogController mDialogController;
     private ImageView mImageIcon;
     private String mEmail;
@@ -71,11 +67,9 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        mBucketAccount = ((Simplenote) requireActivity().getApplication()).getAccountBucket();
-
         View layout = inflater.inflate(R.layout.fragment_review_account_verify_email, container, false);
         mHasSentEmail = getArguments() != null && getArguments().getBoolean(EXTRA_SENT_EMAIL);
-        mEmail = ((Simplenote) requireActivity().getApplication()).getSimperium().getUser().getEmail();
+        mEmail = AccountStreams.accountRepository(requireContext()).userEmail();
 
         mImageIcon = layout.findViewById(R.id.image);
         mImageIcon.setImageResource(mHasSentEmail ? R.drawable.ic_mail_24dp : R.drawable.ic_warning_24dp);
@@ -172,15 +166,21 @@ public class ReviewAccountVerifyEmailFragment extends Fragment implements FullSc
             return;
         }
 
-        try {
-            Account account = mBucketAccount.get(KEY_EMAIL_VERIFICATION);
+        // The lifecycle scope drops the result once the fragment dies; the guard re-runs at
+        // delivery because the verification read now completes asynchronously.
+        AccountStreams.verificationStatus(
+            LifecycleOwnerKt.getLifecycleScope(this),
+            AccountStreams.accountRepository(requireContext()),
+            status -> {
+                if (isDetached() || isRemoving()) {
+                    return;
+                }
 
-            if (account.hasVerifiedEmail(mEmail)) {
-                mDialogController.dismiss();
+                if (status instanceof AccountStatus.Verified) {
+                    mDialogController.dismiss();
+                }
             }
-        } catch (BucketObjectMissingException bucketObjectMissingException) {
-            // Do nothing if account cannot be retrieved.
-        }
+        );
     }
 
     public static Bundle newBundle(boolean hasSentEmail) {

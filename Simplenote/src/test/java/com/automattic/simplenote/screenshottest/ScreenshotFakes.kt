@@ -3,6 +3,8 @@ package com.automattic.simplenote.screenshottest
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.models.TagItem
+import com.automattic.simplenote.repositories.AccountRepository
+import com.automattic.simplenote.repositories.AccountStatus
 import com.automattic.simplenote.repositories.CollaboratorsActionResult
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.MagicLinkRepository
@@ -14,6 +16,7 @@ import com.automattic.simplenote.repositories.NotesRepository
 import com.automattic.simplenote.repositories.PreferencesRepository
 import com.automattic.simplenote.repositories.RevisionsResult
 import com.automattic.simplenote.repositories.TagsRepository
+import com.automattic.simplenote.repositories.UserSession
 import com.automattic.simplenote.search.NoteSearchRequest
 import com.automattic.simplenote.search.SortOrder
 import kotlinx.coroutines.flow.Flow
@@ -99,4 +102,14 @@ class ScreenshotMagicLinkRepository : MagicLinkRepository {
 
     override suspend fun requestLogin(username: String): MagicLinkResponseResult =
         MagicLinkResponseResult.MagicLinkError(code = 0)
+}
+
+class ScreenshotAccountRepository : AccountRepository {
+    override fun session(): UserSession = UserSession.UnauthorizedUser
+    override fun isLoggedIn(): Boolean = false
+    override fun userEmail(): String? = null
+    override suspend fun loginWithToken(email: String?, token: String?) = Unit
+    override suspend fun logout() = Unit
+    override fun accountChanges(): Flow<AccountStatus> = emptyFlow()
+    override suspend fun verificationStatus(): AccountStatus = AccountStatus.Unknown
 }

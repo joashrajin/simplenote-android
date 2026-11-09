@@ -4,10 +4,10 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.automattic.simplenote.analytics.AnalyticsTracker
-import com.automattic.simplenote.authentication.SessionManager
-import com.automattic.simplenote.authentication.UserSession
+import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.CollaboratorsActionResult
 import com.automattic.simplenote.repositories.CollaboratorsRepository
+import com.automattic.simplenote.repositories.UserSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -15,7 +15,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AddCollaboratorViewModel @Inject constructor(
     private val collaboratorsRepository: CollaboratorsRepository,
-    private val sessionManager: SessionManager
+    private val accountRepository: AccountRepository
 ) : ViewModel() {
     private val _event = SingleLiveEvent<Event>()
     val event: LiveData<Event> = _event
@@ -46,7 +46,7 @@ class AddCollaboratorViewModel @Inject constructor(
     }
 
     private fun isCurrentUser(collaborator: String): Boolean {
-        return when (val currentUser = sessionManager.getCurrentUser()) {
+        return when (val currentUser = accountRepository.session()) {
             is UserSession.AuthorizedUser -> currentUser.user.email == collaborator
             is UserSession.UnauthorizedUser -> false // This should not happen.
         }

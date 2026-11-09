@@ -8,15 +8,21 @@ import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.automattic.simplenote.authentication.SimplenoteAuthenticationActivity
+import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.utils.AuthUtils
 import com.automattic.simplenote.utils.IntentUtils
+import dagger.hilt.android.AndroidEntryPoint
 import net.openid.appauth.RedirectUriReceiverActivity
 import java.lang.IllegalArgumentException
 import java.nio.charset.StandardCharsets
+import javax.inject.Inject
 
 const val TAG = "DeepLinkActivity"
 
+@AndroidEntryPoint
 class DeepLinkActivity : AppCompatActivity() {
+    @Inject lateinit var accountRepository: AccountRepository
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val uri = intent.data
@@ -42,9 +48,8 @@ class DeepLinkActivity : AppCompatActivity() {
                 } else {
                     val intent = IntentUtils.maybeAliasedIntent(applicationContext)
                     val email = AuthUtils.extractEmailFromMagicLink(uri)
-                    val app = application as Simplenote
-                    if (app.isLoggedIn &&
-                        email.lowercase() != app.userEmail.lowercase()
+                    if (accountRepository.isLoggedIn() &&
+                        email.lowercase() != accountRepository.userEmail()?.lowercase()
                     ) {
                         intent.putExtra(NotesActivity.KEY_ALREADY_LOGGED_IN, true)
                     } else {
@@ -59,8 +64,7 @@ class DeepLinkActivity : AppCompatActivity() {
     }
 
     private fun startMagicLinkConfirmation(uri: Uri?) {
-        val app = application as Simplenote
-        if (app.isLoggedIn) {
+        if (accountRepository.isLoggedIn()) {
             intent.putExtra(NotesActivity.KEY_ALREADY_LOGGED_IN, true)
             val intent = IntentUtils.maybeAliasedIntent(applicationContext)
             intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)

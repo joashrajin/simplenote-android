@@ -19,9 +19,11 @@ import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.automattic.simplenote.AccountStreams;
 import com.automattic.simplenote.R;
 import com.automattic.simplenote.Simplenote;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
+import com.automattic.simplenote.repositories.AccountRepository;
 import com.automattic.simplenote.utils.IntentUtils;
 import com.automattic.simplenote.utils.SimplenoteProgressDialogFragment;
 import com.automattic.simplenote.utils.StrUtils;
@@ -56,7 +58,7 @@ public class SimplenoteAuthenticationActivity extends AuthenticationActivity {
     private AlertDialog mPendingDialog;
 
     @Inject
-    Simplenote simplenote;
+    AccountRepository accountRepository;
 
     @Nullable
     CompleteMagicLinkViewModel completeMagicLinkViewModel;
@@ -97,7 +99,7 @@ public class SimplenoteAuthenticationActivity extends AuthenticationActivity {
                 if (state instanceof MagicLinkUiState.Success) {
                     hideDialog();
                     final MagicLinkUiState.Success stateResult = (MagicLinkUiState.Success) state;
-                    simplenote.loginWithToken(stateResult.getEmail(), stateResult.getToken());
+                    AccountStreams.logInWithToken(accountRepository, stateResult.getEmail(), stateResult.getToken());
 
                     startNotesActivity(this, false);
 

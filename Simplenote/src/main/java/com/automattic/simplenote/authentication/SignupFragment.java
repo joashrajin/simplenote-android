@@ -19,7 +19,6 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
@@ -30,6 +29,7 @@ import com.automattic.simplenote.utils.BrowserUtils;
 import com.automattic.simplenote.utils.DisplayUtils;
 import com.automattic.simplenote.utils.NetworkUtils;
 import com.automattic.simplenote.utils.SimplenoteProgressDialogFragment;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
 import com.simperium.util.Logger;
 
@@ -208,7 +208,7 @@ public class SignupFragment extends Fragment {
 
     private void showDialogError(String message) {
         hideDialogProgress();
-        new AlertDialog.Builder(requireActivity())
+        new MaterialAlertDialogBuilder(requireActivity())
             .setTitle(R.string.simperium_dialog_title_error)
             .setMessage(message)
             .setPositiveButton(android.R.string.ok, null)

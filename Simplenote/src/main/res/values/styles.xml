@@ -52,6 +52,7 @@
         <item name="listBackgroundSelector">@drawable/bg_list_default</item>
         <item name="listSearchHighlightBackgroundColor">@color/simplenote_blue_5</item>
         <item name="listSearchHighlightForegroundColor">@color/simplenote_blue_60</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Simplestyle.Dialog</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
         <item name="sheetBackgroundColor">@color/background_light</item>
         <item name="styleFontFamily">sans-serif</item>
@@ -131,6 +132,13 @@
         <item name="android:paddingTop">@dimen/padding_extra_large</item>
         <item name="android:singleLine">true</item>
         <item name="android:textColor">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- Material counterpart of the legacy Dialog overlay: pinning the M3 container color to the
+         theme's surface keeps the per-style dialog surface (e.g. Sepia) that Dialog carried. -->
+    <style name="ThemeOverlay.Simplestyle.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:colorBackground">?attr/colorSurface</item>
+        <item name="colorSurfaceContainerHigh">?attr/colorSurface</item>
     </style>
 
     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">

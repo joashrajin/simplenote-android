@@ -1,18 +1,16 @@
 package com.automattic.simplenote.utils;
 
 import android.app.Dialog;
-import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.fragment.app.DialogFragment;
 
 import com.automattic.simplenote.R;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class SimplenoteProgressDialogFragment extends DialogFragment {
     public static final String TAG = com.simperium.android.ProgressDialogFragment.class.getSimpleName();
@@ -37,14 +35,12 @@ public class SimplenoteProgressDialogFragment extends DialogFragment {
     @NonNull
     @Override
     public Dialog onCreateDialog(Bundle savedInstanceState) {
-        Context context = new ContextThemeWrapper(requireContext(), R.style.Dialog);
-
         // Use custom view for progress bar dialog
         LayoutInflater inflater = requireActivity().getLayoutInflater();
         View progressBar = inflater.inflate(R.layout.progressbar_dialog, null);
         TextView messageView = progressBar.findViewById(R.id.message);
         messageView.setText(getArguments() != null ? getArguments().getString(KEY_MESSAGE) : "");
 
-        return new AlertDialog.Builder(context).setView(progressBar).create();
+        return new MaterialAlertDialogBuilder(requireContext()).setView(progressBar).create();
     }
 }

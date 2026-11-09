@@ -1,17 +1,16 @@
 package com.automattic.simplenote.authentication;
 
-import android.app.AlertDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.ContextThemeWrapper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.appcompat.app.AlertDialog;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -31,6 +30,7 @@ import com.automattic.simplenote.utils.SystemBarUtils;
 import com.automattic.simplenote.utils.WordPressUtils;
 import com.automattic.simplenote.viewmodels.MagicLinkUiState;
 import com.automattic.simplenote.viewmodels.CompleteMagicLinkViewModel;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.simperium.android.AuthenticationActivity;
 
 import net.openid.appauth.AuthorizationException;
@@ -269,8 +269,7 @@ public class SimplenoteAuthenticationActivity extends AuthenticationActivity {
             return;
         }
 
-        Context context = new ContextThemeWrapper(SimplenoteAuthenticationActivity.this, getTheme());
-        mPendingDialog = new AlertDialog.Builder(context)
+        mPendingDialog = new MaterialAlertDialogBuilder(this)
                 .setTitle(R.string.simperium_dialog_title_error)
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {

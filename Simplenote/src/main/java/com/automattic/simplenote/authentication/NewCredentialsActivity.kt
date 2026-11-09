@@ -20,7 +20,6 @@ import android.view.View.OnFocusChangeListener
 import android.view.inputmethod.InputMethodManager
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.Toolbar
@@ -35,6 +34,7 @@ import com.automattic.simplenote.utils.HtmlCompat
 import com.automattic.simplenote.utils.SimplenoteProgressDialogFragment
 import com.automattic.simplenote.utils.SystemBarUtils
 import com.automattic.simplenote.utils.getColorStr
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputLayout
 import com.simperium.Simperium
 import com.simperium.SimperiumNotInitializedException
@@ -372,15 +372,13 @@ open class NewCredentialsActivity : ThemedAppCompatActivity() {
 
     protected fun showDialogError(message: String?) {
         this.hideDialogProgress()
-        val context: Context = ContextThemeWrapper(this, this.theme)
-        AlertDialog.Builder(context).setTitle(R.string.simperium_dialog_title_error).setMessage(message)
+        MaterialAlertDialogBuilder(this).setTitle(R.string.simperium_dialog_title_error).setMessage(message)
             .setPositiveButton(R.string.simperium_okay, null as DialogInterface.OnClickListener?).show()
     }
 
     protected fun showDialogErrorExistingAccount() {
         this.hideDialogProgress()
-        val context: Context = ContextThemeWrapper(this, this.theme)
-        AlertDialog.Builder(context).setTitle(R.string.simperium_dialog_title_error)
+        MaterialAlertDialogBuilder(this).setTitle(R.string.simperium_dialog_title_error)
             .setMessage(R.string.simperium_dialog_message_signup_existing)
             .setNegativeButton(R.string.cancel, null as DialogInterface.OnClickListener?)
             .setPositiveButton(R.string.simperium_button_login
@@ -403,8 +401,7 @@ open class NewCredentialsActivity : ThemedAppCompatActivity() {
 
     private fun showDialogErrorLoginReset() {
         this.hideDialogProgress()
-        val context: Context = ContextThemeWrapper(this, this.theme)
-        AlertDialog.Builder(context).setTitle(R.string.simperium_dialog_title_error).setMessage(
+        MaterialAlertDialogBuilder(this).setTitle(R.string.simperium_dialog_title_error).setMessage(
             this.getString(R.string.simperium_dialog_message_login_reset, PASSWORD_LENGTH_MINIMUM)
         ).setNegativeButton(R.string.cancel, null as DialogInterface.OnClickListener?)
             .setPositiveButton(R.string.simperium_button_login_reset
@@ -434,8 +431,7 @@ open class NewCredentialsActivity : ThemedAppCompatActivity() {
     fun showUnverifiedAccountDialog() {
         hideDialogProgress()
 
-        val context: Context = ContextThemeWrapper(this, theme)
-        AlertDialog.Builder(context)
+        MaterialAlertDialogBuilder(this)
             .setTitle(com.simperium.R.string.simperium_account_verification)
             .setMessage(com.simperium.R.string.simperium_account_verification_message)
             .setNegativeButton(com.simperium.R.string.simperium_okay, null)
@@ -446,8 +442,7 @@ open class NewCredentialsActivity : ThemedAppCompatActivity() {
     }
 
     private fun showDialogErrorBrowser(url: String) {
-        val context: Context = ContextThemeWrapper(this, this.theme)
-        AlertDialog.Builder(context).setTitle(R.string.simperium_dialog_title_error_browser)
+        MaterialAlertDialogBuilder(this).setTitle(R.string.simperium_dialog_title_error_browser)
             .setMessage(R.string.simperium_error_browser).setNeutralButton(R.string.simperium_dialog_button_copy_url
             ) { _, _ -> copyToClipboard(url) }
             .setPositiveButton(R.string.simperium_okay, null as DialogInterface.OnClickListener?).show()
@@ -455,8 +450,7 @@ open class NewCredentialsActivity : ThemedAppCompatActivity() {
 
     protected fun showCompromisedPasswordDialog() {
         this.hideDialogProgress()
-        val context: Context = ContextThemeWrapper(this, this.theme)
-        AlertDialog.Builder(context).setTitle(R.string.simperium_compromised_password)
+        MaterialAlertDialogBuilder(this).setTitle(R.string.simperium_compromised_password)
             .setMessage(R.string.simperium_compromised_password_message)
             .setNegativeButton(R.string.simperium_not_now, null as DialogInterface.OnClickListener?)
             .setPositiveButton(R.string.simperium_change_password

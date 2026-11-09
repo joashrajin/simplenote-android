@@ -18,6 +18,7 @@ import static com.automattic.simplenote.utils.PrefUtils.DATE_MODIFIED_DESCENDING
 import android.app.Activity;
 import android.app.Fragment;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -629,14 +630,18 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     }
 
     private void exportData(Uri uri, boolean isUnsyncedNotes) {
-        PreferencesStreams.allNotesForExport(
+        // The resolver is captured while the fragment is attached; the write itself must not
+        // touch fragment lifecycle, since it completes even when the fragment dies mid-export.
+        final ContentResolver resolver = requireContext().getContentResolver();
+        PreferencesStreams.exportNotes(
                 LifecycleOwnerKt.getLifecycleScope(this),
                 notesRepository,
-                notes -> writeExportedNotes(uri, isUnsyncedNotes, notes)
+                notes -> writeExportedNotes(resolver, uri, isUnsyncedNotes, notes),
+                success -> toast(success ? R.string.export_message_success : R.string.export_message_failure)
         );
     }
 
-    private void writeExportedNotes(Uri uri, boolean isUnsyncedNotes, List<Note> notes) {
+    private boolean writeExportedNotes(ContentResolver resolver, Uri uri, boolean isUnsyncedNotes, List<Note> notes) {
         JSONObject account = new JSONObject();
 
         try {
@@ -689,18 +694,18 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             account.put("activeNotes", activeNotes);
             account.put("trashedNotes", trashedNotes);
 
-            ParcelFileDescriptor parcelFileDescriptor = requireContext().getContentResolver().openFileDescriptor(uri, "w");
+            ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(uri, "w");
 
             if (parcelFileDescriptor != null) {
                 FileOutputStream fileOutputStream = new FileOutputStream(parcelFileDescriptor.getFileDescriptor());
                 fileOutputStream.write(account.toString(2).replace("\\/","/").getBytes());
                 parcelFileDescriptor.close();
-                toast(R.string.export_message_success);
+                return true;
             } else {
-                toast(R.string.export_message_failure);
+                return false;
             }
         } catch (Exception e) {
-            toast(R.string.export_message_failure);
+            return false;
         }
     }
 

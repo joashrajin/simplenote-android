@@ -8,7 +8,7 @@
 
     <color name="sn_primary">@color/item_default_light</color>
     <color name="sn_on_primary">@android:color/white</color>
-    <color name="sn_secondary_container">@color/gray_10</color>
+    <color name="sn_secondary_container">@color/background_light_highlight</color>
     <color name="sn_surface">@color/background_light</color>
     <color name="sn_surface_container">@color/background_light</color>
     <color name="sn_surface_container_low">@color/background_light</color>

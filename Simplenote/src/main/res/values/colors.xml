@@ -106,8 +106,14 @@
     <color name="item_sepia_dark">@color/orange_20</color>
     <color name="item_sepia_light">@color/orange_50</color>
     <color name="ripple_overlay">#44000000</color>
+    <color name="secondary_container_black_light">#33000000</color>
     <color name="secondary_container_classic_dark">#3372aee6</color>
     <color name="secondary_container_classic_light">#332271b1</color>
+    <color name="secondary_container_matrix_light">#33008a20</color>
+    <color name="secondary_container_mono_light">#33646970</color>
+    <color name="secondary_container_publication_light">#33d63638</color>
+    <color name="secondary_container_sepia_dark">#33faa754</color>
+    <color name="secondary_container_sepia_light">#33b26200</color>
     <color name="status_negative">@color/red</color>
     <color name="status_positive">@color/green</color>
     <color name="style_preview_black_content">@android:color/black</color>

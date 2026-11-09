@@ -61,7 +61,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         app:rippleColor="?attr/colorControlHighlight"
-        android:backgroundTint="@color/button_disabled_selector"
         android:layout_marginTop="@dimen/margin_default_quarter"
         android:layout_marginBottom="@dimen/margin_default_quarter"
         android:minHeight="@dimen/height_button"

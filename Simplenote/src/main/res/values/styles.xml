@@ -37,6 +37,7 @@
         <item name="chipTextColor">@color/text_chip_light</item>
         <item name="colorAccent">@color/sn_primary</item>
         <item name="colorOnPrimary">@color/sn_on_primary</item>
+        <item name="colorOnSecondaryContainer">@color/sn_primary</item>
         <item name="colorOnSurface">@color/sn_on_surface</item>
         <item name="colorOnSurfaceVariant">@color/sn_on_surface_variant</item>
         <item name="colorOutline">@color/sn_outline</item>
@@ -533,7 +534,9 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_black_light</item>
         <item name="colorAccent">@color/item_black_light</item>
+        <item name="colorOnSecondaryContainer">@android:color/black</item>
         <item name="colorPrimary">@android:color/black</item>
+        <item name="colorSecondaryContainer">@color/secondary_container_black_light</item>
         <item name="editorSearchHighlightBackgroundColor">@android:color/black</item>
         <item name="editorSearchHighlightForegroundColor">@android:color/white</item>
         <item name="iconTintColor">@color/item_black_light</item>
@@ -546,6 +549,7 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_classic_light</item>
         <item name="colorAccent">@color/item_classic_light</item>
+        <item name="colorOnSecondaryContainer">@color/blue_50</item>
         <item name="colorPrimary">@color/blue_50</item>
         <item name="colorSecondaryContainer">@color/secondary_container_classic_light</item>
         <item name="editorSearchHighlightBackgroundColor">@color/blue_5</item>
@@ -566,8 +570,10 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_matrix_light</item>
         <item name="colorAccent">@color/item_matrix_light</item>
+        <item name="colorOnSecondaryContainer">@color/green</item>
         <item name="colorPrimary">@color/green</item>
         <item name="colorPrimaryDark">@color/background_light</item>
+        <item name="colorSecondaryContainer">@color/secondary_container_matrix_light</item>
         <item name="editorSearchHighlightBackgroundColor">@color/green_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/green_60</item>
         <item name="emptyImageColor">@color/empty_light</item>
@@ -584,7 +590,9 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_mono_light</item>
         <item name="colorAccent">@color/item_mono_light</item>
+        <item name="colorOnSecondaryContainer">@color/gray</item>
         <item name="colorPrimary">@color/gray</item>
+        <item name="colorSecondaryContainer">@color/secondary_container_mono_light</item>
         <item name="editorSearchHighlightBackgroundColor">@color/gray_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/gray_60</item>
         <item name="iconTintColor">@color/item_mono_light</item>
@@ -598,7 +606,9 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_publication_light</item>
         <item name="colorAccent">@color/item_publication_light</item>
+        <item name="colorOnSecondaryContainer">@color/red</item>
         <item name="colorPrimary">@color/red</item>
+        <item name="colorSecondaryContainer">@color/secondary_container_publication_light</item>
         <item name="editorSearchHighlightBackgroundColor">@color/red_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/red_60</item>
         <item name="iconTintColor">@color/item_publication_light</item>
@@ -614,8 +624,11 @@
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
         <item name="actionModeTextColor">@color/item_sepia_light</item>
         <item name="colorAccent">@color/item_sepia_light</item>
+        <item name="colorOnSecondaryContainer">@color/orange</item>
         <item name="colorPrimary">@color/orange</item>
         <item name="colorPrimaryDark">@color/background_light_sepia</item>
+        <item name="colorSecondaryContainer">@color/secondary_container_sepia_light</item>
+        <item name="colorSurfaceContainerLow">@color/background_light_sepia</item>
         <item name="editorSearchHighlightBackgroundColor">@color/orange_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/orange_60</item>
         <item name="emptyImageColor">@color/empty_light_sepia</item>

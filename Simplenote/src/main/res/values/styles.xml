@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <style name="ActionMode.Simplestyle" parent="@style/Widget.AppCompat.ActionMode">
-        <item name="background">?attr/actionModeBackgroundColor</item>
+        <item name="background">?attr/colorSurfaceContainerLow</item>
         <item name="subtitleTextStyle">@style/Simplestyle.ActionModeSubtitleTextStyle</item>
         <item name="titleTextStyle">@style/Simplestyle.ActionModeTitleTextStyle</item>
     </style>
@@ -25,16 +25,10 @@
         <item name="android:textColorSecondary">@color/abc_secondary_text_material_light</item>
         <item name="android:windowBackground">@color/background_light</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="actionBarTextColor">@color/text_title_light</item>
-        <item name="actionModeBackgroundColor">@color/background_light</item>
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle</item>
         <item name="actionModeCloseDrawable">@drawable/ic_arrow_left_24dp</item>
         <item name="actionModeStyle">@style/ActionMode.Simplestyle</item>
-        <item name="actionModeTextColor">@color/item_default_light</item>
         <item name="alertDialogTheme">@style/Dialog</item>
-        <item name="chipCheckedOnBackgroundColor">@color/gray_10</item>
-        <item name="chipCheckedOffBackgroundColor">@color/gray_5</item>
-        <item name="chipTextColor">@color/text_chip_light</item>
         <item name="colorAccent">@color/sn_primary</item>
         <item name="colorOnPrimary">@color/sn_on_primary</item>
         <item name="colorOnSecondaryContainer">@color/sn_primary</item>
@@ -52,25 +46,15 @@
         <item name="colorSurfaceContainerHighest">@color/sn_surface_container_highest</item>
         <item name="colorSurfaceContainerLow">@color/sn_surface_container_low</item>
         <item name="drawerArrowStyle">@style/DrawerArrowStyle</item>
-        <item name="editorHintTextColor">@color/text_title_disabled</item>
         <item name="editorSearchHighlightBackgroundColor">@color/simplenote_blue_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/simplenote_blue_60</item>
         <item name="emptyImageColor">@color/empty_light</item>
-        <item name="iconTintColor">@color/item_default_light</item>
-        <item name="keyBackgroundColor">@color/gray_5</item>
         <item name="listBackgroundSelector">@drawable/bg_list_default</item>
-        <item name="listDividerDrawable">@drawable/divider_light</item>
         <item name="listSearchHighlightBackgroundColor">@color/simplenote_blue_5</item>
         <item name="listSearchHighlightForegroundColor">@color/simplenote_blue_60</item>
-        <item name="mainBackgroundColor">@color/background_light</item>
-        <item name="noteEditorTextColor">@color/text_title_light</item>
-        <item name="notePreviewColor">@color/text_content_light</item>
-        <item name="noteTitleColor">@color/text_title_light</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
         <item name="sheetBackgroundColor">@color/background_light</item>
-        <item name="simplenoteDividerColor">@color/divider_light</item>
         <item name="styleFontFamily">sans-serif</item>
-        <item name="toolbarColor">@color/background_light</item>
         <item name="toolbarIconColor">@color/gray_50</item>
         <item name="windowActionModeOverlay">true</item>
 
@@ -78,9 +62,6 @@
              parent. Each pin is retired by the Phase 3 PR that deliberately restyles it. -->
         <item name="appBarLayoutStyle">@style/Widget.Simplenote.AppBarLayout</item>
         <item name="bottomSheetDialogTheme">@style/Theme.MaterialComponents.Light.BottomSheetDialog</item>
-        <item name="chipGroupStyle">@style/Widget.MaterialComponents.ChipGroup</item>
-        <item name="chipStandaloneStyle">@style/Widget.MaterialComponents.Chip.Entry</item>
-        <item name="chipStyle">@style/Widget.MaterialComponents.Chip.Action</item>
         <item name="floatingActionButtonStyle">@style/Widget.Simplenote.Fab</item>
         <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
         <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.MaterialComponents.LargeComponent</item>
@@ -130,7 +111,7 @@
     </style>
 
     <style name="Dialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
-        <item name="android:colorBackground">?attr/mainBackgroundColor</item>
+        <item name="android:colorBackground">?attr/colorSurface</item>
         <item name="buttonBarNegativeButtonStyle">@style/Dialog.Button</item>
         <item name="buttonBarNeutralButtonStyle">@style/Dialog.Button</item>
         <item name="buttonBarPositiveButtonStyle">@style/Dialog.Button</item>
@@ -149,7 +130,7 @@
         <item name="android:paddingStart">@dimen/padding_dialog</item>
         <item name="android:paddingTop">@dimen/padding_extra_large</item>
         <item name="android:singleLine">true</item>
-        <item name="android:textColor">?attr/noteTitleColor</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
     </style>
 
     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">
@@ -172,7 +153,6 @@
     </style>
 
     <style name="Style.Authentication" parent="Theme.Simplestyle">
-        <item name="toolbarColor">@color/background_light</item>
     </style>
 
     <style name="Theme.Simplestyle" parent="Base.Theme.Simplestyle">
@@ -265,7 +245,7 @@
     </style>
 
     <style name="ToolbarTheme" parent="@style/ThemeOverlay.Material3.Light">
-        <item name="android:textColorPrimary">?attr/actionBarTextColor</item>
+        <item name="android:textColorPrimary">?attr/colorOnSurface</item>
         <item name="android:textColorSecondary">?attr/toolbarIconColor</item>
     </style>
 
@@ -295,11 +275,11 @@
     </style>
 
     <style name="Simplestyle.ActionModeTitleTextStyle" parent="@android:style/TextAppearance.Material.Widget.ActionBar.Title">
-        <item name="android:textColor">?attr/actionModeTextColor</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
     </style>
 
     <style name="Simplestyle.ActionModeSubtitleTextStyle" parent="@android:style/TextAppearance.Material.Widget.ActionBar.Subtitle">
-        <item name="android:textColor">?attr/actionModeTextColor</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
     </style>
 
     <style name="Theme.Simplestyle.About" parent="Theme.MaterialComponents.DayNight.NoActionBar" tools:targetApi="o_mr1">
@@ -314,7 +294,6 @@
         <item name="colorControlHighlight">@color/item_default_dark</item>
         <item name="colorPrimary">@color/blue</item>
         <item name="colorPrimaryDark">@color/blue_dark</item>
-        <item name="toolbarColor">@color/blue</item>
     </style>
 
     <style name="Theme.Simplestyle.About.Arrow">
@@ -453,7 +432,7 @@
     </style>
 
     <style name="UntitledNoteAppearance" parent="@android:style/TextAppearance">
-        <item name="android:textColor">?attr/notePreviewColor</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
         <item name="android:textStyle">italic</item>
     </style>
 
@@ -532,14 +511,12 @@
 
     <style name="Style.Black" parent="Theme.Simplestyle">
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
-        <item name="actionModeTextColor">@color/item_black_light</item>
         <item name="colorAccent">@color/item_black_light</item>
         <item name="colorOnSecondaryContainer">@android:color/black</item>
         <item name="colorPrimary">@android:color/black</item>
         <item name="colorSecondaryContainer">@color/secondary_container_black_light</item>
         <item name="editorSearchHighlightBackgroundColor">@android:color/black</item>
         <item name="editorSearchHighlightForegroundColor">@android:color/white</item>
-        <item name="iconTintColor">@color/item_black_light</item>
         <item name="listBackgroundSelector">@drawable/bg_list_black</item>
         <item name="listSearchHighlightBackgroundColor">@android:color/black</item>
         <item name="listSearchHighlightForegroundColor">@android:color/white</item>
@@ -547,14 +524,12 @@
 
     <style name="Style.Classic" parent="Theme.Simplestyle">
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
-        <item name="actionModeTextColor">@color/item_classic_light</item>
         <item name="colorAccent">@color/item_classic_light</item>
         <item name="colorOnSecondaryContainer">@color/blue_50</item>
         <item name="colorPrimary">@color/blue_50</item>
         <item name="colorSecondaryContainer">@color/secondary_container_classic_light</item>
         <item name="editorSearchHighlightBackgroundColor">@color/blue_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/blue_60</item>
-        <item name="iconTintColor">@color/item_classic_light</item>
         <item name="listBackgroundSelector">@drawable/bg_list_classic</item>
         <item name="listSearchHighlightBackgroundColor">@color/blue_5</item>
         <item name="listSearchHighlightForegroundColor">@color/blue_60</item>
@@ -566,9 +541,7 @@
 
     <style name="Style.Matrix" parent="Theme.Simplestyle">
         <item name="android:windowBackground">@color/background_light</item>
-        <item name="actionModeBackgroundColor">@color/background_light</item>
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
-        <item name="actionModeTextColor">@color/item_matrix_light</item>
         <item name="colorAccent">@color/item_matrix_light</item>
         <item name="colorOnSecondaryContainer">@color/green</item>
         <item name="colorPrimary">@color/green</item>
@@ -577,25 +550,20 @@
         <item name="editorSearchHighlightBackgroundColor">@color/green_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/green_60</item>
         <item name="emptyImageColor">@color/empty_light</item>
-        <item name="iconTintColor">@color/item_matrix_light</item>
         <item name="listBackgroundSelector">@drawable/bg_list_matrix</item>
         <item name="listSearchHighlightBackgroundColor">@color/green_5</item>
         <item name="listSearchHighlightForegroundColor">@color/green_60</item>
-        <item name="mainBackgroundColor">@color/background_light</item>
-        <item name="toolbarColor">@color/background_light</item>
         <item name="styleFontFamily">monospace</item>
     </style>
 
     <style name="Style.Mono" parent="Theme.Simplestyle">
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
-        <item name="actionModeTextColor">@color/item_mono_light</item>
         <item name="colorAccent">@color/item_mono_light</item>
         <item name="colorOnSecondaryContainer">@color/gray</item>
         <item name="colorPrimary">@color/gray</item>
         <item name="colorSecondaryContainer">@color/secondary_container_mono_light</item>
         <item name="editorSearchHighlightBackgroundColor">@color/gray_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/gray_60</item>
-        <item name="iconTintColor">@color/item_mono_light</item>
         <item name="listBackgroundSelector">@drawable/bg_list_mono</item>
         <item name="listSearchHighlightBackgroundColor">@color/gray_5</item>
         <item name="listSearchHighlightForegroundColor">@color/gray_60</item>
@@ -604,14 +572,12 @@
 
     <style name="Style.Publication" parent="Theme.Simplestyle">
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
-        <item name="actionModeTextColor">@color/item_publication_light</item>
         <item name="colorAccent">@color/item_publication_light</item>
         <item name="colorOnSecondaryContainer">@color/red</item>
         <item name="colorPrimary">@color/red</item>
         <item name="colorSecondaryContainer">@color/secondary_container_publication_light</item>
         <item name="editorSearchHighlightBackgroundColor">@color/red_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/red_60</item>
-        <item name="iconTintColor">@color/item_publication_light</item>
         <item name="listBackgroundSelector">@drawable/bg_list_publication</item>
         <item name="listSearchHighlightBackgroundColor">@color/red_5</item>
         <item name="listSearchHighlightForegroundColor">@color/red_60</item>
@@ -620,25 +586,21 @@
 
     <style name="Style.Sepia" parent="Theme.Simplestyle">
         <item name="android:windowBackground">@color/background_light_sepia</item>
-        <item name="actionModeBackgroundColor">@color/background_light_sepia</item>
         <item name="actionModeCloseButtonStyle">@style/CloseButtonStyle.Accent</item>
-        <item name="actionModeTextColor">@color/item_sepia_light</item>
         <item name="colorAccent">@color/item_sepia_light</item>
         <item name="colorOnSecondaryContainer">@color/orange</item>
         <item name="colorPrimary">@color/orange</item>
         <item name="colorPrimaryDark">@color/background_light_sepia</item>
         <item name="colorSecondaryContainer">@color/secondary_container_sepia_light</item>
+        <item name="colorSurface">@color/background_light_sepia</item>
         <item name="colorSurfaceContainerLow">@color/background_light_sepia</item>
         <item name="editorSearchHighlightBackgroundColor">@color/orange_5</item>
         <item name="editorSearchHighlightForegroundColor">@color/orange_60</item>
         <item name="emptyImageColor">@color/empty_light_sepia</item>
-        <item name="iconTintColor">@color/item_sepia_light</item>
         <item name="listBackgroundSelector">@drawable/bg_list_sepia</item>
         <item name="listSearchHighlightBackgroundColor">@color/orange_5</item>
         <item name="listSearchHighlightForegroundColor">@color/orange_60</item>
-        <item name="mainBackgroundColor">@color/background_light_sepia</item>
         <item name="sheetBackgroundColor">@color/background_light_sepia</item>
-        <item name="toolbarColor">@color/background_light_sepia</item>
         <item name="toolbarStyle">@style/Widget.Simplenote.Toolbar.Sepia</item>
     </style>
 

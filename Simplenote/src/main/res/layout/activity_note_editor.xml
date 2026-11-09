@@ -10,7 +10,7 @@
 
     <com.google.android.material.appbar.AppBarLayout
         android:animateLayoutChanges="true"
-        android:background="?attr/toolbarColor"
+        android:background="?attr/colorSurfaceContainerLow"
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
         android:fitsSystemWindows="false"
@@ -20,7 +20,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="?attr/toolbarColor"
+            android:background="?attr/colorSurfaceContainerLow"
             app:contentInsetStart="@dimen/toolbar_title_keyline"
             style="@style/ToolbarTheme">
         </androidx.appcompat.widget.Toolbar>
@@ -29,7 +29,7 @@
             android:id="@+id/tabs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/toolbarColor"
+            android:background="?attr/colorSurfaceContainerLow"
             android:visibility="gone"
             app:tabGravity="fill"
             app:tabIndicatorColor="?attr/colorAccent"
@@ -56,7 +56,7 @@
 
         <RelativeLayout
             android:id="@+id/search_match_bar"
-            android:background="?attr/mainBackgroundColor"
+            android:background="?attr/colorSurface"
             android:clickable="true"
             android:elevation="@dimen/elevation_bar"
             android:focusable="true"
@@ -90,7 +90,7 @@
                 android:layout_width="wrap_content"
                 android:padding="@dimen/padding_small"
                 android:text="@string/of"
-                android:textColor="?attr/noteTitleColor"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="@dimen/text_content_title">
             </com.automattic.simplenote.widgets.RobotoMediumTextView>
 
@@ -102,7 +102,7 @@
                 android:layout_toEndOf="@id/button_previous"
                 android:layout_toStartOf="@+id/text_of"
                 android:layout_width="wrap_content"
-                android:textColor="?attr/noteTitleColor"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="@dimen/text_content_title"
                 tools:text="1">
             </com.automattic.simplenote.widgets.RobotoMediumTextView>
@@ -115,7 +115,7 @@
                 android:layout_toEndOf="@+id/text_of"
                 android:layout_toStartOf="@id/button_next"
                 android:layout_width="wrap_content"
-                android:textColor="?attr/noteTitleColor"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="@dimen/text_content_title"
                 tools:text="7">
             </com.automattic.simplenote.widgets.RobotoMediumTextView>
@@ -138,7 +138,7 @@
             </ImageButton>
 
             <View
-                android:background="?attr/simplenoteDividerColor"
+                android:background="?attr/colorOutlineVariant"
                 android:layout_height="@dimen/divider_height"
                 android:layout_width="match_parent">
             </View>

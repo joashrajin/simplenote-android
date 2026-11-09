@@ -42,7 +42,7 @@
                 android:layout_width="fill_parent"
                 android:paddingStart="@dimen/padding_medium"
                 android:text="@string/wordpress_post_draft"
-                android:textColor="?attr/noteTitleColor"
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="16sp"
                 tools:ignore="RtlSymmetry">
             </CheckBox>
@@ -77,7 +77,7 @@
             android:layout_width="fill_parent"
             android:maxLines="1"
             android:text="@string/uploading_post"
-            android:textColor="?attr/noteTitleColor"
+            android:textColor="?attr/colorOnSurface"
             tools:ignore="RtlSymmetry">
         </TextView>
 
@@ -100,7 +100,7 @@
             android:layout_marginBottom="@dimen/padding_medium"
             android:layout_width="match_parent"
             android:text="@string/success"
-            android:textColor="?attr/noteTitleColor"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="16sp">
         </TextView>
 
@@ -141,7 +141,7 @@
             android:layout_height="wrap_content"
             android:layout_width="match_parent"
             android:text="@string/wordpress_connect_summary"
-            android:textColor="?attr/noteTitleColor">
+            android:textColor="?attr/colorOnSurface">
         </TextView>
 
     </RelativeLayout>

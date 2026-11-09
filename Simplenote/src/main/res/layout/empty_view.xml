@@ -30,7 +30,7 @@
         android:layout_marginStart="@dimen/padding_extra_extra_large"
         android:layout_width="wrap_content"
         android:maxWidth="@dimen/empty_width_maximum"
-        android:textColor="?attr/notePreviewColor"
+        android:textColor="?attr/colorOnSurfaceVariant"
         android:text="@string/empty_notes_all"
         android:textSize="@dimen/text_empty">
     </com.automattic.simplenote.widgets.RobotoRegularTextView>

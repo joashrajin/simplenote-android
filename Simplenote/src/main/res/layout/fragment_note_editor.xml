@@ -46,7 +46,7 @@
                     android:paddingBottom="@dimen/padding_extra_extra_large"
                     android:paddingTop="@dimen/padding_extra_extra_large"
                     android:scrollHorizontally="false"
-                    android:textColor="?attr/noteEditorTextColor"
+                    android:textColor="?attr/colorOnSurface"
                     android:textColorLink="?attr/colorAccent"
                     android:imeOptions="flagNoExtractUi"
                     tools:context=".NoteEditorFragment"/>
@@ -84,7 +84,7 @@
 
                     <com.automattic.simplenote.utils.TagsMultiAutoCompleteTextView
                         android:id="@+id/tag_input"
-                        android:background="?attr/mainBackgroundColor"
+                        android:background="?attr/colorSurface"
                         android:completionThreshold="1"
                         android:dropDownAnchor="@id/horizontal_scroll_view"
                         android:hint="@string/tag_hint"
@@ -96,8 +96,8 @@
                         android:nextFocusForward="@+id/note_content"
                         android:nextFocusLeft="@id/tag_input"
                         android:nextFocusUp="@id/note_editor"
-                        android:textColor="?attr/noteEditorTextColor"
-                        android:textColorHint="?attr/editorHintTextColor"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textColorHint="?android:attr/textColorHint"
                         android:textSize="@dimen/text_tag"></com.automattic.simplenote.utils.TagsMultiAutoCompleteTextView>
 
                 </LinearLayout>
@@ -108,7 +108,7 @@
 
         <LinearLayout
             android:id="@+id/placeholder"
-            android:background="?attr/mainBackgroundColor"
+            android:background="?attr/colorSurface"
             android:gravity="center"
             android:layout_height="match_parent"
             android:layout_width="match_parent"

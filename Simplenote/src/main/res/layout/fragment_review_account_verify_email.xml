@@ -10,7 +10,7 @@
     android:layout_width="match_parent">
 
     <RelativeLayout
-        android:background="?attr/mainBackgroundColor"
+        android:background="?attr/colorSurface"
         android:clipToPadding="false"
         android:layout_gravity="center_horizontal"
         android:layout_height="wrap_content"
@@ -42,7 +42,7 @@
             android:layout_marginTop="@dimen/padding_medium"
             android:layout_width="fill_parent"
             android:text="@string/fullscreen_review_account_title"
-            android:textColor="?attr/noteTitleColor"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="@dimen/text_fullscreen_title"
             android:textStyle="bold">
         </TextView>
@@ -59,7 +59,7 @@
             android:layout_marginTop="@dimen/padding_medium"
             android:layout_width="fill_parent"
             android:text="@string/fullscreen_review_account_subtitle"
-            android:textColor="?attr/noteTitleColor"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="@dimen/text_fullscreen_subtitle">
         </TextView>
 

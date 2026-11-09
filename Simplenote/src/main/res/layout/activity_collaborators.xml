@@ -22,8 +22,6 @@
             android:layout_marginBottom="10dp"
             android:background="@android:color/transparent"
             android:clipToPadding="false"
-            android:divider="?attr/listDividerDrawable"
-            android:dividerHeight="@dimen/divider_height"
             android:paddingBottom="@dimen/padding_list_bottom"
             android:scrollbarStyle="outsideOverlay"
             android:scrollbars="vertical" />

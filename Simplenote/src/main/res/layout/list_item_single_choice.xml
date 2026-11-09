@@ -14,7 +14,7 @@
     android:minHeight="?android:attr/listPreferredItemHeight"
     android:paddingEnd="@dimen/padding_medium"
     android:paddingStart="@dimen/padding_medium"
-    android:textColor="?attr/noteTitleColor"
+    android:textColor="?attr/colorOnSurface"
     android:textSize="18sp"
     tools:text="Example Item" >
 </androidx.appcompat.widget.AppCompatCheckedTextView>

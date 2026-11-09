@@ -1591,14 +1591,16 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
 
     private void setPublishedNote(boolean isPublished) {
         if (mNote != null) {
+            // reset publish status in 20 seconds if we don't hear back from Simperium. Armed
+            // before the write launches so the onPause disarm and the remote-confirm cancel
+            // always run after the arm, as they did around the legacy synchronous save.
+            if (mPublishTimeoutHandler != null) {
+                mPublishTimeoutHandler.postDelayed(mPublishTimeoutRunnable, PUBLISH_TIMEOUT);
+            }
+
             mNoteEditorStreams.setPublished(mNote.getSimperiumKey(), isPublished, refreshed -> {
                 if (refreshed != null) {
                     mNote = refreshed;
-                }
-
-                // reset publish status in 20 seconds if we don't hear back from Simperium
-                if (mPublishTimeoutHandler != null) {
-                    mPublishTimeoutHandler.postDelayed(mPublishTimeoutRunnable, PUBLISH_TIMEOUT);
                 }
             });
 

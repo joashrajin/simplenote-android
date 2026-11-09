@@ -390,6 +390,27 @@ class NoteEditorStreamsTest {
     }
 
     @Test
+    fun statementsAfterAStopInsideTheSavedCallbackStillRun() = runTest {
+        // The fragment's save-while-paused teardown removes its before-update listener and
+        // writes an AppLog line AFTER calling stopChangeCollection from inside the callback;
+        // the cancel must be cooperative enough for those statements to execute.
+        repository.notes["a"] = Note("a")
+        val streams = NoteEditorStreams(repository, backgroundScope)
+        val listener = RecordingChangeListener()
+        listener.onSaved = {
+            streams.stopChangeCollection()
+            listener.events.add("after-stop")
+        }
+
+        streams.startChangeCollection(listener)
+        runCurrent()
+        repository.changes.emit(NoteChange.Saved("a"))
+        runCurrent()
+
+        assertEquals(listOf("saved:a", "after-stop"), listener.events)
+    }
+
+    @Test
     fun startChangeCollectionIsIdempotentWhileRunning() = runTest {
         // The legacy counterpart was an addListener on every onResume that the bucket's
         // listener Set deduplicated; a second start must not double-deliver.

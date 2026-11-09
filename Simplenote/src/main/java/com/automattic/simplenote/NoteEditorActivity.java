@@ -28,10 +28,12 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.lifecycle.LifecycleOwnerKt;
 import androidx.viewpager.widget.PagerAdapter;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
 import com.automattic.simplenote.utils.DisplayUtils;
@@ -42,8 +44,6 @@ import com.automattic.simplenote.utils.WidgetUtils;
 import com.automattic.simplenote.widgets.NoteEditorViewPager;
 import com.automattic.simplenote.widgets.RobotoMediumTextView;
 import com.google.android.material.tabs.TabLayout;
-import com.simperium.client.Bucket;
-import com.simperium.client.BucketObjectMissingException;
 
 import org.wordpress.passcodelock.AppLockManager;
 
@@ -51,6 +51,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+
+import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -79,6 +81,9 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
     private boolean isSearchMatch;
     private int[] mSearchMatchIndexes;
     private int mSearchMatchIndex;
+
+    @Inject NotesRepository notesRepository;
+    private NoteEditorStreams mNoteEditorStreams;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -115,12 +120,14 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
         Intent intent = getIntent();
         mNoteId = intent.getStringExtra(NoteEditorFragment.ARG_ITEM_ID);
 
-        try {
-            Simplenote application = (Simplenote) getApplication();
-            Bucket<Note> notesBucket = application.getNotesBucket();
-            mNote = notesBucket.get(mNoteId);
-        } catch (BucketObjectMissingException exception) {
-            exception.printStackTrace();
+        mNoteEditorStreams = new NoteEditorStreams(notesRepository, LifecycleOwnerKt.getLifecycleScope(this));
+
+        if (mNoteId != null) {
+            mNoteEditorStreams.loadNote(mNoteId, note -> {
+                if (note != null) {
+                    mNote = note;
+                }
+            });
         }
 
         if (savedInstanceState == null) {
@@ -157,17 +164,12 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
                             DisplayUtils.hideKeyboard(mViewPager);
                         }
 
-                        try {
-                            Simplenote application = (Simplenote) getApplication();
-                            Bucket<Note> notesBucket = application.getNotesBucket();
-                            mNote = notesBucket.get(mNoteId);
-
-                            if (mNote != null) {
-                                mNote.setPreviewEnabled(position == INDEX_TAB_PREVIEW);
-                                mNote.save();
-                            }
-                        } catch (BucketObjectMissingException exception) {
-                            exception.printStackTrace();
+                        if (mNoteId != null) {
+                            mNoteEditorStreams.setPreviewEnabled(mNoteId, position == INDEX_TAB_PREVIEW, note -> {
+                                if (note != null) {
+                                    mNote = note;
+                                }
+                            });
                         }
                     }
 
@@ -540,17 +542,12 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
         int position = mNote.isPreviewEnabled() ? INDEX_TAB_EDIT : INDEX_TAB_PREVIEW;
         mViewPager.setCurrentItem(position);
 
-        try {
-            Simplenote application = (Simplenote) getApplication();
-            Bucket<Note> notesBucket = application.getNotesBucket();
-            mNote = notesBucket.get(mNoteId);
-
-            if (mNote != null) {
-                mNote.setPreviewEnabled(position == INDEX_TAB_PREVIEW);
-                mNote.save();
-            }
-        } catch (BucketObjectMissingException exception) {
-            exception.printStackTrace();
+        if (mNoteId != null) {
+            mNoteEditorStreams.setPreviewEnabled(mNoteId, position == INDEX_TAB_PREVIEW, note -> {
+                if (note != null) {
+                    mNote = note;
+                }
+            });
         }
     }
 

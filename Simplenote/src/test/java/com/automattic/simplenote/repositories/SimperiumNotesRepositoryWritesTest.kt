@@ -203,6 +203,23 @@ class SimperiumNotesRepositoryWritesTest {
     }
 
     @Test
+    fun permanentlyDeleteDeletesTheBucketObject() = runTest {
+        val note = mock<Note>()
+        whenever(notesBucket.get("key1")).thenReturn(note)
+
+        repository.permanentlyDelete("key1")
+
+        verify(note).delete()
+    }
+
+    @Test
+    fun permanentlyDeleteToleratesAMissingNote() = runTest {
+        whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
+
+        repository.permanentlyDelete("missing")
+    }
+
+    @Test
     fun setPreviewEnabledSetsThePropertyAndSavesWithoutTouchingTheModificationDate() = runTest {
         val note = mock<Note>()
         whenever(notesBucket.get("key1")).thenReturn(note)

@@ -468,6 +468,7 @@ class NoteListViewModelTest {
         override suspend fun createNote(content: String, key: String?): Note = Note(key ?: "fake")
         override suspend fun saveNote(note: Note) = Unit
         override suspend fun emptyTrash() = Unit
+        override suspend fun permanentlyDelete(key: String) = Unit
         override suspend fun setPreviewEnabled(key: String, enabled: Boolean) = Unit
         override suspend fun setPublished(key: String, published: Boolean) = Unit
         override suspend fun getRevisions(key: String, max: Int): RevisionsResult = RevisionsResult.Failure

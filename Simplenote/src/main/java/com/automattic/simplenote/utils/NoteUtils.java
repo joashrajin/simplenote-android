@@ -6,8 +6,10 @@ import android.content.Intent;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.view.ContextThemeWrapper;
+import androidx.core.util.Consumer;
 
 import com.automattic.simplenote.NoteEditorActivity;
+import com.automattic.simplenote.NoteEditorStreams;
 import com.automattic.simplenote.NotesActivity;
 import com.automattic.simplenote.R;
 import com.automattic.simplenote.Simplenote;
@@ -15,14 +17,11 @@ import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
 
 import java.text.NumberFormat;
-import java.util.Calendar;
 
 public class NoteUtils {
-    public static void setNotePin(Note note, boolean isPinned) {
+    public static void setNotePin(Note note, boolean isPinned, Activity activity, Consumer<Note> onComplete) {
         if (note != null && isPinned != note.isPinned()) {
-            note.setPinned(isPinned);
-            note.setModificationDate(Calendar.getInstance());
-            note.save();
+            NoteEditorStreams.from(activity).setPinned(note.getSimperiumKey(), isPinned, onComplete);
 
             AnalyticsTracker.track(
                 isPinned ? AnalyticsTracker.Stat.EDITOR_NOTE_PINNED :
@@ -35,11 +34,10 @@ public class NoteUtils {
 
     public static void deleteNote(Note note, Activity activity) {
         if (note != null) {
-            note.setDeleted(!note.isDeleted());
-            note.setModificationDate(Calendar.getInstance());
-            note.save();
+            boolean isDeleted = !note.isDeleted();
+            NoteEditorStreams.from(activity).setTrashed(note.getSimperiumKey(), isDeleted);
             Intent resultIntent = new Intent();
-            if (note.isDeleted()) {
+            if (isDeleted) {
                 resultIntent.putExtra(Simplenote.DELETED_NOTE_ID, note.getSimperiumKey());
             }
             activity.setResult(Activity.RESULT_OK, resultIntent);
@@ -71,20 +69,20 @@ public class NoteUtils {
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int whichButton) {
                         if (note != null) {
-                            note.delete();
-
-                            // Show empty placeholder for large devices in landscape.
-                            if (activity instanceof NotesActivity) {
-                                NotesActivity notesActivity = (NotesActivity) activity;
-                                if (notesActivity.getNoteListFragment() != null) {
-                                    notesActivity.getNoteListFragment().updateSelectionAfterTrashAction();
-                                } else {
-                                    notesActivity.showDetailPlaceholder();
+                            NoteEditorStreams.from(activity).permanentlyDelete(note.getSimperiumKey(), () -> {
+                                // Show empty placeholder for large devices in landscape.
+                                if (activity instanceof NotesActivity) {
+                                    NotesActivity notesActivity = (NotesActivity) activity;
+                                    if (notesActivity.getNoteListFragment() != null) {
+                                        notesActivity.getNoteListFragment().updateSelectionAfterTrashAction();
+                                    } else {
+                                        notesActivity.showDetailPlaceholder();
+                                    }
+                                // Close editor for small devices and large devices in portrait.
+                                } else if (activity instanceof NoteEditorActivity) {
+                                    ((NoteEditorActivity) activity).finish();
                                 }
-                            // Close editor for small devices and large devices in portrait.
-                            } else if (activity instanceof NoteEditorActivity) {
-                                ((NoteEditorActivity) activity).finish();
-                            }
+                            });
                         } else {
                             DialogUtils.showDialogWithEmail(
                                 activity,

@@ -56,8 +56,19 @@ class SimperiumNotesRepository @Inject constructor(
         try {
             notesBucket.get(key)
         } catch (exception: BucketObjectMissingException) {
-            null
+            scanObjectStore(key)
         }
+    }
+
+    // The LoadNoteTask fallback: a note the bucket cannot get yet may still sit in the object store.
+    private fun scanObjectStore(key: String): Note? = notesBucket.allObjects().use { cursor ->
+        while (cursor.moveToNext()) {
+            val note = cursor.getObject()
+            if (note != null && note.simperiumKey == key) {
+                return@use note
+            }
+        }
+        null
     }
 
     override suspend fun trashedNoteCount(): Int = withContext(ioDispatcher) {
@@ -171,6 +182,14 @@ class SimperiumNotesRepository @Inject constructor(
             note.isPinned = pinned
             note.modificationDate = Calendar.getInstance()
             note.save()
+        }
+    }
+
+    override suspend fun permanentlyDelete(key: String) = withContext(ioDispatcher) {
+        try {
+            notesBucket.get(key).delete()
+        } catch (exception: BucketObjectMissingException) {
+            // Already gone: the outcome the delete sought.
         }
     }
 

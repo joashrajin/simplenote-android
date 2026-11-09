@@ -140,13 +140,35 @@ class SimperiumNotesRepositoryTest {
         whenever(notesBucket.get("key1")).thenReturn(note)
 
         assertSame(note, repository.getNote("key1"))
+        verify(notesBucket, never()).allObjects()
     }
 
     @Test
-    fun getNoteMissingFromTheBucketReturnsNull() = runTest {
+    fun getNoteMissingFromTheBucketFallsBackToTheObjectStoreScan() = runTest {
+        whenever(notesBucket.get("key2")).thenThrow(BucketObjectMissingException())
+        val match = noteWithKey("key2")
+        allObjectsCursor(noteWithKey("key1"), match)
+
+        assertSame(match, repository.getNote("key2"))
+    }
+
+    @Test
+    fun getNoteAbsentFromTheBucketAndObjectStoreReturnsNull() = runTest {
         whenever(notesBucket.get("missing")).thenThrow(BucketObjectMissingException())
+        val allCursor = allObjectsCursor(noteWithKey("key1"))
 
         assertNull(repository.getNote("missing"))
+        verify(allCursor).close()
+    }
+
+    @Test
+    fun getNoteFallbackScanClosesTheCursor() = runTest {
+        whenever(notesBucket.get("key2")).thenThrow(BucketObjectMissingException())
+        val allCursor = allObjectsCursor(noteWithKey("key1"), noteWithKey("key2"), noteWithKey("key3"))
+
+        repository.getNote("key2")
+
+        verify(allCursor).close()
     }
 
     @Test
@@ -258,6 +280,12 @@ class SimperiumNotesRepositoryTest {
         val note = mock<Note>()
         whenever(note.isNew).thenReturn(isNew)
         whenever(note.isModified).thenReturn(isModified)
+        return note
+    }
+
+    private fun noteWithKey(key: String): Note {
+        val note = mock<Note>()
+        whenever(note.simperiumKey).thenReturn(key)
         return note
     }
 

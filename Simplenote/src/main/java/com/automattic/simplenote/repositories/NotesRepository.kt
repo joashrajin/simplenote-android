@@ -10,7 +10,8 @@ import java.util.Calendar
 /**
  * Read surface over the notes bucket. Each method reproduces an existing query shape:
  * [search] the note list queries behind SearchQueryBuilder, [getNote] the bucket lookups that
- * treat a missing object as absence, [trashedNoteCount] NotesActivity.updateTrashMenuItem,
+ * treat a missing object as absence (with the LoadNoteTask fallback scan of the object store
+ * before concluding absence), [trashedNoteCount] NotesActivity.updateTrashMenuItem,
  * [interlinkSuggestions] the NoteEditorFragment link autocomplete, [referencesTo]
  * Note.getReferences as InfoBottomSheetDialog consumes it, and [hasUnsyncedNotes] plus
  * [allNotesForExport] the PreferencesFragment logout and export scans.
@@ -19,7 +20,8 @@ import java.util.Calendar
  * and welcome-note paths (the NoteListFragment FAB path sets more fields before its single
  * save and needs an extended surface at wiring time), [setTrashed] NotesActivity.trashNote/onUndo
  * and TrashNotesTask,
- * [setPinned] NoteUtils.setNotePin, [emptyTrash] EmptyTrashTask, [setPreviewEnabled] and
+ * [setPinned] NoteUtils.setNotePin, [emptyTrash] EmptyTrashTask, [permanentlyDelete] the
+ * NoteUtils.showDialogDeletePermanently single-note delete, [setPreviewEnabled] and
  * [setPublished] the editor toggles, [getRevisions] the history sheet request, and
  * [noteChanges] the bucket listeners NotesActivity registers.
  */
@@ -38,6 +40,7 @@ interface NotesRepository {
     suspend fun setTrashed(keys: List<String>, trashed: Boolean)
     suspend fun emptyTrash()
     suspend fun setPinned(keys: List<String>, pinned: Boolean)
+    suspend fun permanentlyDelete(key: String)
     suspend fun setPreviewEnabled(key: String, enabled: Boolean)
     suspend fun setPublished(key: String, published: Boolean)
     suspend fun getRevisions(key: String, max: Int): RevisionsResult

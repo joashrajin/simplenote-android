@@ -109,6 +109,7 @@ class NoteListFragmentLifecycleTest {
         override suspend fun setTrashed(keys: List<String>, trashed: Boolean) = Unit
         override suspend fun emptyTrash() = Unit
         override suspend fun setPinned(keys: List<String>, pinned: Boolean) = Unit
+        override suspend fun permanentlyDelete(key: String) = Unit
         override suspend fun setPreviewEnabled(key: String, enabled: Boolean) = Unit
         override suspend fun setPublished(key: String, published: Boolean) = Unit
         override suspend fun getRevisions(key: String, max: Int): RevisionsResult = RevisionsResult.Failure

@@ -20,7 +20,6 @@ import android.database.Cursor;
 import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -62,12 +61,14 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.lifecycle.LifecycleOwnerKt;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Tag;
+import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
 import com.automattic.simplenote.utils.AutoBullet;
@@ -96,10 +97,11 @@ import com.simperium.client.Bucket;
 import com.simperium.client.BucketObjectMissingException;
 import com.simperium.client.Query;
 
-import java.lang.ref.WeakReference;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Set;
+
+import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -177,6 +179,9 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
     private boolean mIsFromWidget;
 
     private NoteEditorViewModel viewModel;
+
+    @Inject NotesRepository notesRepository;
+    private NoteEditorStreams mNoteEditorStreams;
 
     // Hides the history bottom sheet if no revisions are loaded
     private final Runnable mHistoryTimeoutRunnable = new Runnable() {
@@ -328,6 +333,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
 
         viewModel = new ViewModelProvider(this).get(NoteEditorViewModel.class);
         setObservers();
+
+        mNoteEditorStreams = new NoteEditorStreams(notesRepository, LifecycleOwnerKt.getLifecycleScope(this));
 
         mCallIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_call_white_24dp, R.attr.actionModeTextColor);
         mEmailIcon = DrawableUtils.tintDrawableWithAttribute(getActivity(), R.drawable.ic_email_24dp, R.attr.actionModeTextColor);
@@ -535,7 +542,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
                 AppLog.add(Type.ACTION, "Opened from list (NoteEditorFragment)");
             }
 
-            new LoadNoteTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, key);
+            loadNote(key);
         } else if (DisplayUtils.isLargeScreenLandscape(getActivity()) && savedInstanceState != null) {
             // Restore selected note when in dual pane mode
             String noteId = savedInstanceState.getString(STATE_NOTE_ID);
@@ -793,8 +800,15 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
                 setMarkdown(!item.isChecked());
                 return true;
             case R.id.menu_pin:
-                NoteUtils.setNotePin(mNote, !item.isChecked());
-                requireActivity().invalidateOptionsMenu();
+                NoteUtils.setNotePin(mNote, !item.isChecked(), requireActivity(), refreshed -> {
+                    if (refreshed != null) {
+                        mNote = refreshed;
+                    }
+
+                    if (getActivity() != null) {
+                        getActivity().invalidateOptionsMenu();
+                    }
+                });
                 return true;
             case R.id.menu_publish:
                 if (item.isChecked()) {
@@ -1058,7 +1072,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
         mPlaceholderView.setVisibility(View.GONE);
         mMatchOffsets = matchOffsets;
         saveNote();
-        new LoadNoteTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, noteID);
+        loadNote(noteID);
     }
 
     private void updateNote(Note updatedNote) {
@@ -1254,7 +1268,13 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
                 " / Characters: " + NoteUtils.getCharactersCount(mNote.getContent()) +
                 " / Words: " + NoteUtils.getWordCount(mNote.getContent()) + ")"
         );
-        new SaveNoteTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        mNoteEditorStreams.saveNote(this::saveNote, () -> {
+            if (getActivity() != null && !getActivity().isFinishing()) {
+                // Update links
+                linkifyEditorContent();
+                updateMarkdownView();
+            }
+        });
     }
 
     public boolean isPlaceholderVisible() {
@@ -1768,143 +1788,71 @@ public class NoteEditorFragment extends Fragment implements Bucket.Listener<Note
 
     }
 
-    private static class LoadNoteTask extends AsyncTask<String, Void, Void> {
-        WeakReference<NoteEditorFragment> mNoteEditorFragmentReference;
+    private void loadNote(String noteID) {
+        mContentEditText.removeTextChangedListener(this);
+        mIsLoadingNote = true;
 
-        LoadNoteTask(NoteEditorFragment fragment) {
-            mNoteEditorFragmentReference = new WeakReference<>(fragment);
-        }
-
-        @Override
-        protected void onPreExecute() {
-            NoteEditorFragment fragment = mNoteEditorFragmentReference.get();
-
-            if (fragment != null) {
-                fragment.mContentEditText.removeTextChangedListener(fragment);
-                fragment.mIsLoadingNote = true;
-            }
-        }
-
-        @Override
-        protected Void doInBackground(String... args) {
-            NoteEditorFragment fragment = mNoteEditorFragmentReference.get();
-
-            if (fragment == null || fragment.getActivity() == null) {
-                return null;
-            }
-
-            String noteID = args[0];
-            Simplenote application = (Simplenote) fragment.getActivity().getApplication();
-            Bucket<Note> notesBucket = application.getNotesBucket();
-
-            try {
-                fragment.mNote = notesBucket.get(noteID);
-
-                // Set the current note in NotesActivity when on a tablet
-                if (fragment.getActivity() instanceof NotesActivity) {
-                    ((NotesActivity) fragment.getActivity()).setCurrentNote(fragment.mNote);
-                }
-
-                // Set markdown and preview flags for current note
-                if (fragment.mNote != null) {
-                    fragment.mIsMarkdownEnabled = fragment.mNote.isMarkdownEnabled();
-                    fragment.mIsPreviewEnabled = fragment.mNote.isPreviewEnabled();
-                    AppLog.add(
-                        Type.SYNC,
-                        "Loaded note (ID: " + fragment.mNote.getSimperiumKey() +
-                            " / Title: " + fragment.mNote.getTitle() +
-                            " / Characters: " + NoteUtils.getCharactersCount(fragment.mNote.getContent()) +
-                            " / Words: " + NoteUtils.getWordCount(fragment.mNote.getContent()) + ")"
-                    );
-                }
-            } catch (BucketObjectMissingException e) {
-                // See if the note is in the object store
-                Bucket.ObjectCursor<Note> notesCursor = notesBucket.allObjects();
-
-                while (notesCursor.moveToNext()) {
-                    Note currentNote = notesCursor.getObject();
-
-                    if (currentNote != null && currentNote.getSimperiumKey().equals(noteID)) {
-                        fragment.mNote = currentNote;
-                        return null;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void nada) {
-            final NoteEditorFragment fragment = mNoteEditorFragmentReference.get();
-            if (fragment == null || fragment.getActivity() == null || fragment.getActivity().isFinishing()) {
-                return;
-            }
-
-            fragment.refreshContent(false);
-
-            if (fragment.mMatchOffsets != null) {
-                int columnIndex = fragment.mNote.getBucket().getSchema().getFullTextIndex().getColumnIndex(Note.CONTENT_PROPERTY);
-                fragment.mHighlighter.highlightMatches(fragment.mMatchOffsets, columnIndex);
-            }
-
-            fragment.mContentEditText.addTextChangedListener(fragment);
-
-            if (fragment.mNote != null && fragment.mNote.getContent().isEmpty()) {
-                // Show soft keyboard
-                fragment.mContentEditText.requestFocus();
-
-                new Handler().postDelayed(() -> {
-                    if (fragment.getActivity() == null) {
-                        return;
-                    }
-
-                    InputMethodManager inputMethodManager = (InputMethodManager) fragment.getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-
-                    if (inputMethodManager != null) {
-                        inputMethodManager.showSoftInput(fragment.mContentEditText, 0);
-                    }
-                }, 100);
-            } else if (fragment.mNote != null) {
-                // If we have a valid note, hide the placeholder
-                fragment.setPlaceholderVisible(false);
-            }
-
-            fragment.updateMarkdownView();
-            fragment.requireActivity().invalidateOptionsMenu();
-            fragment.linkifyEditorContent();
-            fragment.mIsLoadingNote = false;
-        }
+        mNoteEditorStreams.loadNote(noteID, this::onNoteLoaded);
     }
 
-    private static class SaveNoteTask extends AsyncTask<Void, Void, Void> {
-        WeakReference<NoteEditorFragment> mNoteEditorFragmentReference;
-
-        SaveNoteTask(NoteEditorFragment fragment) {
-            mNoteEditorFragmentReference = new WeakReference<>(fragment);
+    private void onNoteLoaded(Note note) {
+        if (getActivity() == null || getActivity().isFinishing()) {
+            return;
         }
 
-        @Override
-        protected Void doInBackground(Void... args) {
-            NoteEditorFragment fragment = mNoteEditorFragmentReference.get();
+        if (note != null) {
+            mNote = note;
 
-            if (fragment != null) {
-                fragment.saveNote();
+            // Set the current note in NotesActivity when on a tablet
+            if (getActivity() instanceof NotesActivity) {
+                ((NotesActivity) getActivity()).setCurrentNote(mNote);
             }
 
-            return null;
+            // Set markdown and preview flags for current note
+            mIsMarkdownEnabled = mNote.isMarkdownEnabled();
+            mIsPreviewEnabled = mNote.isPreviewEnabled();
+            AppLog.add(
+                Type.SYNC,
+                "Loaded note (ID: " + mNote.getSimperiumKey() +
+                    " / Title: " + mNote.getTitle() +
+                    " / Characters: " + NoteUtils.getCharactersCount(mNote.getContent()) +
+                    " / Words: " + NoteUtils.getWordCount(mNote.getContent()) + ")"
+            );
         }
 
-        @Override
-        protected void onPostExecute(Void nada) {
-            NoteEditorFragment fragment = mNoteEditorFragmentReference.get();
+        refreshContent(false);
 
-            if (fragment != null && fragment.getActivity() != null && !fragment.getActivity().isFinishing()) {
-                // Update links
-                fragment.linkifyEditorContent();
-                fragment.updateMarkdownView();
-            }
+        if (mMatchOffsets != null) {
+            int columnIndex = mNote.getBucket().getSchema().getFullTextIndex().getColumnIndex(Note.CONTENT_PROPERTY);
+            mHighlighter.highlightMatches(mMatchOffsets, columnIndex);
         }
+
+        mContentEditText.addTextChangedListener(this);
+
+        if (mNote != null && mNote.getContent().isEmpty()) {
+            // Show soft keyboard
+            mContentEditText.requestFocus();
+
+            new Handler().postDelayed(() -> {
+                if (getActivity() == null) {
+                    return;
+                }
+
+                InputMethodManager inputMethodManager = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+
+                if (inputMethodManager != null) {
+                    inputMethodManager.showSoftInput(mContentEditText, 0);
+                }
+            }, 100);
+        } else if (mNote != null) {
+            // If we have a valid note, hide the placeholder
+            setPlaceholderVisible(false);
+        }
+
+        updateMarkdownView();
+        requireActivity().invalidateOptionsMenu();
+        linkifyEditorContent();
+        mIsLoadingNote = false;
     }
 
     private void linkifyEditorContent() {

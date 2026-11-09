@@ -53,11 +53,18 @@ class SimperiumNotesRepository @Inject constructor(
     }
 
     override suspend fun getNote(key: String): Note? = withContext(ioDispatcher) {
-        try {
-            notesBucket.get(key)
-        } catch (exception: BucketObjectMissingException) {
-            null
+        getOrSkip(key)
+    }
+
+    // The LoadNoteTask fallback: a note the bucket cannot get yet may still sit in the object store.
+    private fun scanObjectStore(key: String): Note? = notesBucket.allObjects().use { cursor ->
+        while (cursor.moveToNext()) {
+            val note = cursor.getObject()
+            if (note != null && note.simperiumKey == key) {
+                return@use note
+            }
         }
+        null
     }
 
     override suspend fun trashedNoteCount(): Int = withContext(ioDispatcher) {
@@ -174,6 +181,13 @@ class SimperiumNotesRepository @Inject constructor(
         }
     }
 
+    override suspend fun permanentlyDelete(key: String) {
+        withContext(ioDispatcher) {
+            // A key absent from the bucket and the object store is already the sought outcome.
+            getOrSkip(key)?.delete()
+        }
+    }
+
     override suspend fun setPreviewEnabled(key: String, enabled: Boolean) = withContext(ioDispatcher) {
         val note = getOrSkip(key) ?: return@withContext
         note.isPreviewEnabled = enabled
@@ -229,10 +243,13 @@ class SimperiumNotesRepository @Inject constructor(
         // callback, so the stream buffers losslessly instead of conflating.
     }.buffer(Channel.UNLIMITED).flowOn(ioDispatcher)
 
+    // Writes get the same missing-ghost fallback as reads: the legacy callers mutated held
+    // instances, which worked without a ghost entry, so a note the editor can open must also
+    // accept its pin/trash/preview/delete writes.
     private fun getOrSkip(key: String): Note? = try {
         notesBucket.get(key)
     } catch (exception: BucketObjectMissingException) {
-        null
+        scanObjectStore(key)
     }
 
     private fun applySortOrder(query: Query<Note>, sort: SortOrder) {

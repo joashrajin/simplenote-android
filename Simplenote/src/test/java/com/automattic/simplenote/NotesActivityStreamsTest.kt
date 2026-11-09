@@ -343,6 +343,9 @@ class NotesActivityStreamsTest {
         override suspend fun setPinned(keys: List<String>, pinned: Boolean) =
             error("unused in these tests")
 
+        override suspend fun permanentlyDelete(key: String) =
+            error("unused in these tests")
+
         override suspend fun setPreviewEnabled(key: String, enabled: Boolean) =
             error("unused in these tests")
 

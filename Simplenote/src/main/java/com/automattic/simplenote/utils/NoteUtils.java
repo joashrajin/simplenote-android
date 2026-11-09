@@ -4,8 +4,6 @@ import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.core.util.Consumer;
 
 import com.automattic.simplenote.NoteEditorActivity;
@@ -15,6 +13,7 @@ import com.automattic.simplenote.R;
 import com.automattic.simplenote.Simplenote;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.text.NumberFormat;
 
@@ -60,7 +59,7 @@ public class NoteUtils {
     }
 
     public static void showDialogDeletePermanently(final Activity activity, final Note note) {
-        new AlertDialog.Builder(new ContextThemeWrapper(activity, R.style.Dialog))
+        new MaterialAlertDialogBuilder(activity)
             .setTitle(R.string.delete_dialog_title)
             .setMessage(R.string.delete_dialog_message)
             .setNegativeButton(R.string.cancel, null)

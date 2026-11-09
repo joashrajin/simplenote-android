@@ -44,6 +44,7 @@
         <item name="listBackgroundSelector">@drawable/bg_list_default</item>
         <item name="listSearchHighlightBackgroundColor">@color/simplenote_blue_60</item>
         <item name="listSearchHighlightForegroundColor">@color/simplenote_blue_5</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Simplestyle.Dialog</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
         <item name="sheetBackgroundColor">@color/background_dark_8</item>
         <item name="toolbarIconColor">@color/gray_20</item>
@@ -93,6 +94,18 @@
 
     <style name="Dialog.Sepia" parent="Dialog">
         <item name="android:colorBackground">@color/background_dark_sepia_24</item>
+    </style>
+
+    <!-- Dark surfaces mirror the legacy Dialog overlays. No Black variant: Dialog.Black resolves
+         the same color as Dialog in night, so Black and Matrix ride the base overlay. -->
+    <style name="ThemeOverlay.Simplestyle.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="android:colorBackground">@color/background_dark_24</item>
+        <item name="colorSurfaceContainerHigh">@color/background_dark_24</item>
+    </style>
+
+    <style name="ThemeOverlay.Simplestyle.Dialog.Sepia">
+        <item name="android:colorBackground">@color/background_dark_sepia_24</item>
+        <item name="colorSurfaceContainerHigh">@color/background_dark_sepia_24</item>
     </style>
 
     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">
@@ -318,6 +331,7 @@
         <item name="listBackgroundSelector">@drawable/bg_list_sepia</item>
         <item name="listSearchHighlightBackgroundColor">@color/orange_60</item>
         <item name="listSearchHighlightForegroundColor">@color/orange_5</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.Simplestyle.Dialog.Sepia</item>
         <item name="sheetBackgroundColor">@color/background_dark_sepia_8</item>
         <item name="toolbarStyle">@style/Widget.Simplenote.Toolbar.Sepia</item>
     </style>

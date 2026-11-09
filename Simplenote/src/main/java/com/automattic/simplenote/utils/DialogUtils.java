@@ -5,9 +5,9 @@ import android.text.method.LinkMovementMethod;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.view.ContextThemeWrapper;
 
 import com.automattic.simplenote.R;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.Objects;
 
@@ -20,7 +20,7 @@ public class DialogUtils {
      * @param message   {@link String} for the dialog message.
      */
     public static void showDialogWithEmail(Context context, String message) {
-        final AlertDialog dialog = new AlertDialog.Builder(new ContextThemeWrapper(context, R.style.Dialog))
+        final AlertDialog dialog = new MaterialAlertDialogBuilder(context)
             .setTitle(R.string.error)
             .setMessage(HtmlCompat.fromHtml(String.format(
                 message,

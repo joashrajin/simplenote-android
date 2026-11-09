@@ -11,9 +11,9 @@ import android.webkit.WebView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 
 import com.automattic.simplenote.R;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class BrowserUtils {
     public static final String URL_WEB_VIEW = "https://play.google.com/store/apps/details?id=com.google.android.webview";
@@ -60,7 +60,7 @@ public class BrowserUtils {
 
     public static void showDialogErrorBrowser(Context base, final String url) {
         final Context context = new ContextThemeWrapper(base, base.getTheme());
-        new AlertDialog.Builder(context)
+        new MaterialAlertDialogBuilder(context)
             .setTitle(R.string.simperium_dialog_title_error_browser)
             .setMessage(R.string.simperium_error_browser)
             .setNeutralButton(R.string.simperium_dialog_button_copy_url,
@@ -81,7 +81,7 @@ public class BrowserUtils {
 
     public static void showDialogErrorException(Context base, final String url) {
         final Context context = new ContextThemeWrapper(base, base.getTheme());
-        new AlertDialog.Builder(context)
+        new MaterialAlertDialogBuilder(context)
             .setTitle(R.string.dialog_browser_exception_title)
             .setMessage(R.string.dialog_browser_exception_message)
             .setNeutralButton(R.string.dialog_browser_exception_button_copy_url,

@@ -105,7 +105,7 @@ public class ThemeUtils {
             return 0;
         }
 
-        TypedArray ta = context.obtainStyledAttributes(new int[]{R.attr.noteEditorTextColor});
+        TypedArray ta = context.obtainStyledAttributes(new int[]{R.attr.colorOnSurface});
         int textColorId = ta.getResourceId(0, android.R.color.black);
         ta.recycle();
 

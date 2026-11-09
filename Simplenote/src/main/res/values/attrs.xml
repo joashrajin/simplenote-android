@@ -2,23 +2,17 @@
 
 <resources>
 
-    <attr name="noteTitleColor" format="reference|color"/>
-    <attr name="notePreviewColor" format="reference|color"/>
-    <attr name="noteEditorTextColor" format="reference|color"/>
+    <!-- Retired by the bottom-sheet Material 3 migration, not the attr retirement pass. -->
     <attr name="sheetBackgroundColor" format="reference|color"/>
+
     <attr name="listBackgroundSelector" format="reference"/>
     <attr name="listSearchHighlightForegroundColor" format="reference|color"/>
     <attr name="listSearchHighlightBackgroundColor" format="reference|color"/>
     <attr name="editorSearchHighlightForegroundColor" format="reference|color"/>
     <attr name="editorSearchHighlightBackgroundColor" format="reference|color"/>
     <attr name="emptyImageColor" format="reference|color"/>
-    <attr name="chipCheckedOffBackgroundColor" format="reference"/>
-    <attr name="chipCheckedOnBackgroundColor" format="reference"/>
-    <attr name="chipTextColor" format="reference"/>
 
     <attr name="toolbarIconColor" format="reference|color"/>
-
-    <attr name="actionModeTextColor" format="reference|color"/>
 
     <attr name="styleFontFamily" format="reference|string"/>
 

@@ -9,6 +9,7 @@ import com.automattic.simplenote.models.Account
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.models.Preferences
 import com.automattic.simplenote.models.Tag
+import com.automattic.simplenote.utils.AppLog
 import com.automattic.simplenote.utils.PrefUtils
 import com.automattic.simplenote.utils.WordPressTokenStore
 import com.simperium.Simperium
@@ -41,6 +42,7 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.inOrder
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
+import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 
@@ -212,6 +214,45 @@ class SimperiumAccountRepositoryTest {
             verify(syncEditor).clear()
             verify(syncEditor).apply()
         }
+    }
+
+    @Test
+    fun logoutRunsTheFullSequenceAgainOnASecondCall() = runTest {
+        val tokenStore = tokenStore(cleared = true)
+        stubNamedPreferences(editor(), editor())
+        val defaultPreferences = preferencesWith(editor())
+
+        mockLogoutStatics(tokenStore, defaultPreferences).use {
+            repository.logout()
+            repository.logout()
+        }
+
+        // No idempotence guard on the repository: reset/stop tolerate re-runs, so a second
+        // logout replays the whole legacy sequence rather than silently short-circuiting.
+        verify(simperium, times(2)).deauthorizeUser()
+        verify(accountBucket, times(2)).reset()
+        verify(notesBucket, times(2)).reset()
+        verify(tagsBucket, times(2)).reset()
+        verify(preferencesBucket, times(2)).reset()
+        verify(accountBucket, times(2)).stop()
+        verify(notesBucket, times(2)).stop()
+        verify(tagsBucket, times(2)).stop()
+        verify(preferencesBucket, times(2)).stop()
+        verify(tokenStore, times(2)).clearTokenWithRetry()
+    }
+
+    @Test
+    fun logoutLogsWhenTheWordPressTokenClearFails() = runTest {
+        val tokenStore = tokenStore(cleared = false)
+        stubNamedPreferences(editor(), editor())
+        val defaultPreferences = preferencesWith(editor())
+
+        mockLogoutStatics(tokenStore, defaultPreferences).use {
+            repository.logout()
+        }
+
+        verify(tokenStore).clearTokenWithRetry()
+        assertTrue(AppLog.get().contains("Unable to clear WordPress token during logout"))
     }
 
     @Test

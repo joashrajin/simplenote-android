@@ -1,6 +1,7 @@
 package com.automattic.simplenote
 
 import android.content.Context
+import android.util.Log
 import androidx.core.util.Consumer
 import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.AccountStatus
@@ -57,7 +58,13 @@ object AccountStreams {
     fun watchAccountStatus(repository: AccountRepository, onStatus: Consumer<AccountStatus>) {
         CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
             repository.accountChanges().collect { status ->
-                onStatus.accept(status)
+                try {
+                    onStatus.accept(status)
+                } catch (exception: Exception) {
+                    // Bucket.notifyListeners swallowed per-listener exceptions; a throwing
+                    // consumer must not kill the process-lifetime watcher either.
+                    Log.e(Simplenote.TAG, "Error handling account status $status", exception)
+                }
             }
         }
     }

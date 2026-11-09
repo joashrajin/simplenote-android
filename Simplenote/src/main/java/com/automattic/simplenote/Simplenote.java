@@ -234,10 +234,6 @@ public class Simplenote extends Application implements HeartbeatListener {
         return mIsInBackground;
     }
 
-    public void loginWithToken(String email, String spToken) {
-        AccountStreams.logInWithToken(AccountStreams.accountRepository(this), email, spToken);
-    }
-
     public boolean isLoggedIn() {
         return AccountStreams.accountRepository(this).isLoggedIn();
     }
@@ -283,6 +279,13 @@ public class Simplenote extends Application implements HeartbeatListener {
             fragmentManager = ((NoteEditorActivity) activity).getSupportFragmentManager();
             container = android.R.id.content;
         } else {
+            return;
+        }
+
+        // If isStateSaved() is true, it means that the application is not in the foreground, thus, we cannot
+        // show the dialog because it would cause an IllegalStateException (the same guard
+        // FullScreenDialogFragment.dismiss already applies).
+        if (activity.isFinishing() || activity.isDestroyed() || fragmentManager.isStateSaved()) {
             return;
         }
 

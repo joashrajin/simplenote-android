@@ -141,6 +141,18 @@
         <item name="colorSurfaceContainerHigh">?attr/colorSurface</item>
     </style>
 
+    <!-- Destructive dialogs (delete account): only the positive button carries the red the
+         legacy onShow painted, textColor only (the legacy ripple stayed accent-colored).
+         text_button_red already forks per mode (red_50 light / red_20 night), so neither style
+         needs a night counterpart. -->
+    <style name="ThemeOverlay.Simplestyle.Dialog.Destructive">
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.Simplenote.Button.DialogDestructive</item>
+    </style>
+
+    <style name="Widget.Simplenote.Button.DialogDestructive" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/text_button_red</item>
+    </style>
+
     <style name="DrawerArrowStyle" parent="Widget.AppCompat.DrawerArrowToggle">
         <item name="tint">?attr/toolbarIconColor</item>
         <item name="spinBars">true</item>

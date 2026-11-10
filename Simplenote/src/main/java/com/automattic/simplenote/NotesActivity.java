@@ -58,8 +58,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.ActionBarDrawerToggle;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
@@ -90,6 +88,7 @@ import com.automattic.simplenote.utils.StrUtils;
 import com.automattic.simplenote.utils.TagsAdapter;
 import com.automattic.simplenote.utils.ThemeUtils;
 import com.automattic.simplenote.utils.UndoBarController;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.navigation.NavigationView;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
@@ -376,7 +375,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             R.string.dialog_already_logged_in_message,
             "<b>" + email + "</b>"
         ));
-        new AlertDialog.Builder(this)
+        new MaterialAlertDialogBuilder(this)
             .setTitle(R.string.dialog_already_logged_in_title)
             .setMessage(alreadyLoggedInText)
             .setPositiveButton(R.string.log_out, new DialogInterface.OnClickListener() {
@@ -1039,7 +1038,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
                 return true;
             case R.id.menu_empty_trash:
-                AlertDialog.Builder alert = new AlertDialog.Builder(new ContextThemeWrapper(this, R.style.Dialog));
+                MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(this);
 
                 alert.setTitle(R.string.empty_trash);
                 alert.setMessage(R.string.confirm_empty_trash);

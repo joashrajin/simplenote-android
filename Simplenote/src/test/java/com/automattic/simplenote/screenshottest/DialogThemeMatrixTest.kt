@@ -89,10 +89,55 @@ class DialogThemeMatrixTest {
         assertDialogSurface(AppStyle.MATRIX, R.style.ThemeOverlay_Simplestyle_Dialog, R.color.background_dark_black_24)
 
     @Test
+    fun lightDestructive() = assertDestructiveOverlay(R.color.sn_surface)
+
+    @Test
+    @Config(qualifiers = ScreenshotHarness.NIGHT)
+    fun darkDestructive() = assertDestructiveOverlay(R.color.background_dark_24)
+
+    @Test
     @Config(qualifiers = ScreenshotHarness.NIGHT)
     fun blackNightSurfaceEqualsBaseNightSurface() {
         val app = ApplicationProvider.getApplicationContext<Context>()
         assertEquals(app.getColor(R.color.background_dark_24), app.getColor(R.color.background_dark_black_24))
+    }
+
+    /**
+     * The Destructive overlay never rides materialAlertDialogTheme - PreferencesFragment passes
+     * it to the delete-account builder directly - so its cell pins the two contracts instead:
+     * buttonBarPositiveButtonStyle resolves to the DialogDestructive button style whose textColor
+     * is the red the legacy onShow painted (text_button_red, whose own red_50/red_20 mode fork
+     * replaces a night fork of either style; only the positive button goes red, Cancel keeps the
+     * base overlay's accent as legacy did), and the implicit parent still reaches the mode's base
+     * Dialog overlay, keeping the pinned surface attributes.
+     */
+    private fun assertDestructiveOverlay(@ColorRes legacyDialogSurface: Int) {
+        val app = ApplicationProvider.getApplicationContext<Context>()
+        PreferenceManager.getDefaultSharedPreferences(app).edit()
+            .putInt(PrefUtils.PREF_STYLE_INDEX, AppStyle.DEFAULT.prefIndex)
+            .commit()
+
+        val themed = ContextThemeWrapper(app, ThemeUtils.getStyle(app))
+        val dialogContext = ContextThemeWrapper(themed, R.style.ThemeOverlay_Simplestyle_Dialog_Destructive)
+
+        val positiveStyle = TypedValue()
+        assertTrue(
+            "buttonBarPositiveButtonStyle did not resolve",
+            dialogContext.theme.resolveAttribute(R.attr.buttonBarPositiveButtonStyle, positiveStyle, true)
+        )
+        assertEquals(R.style.Widget_Simplenote_Button_DialogDestructive, positiveStyle.resourceId)
+
+        val buttonAttrs =
+            dialogContext.obtainStyledAttributes(positiveStyle.resourceId, intArrayOf(android.R.attr.textColor))
+        try {
+            assertEquals(themed.getColor(R.color.text_button_red), buttonAttrs.getColor(0, 1))
+        } finally {
+            buttonAttrs.recycle()
+        }
+
+        val expectedSurface = themed.getColor(legacyDialogSurface)
+        assertEquals(expectedSurface, resolveColor(dialogContext, android.R.attr.colorBackground))
+        assertEquals(expectedSurface, resolveColor(dialogContext, R.attr.colorSurfaceContainerHigh))
     }
 
     private fun assertDialogSurface(

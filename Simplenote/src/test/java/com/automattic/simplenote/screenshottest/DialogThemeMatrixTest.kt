@@ -24,7 +24,9 @@ import org.robolectric.annotation.Config
  * materialAlertDialogTheme must resolve to the expected ThemeOverlay.Simplestyle.Dialog variant,
  * and that overlay's android:colorBackground / colorSurfaceContainerHigh must equal the surface
  * the legacy R.style.Dialog overlays carried (the dialog sweeps change the builder, never the
- * surface color). Each cell is asserted twice: through the activity style (ThemeUtils.getStyle,
+ * surface attributes; the light-mode RENDER additionally carries M3's 6dp primary elevation
+ * tint on top of the attribute value). Each cell is asserted twice: through the activity style
+ * (ThemeUtils.getStyle,
  * the path every screen dialog resolves through) and through the widget-configure dialog theme
  * (PrefUtils.getStyleWidgetDialog, the Theme.Transparent* wrapper used by
  * NoteWidgetLight/DarkConfigureActivity).

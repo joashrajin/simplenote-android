@@ -13,8 +13,9 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Baseline goldens for the TagsActivity list screen. Proof matrix for the harness:
- * {light, dark} x {Default, Black}.
+ * Goldens for the Compose TagsScreen, hosted by the real TagsActivity so SimplenoteTheme resolves
+ * from the persisted style like production. Proof matrix for the harness:
+ * {light, dark} x {Default, Black}, plus the Matrix/Sepia night cells below.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -38,9 +39,11 @@ class TagsActivityScreenshotTest {
     @Config(qualifiers = ScreenshotHarness.NIGHT)
     fun darkBlack() = capture(AppStyle.BLACK, darkMode = true, goldenName = "tags_activity_dark_black")
 
-    // Matrix and Sepia night record the accepted attr-retirement deltas: their top bars moved off
-    // the per-style toolbarColor values onto colorSurfaceContainerLow, which the drawer already
-    // owns (Matrix #000000 -> #121416, Sepia #2d2b29 -> #23211f).
+    // Matrix and Sepia night record the accepted attr-retirement deltas (top bars on
+    // colorSurfaceContainerLow: Matrix #000000 -> #121416, Sepia #2d2b29 -> #23211f) and, since
+    // the Compose conversion, the style font adoption: SimplenoteTheme applies styleFontFamily to
+    // all text (Matrix renders monospace), where the deleted RobotoRegularTextView rows had
+    // hard-pinned Roboto regardless of style.
     @Test
     @Config(qualifiers = ScreenshotHarness.NIGHT)
     fun darkMatrix() = capture(AppStyle.MATRIX, darkMode = true, goldenName = "tags_activity_dark_matrix")

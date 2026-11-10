@@ -1,6 +1,5 @@
 package com.automattic.simplenote.viewmodels
 
-import android.view.View
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -98,8 +97,8 @@ class TagsViewModel @Inject constructor(
         }
     }
 
-    fun longClickDeleteTag(view: View) {
-        _event.postValue(TagsEvent.LongDeleteTagEvent(view))
+    fun longClickDeleteTag(tagItem: TagItem) {
+        _event.postValue(TagsEvent.LongDeleteTagEvent(tagItem))
     }
 
     fun deleteTag(tagItem: TagItem) {
@@ -122,5 +121,8 @@ sealed class TagsEvent {
     object FinishEvent : TagsEvent()
     data class EditTagEvent(val tagItem: TagItem) : TagsEvent()
     data class DeleteTagEvent(val tagItem: TagItem) : TagsEvent()
-    data class LongDeleteTagEvent(val view: View) : TagsEvent()
+    // The one sanctioned change to this frozen ViewModel: the event used to leak the long-pressed
+    // View through the VM; it now carries the tapped TagItem and the activity anchors the
+    // haptic/toast itself.
+    data class LongDeleteTagEvent(val tagItem: TagItem) : TagsEvent()
 }

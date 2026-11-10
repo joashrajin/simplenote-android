@@ -1,6 +1,5 @@
 package com.automattic.simplenote.viewmodels
 
-import android.view.View
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.automattic.simplenote.CoroutineTestRule
 import com.automattic.simplenote.models.Note
@@ -23,7 +22,6 @@ import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doReturn
-import org.mockito.kotlin.mock
 import org.mockito.kotlin.stub
 
 
@@ -267,10 +265,9 @@ class TagsViewModelTest {
 
     @Test
     fun longClickDeleteTagShouldTriggerLongDeleteTagEvent() {
-        val view = mock<View>()
-        viewModel.longClickDeleteTag(view)
+        viewModel.longClickDeleteTag(tagItems[0])
 
-        assertEquals(viewModel.event.value, TagsEvent.LongDeleteTagEvent(view))
+        assertEquals(viewModel.event.value, TagsEvent.LongDeleteTagEvent(tagItems[0]))
     }
 
     @Test

@@ -6,14 +6,13 @@ import android.view.View;
 
 import androidx.annotation.LayoutRes;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.fragment.app.FragmentTransaction;
 
 import com.automattic.simplenote.utils.DisplayUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 public class ShortcutDialogFragment extends AppCompatDialogFragment {
     public final static String DIALOG_TAG = "shortcut_tag";
@@ -30,7 +29,7 @@ public class ShortcutDialogFragment extends AppCompatDialogFragment {
     public Dialog onCreateDialog(Bundle savedInstanceState) {
         if (getContext() != null && getActivity() != null) {
             View view = View.inflate(requireContext(), getLayout(), null);
-            return new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), R.style.Dialog))
+            return new MaterialAlertDialogBuilder(requireContext())
                 .setView(view)
                 .setPositiveButton(android.R.string.ok, null)
                 .create();

@@ -25,7 +25,6 @@ import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceManager;
 
@@ -37,6 +36,7 @@ import com.automattic.simplenote.utils.ChecklistUtils;
 import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.ThemeUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket.ObjectCursor;
 import com.simperium.client.User;
@@ -131,7 +131,7 @@ public class NoteWidgetLightConfigureActivity extends AppCompatActivity {
         mDialogCursor = cursor;
 
         Context context = new ContextThemeWrapper(NoteWidgetLightConfigureActivity.this, PrefUtils.getStyleWidgetDialog(NoteWidgetLightConfigureActivity.this));
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context);
         @SuppressLint("InflateParams")
         final View layout = LayoutInflater.from(context).inflate(R.layout.note_widget_configure_list, null);
         final ListView list = layout.findViewById(R.id.list);

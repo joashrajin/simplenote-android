@@ -26,6 +26,7 @@ import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.ThemeUtils;
 import com.automattic.simplenote.widgets.SpinningImageButton;
 import com.automattic.simplenote.widgets.SpinningImageButton.SpeedListener;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.util.Calendar;
 import java.util.Locale;
@@ -206,7 +207,9 @@ public class AboutFragment extends Fragment implements SpeedListener {
     public void OnMaximumSpeed() {
         String[] items = requireActivity().getResources().getStringArray(R.array.array_about);
         long index = System.currentTimeMillis() % items.length;
-        final AlertDialog dialog = new AlertDialog.Builder(requireActivity())
+        // Theme.Simplestyle.About still parents MaterialComponents, so this renders the M2
+        // MaterialAlertDialog (like the browser-error dialogs on this screen), not our M3 overlay.
+        final AlertDialog dialog = new MaterialAlertDialogBuilder(requireActivity())
             .setMessage(HtmlCompat.fromHtml(String.format(
                 items[(int) index],
                 "<span style=\"color:#",

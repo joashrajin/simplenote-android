@@ -4,11 +4,9 @@ import android.os.Bundle
 import android.os.Handler
 import android.text.method.LinkMovementMethod
 import android.util.TypedValue
-import android.view.ContextThemeWrapper
 import android.view.View
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -20,6 +18,7 @@ import com.automattic.simplenote.utils.ThemeUtils
 import com.automattic.simplenote.viewmodels.AddTagViewModel
 import com.automattic.simplenote.widgets.MorphCircleToRectangle
 import com.automattic.simplenote.widgets.MorphSetup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -115,7 +114,7 @@ class AddTagActivity : AppCompatActivity() {
     }
 
     private fun showDialogError() {
-        val dialog = AlertDialog.Builder(ContextThemeWrapper(this, R.style.Dialog))
+        val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.error)
             .setMessage(
                 HtmlCompat.fromHtml(

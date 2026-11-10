@@ -9,8 +9,6 @@ import android.view.*
 import android.widget.*
 import androidx.activity.viewModels
 import androidx.annotation.DrawableRes
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.view.ContextThemeWrapper
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -21,6 +19,7 @@ import com.automattic.simplenote.viewmodels.TagsEvent
 import com.automattic.simplenote.viewmodels.TagsEvent.*
 import com.automattic.simplenote.viewmodels.TagsViewModel
 import com.automattic.simplenote.widgets.MorphSetup
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -120,7 +119,7 @@ class TagsActivity : ThemedAppCompatActivity() {
     }
 
     private fun showDeleteDialog(event: DeleteTagEvent) {
-        val alert = AlertDialog.Builder(ContextThemeWrapper(this, R.style.Dialog))
+        val alert = MaterialAlertDialogBuilder(this)
         alert.setTitle(R.string.delete_tag)
         alert.setMessage(getString(R.string.confirm_delete_tag))
         alert.setNegativeButton(R.string.no, null)

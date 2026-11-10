@@ -6,7 +6,6 @@ import android.content.DialogInterface
 import android.content.DialogInterface.OnShowListener
 import android.content.res.Configuration
 import android.os.Bundle
-import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
 import androidx.appcompat.app.AlertDialog
@@ -19,6 +18,7 @@ import com.automattic.simplenote.utils.DialogUtils
 import com.automattic.simplenote.viewmodels.TagDialogEvent
 import com.automattic.simplenote.viewmodels.TagDialogEvent.*
 import com.automattic.simplenote.viewmodels.TagDialogViewModel
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -42,9 +42,9 @@ class TagDialogFragment(private val tag: Tag) : AppCompatDialogFragment(), OnSho
     }
 
     private fun buildDialog(): Dialog {
-        val context = ContextThemeWrapper(requireContext(), R.style.Dialog)
-        _binding = EditTagBinding.inflate(LayoutInflater.from(context))
-        _dialogEditTag = AlertDialog.Builder(context)
+        val builder = MaterialAlertDialogBuilder(requireContext())
+        _binding = EditTagBinding.inflate(LayoutInflater.from(builder.context))
+        _dialogEditTag = builder
             .setView(binding.root)
             .setTitle(R.string.rename_tag)
             .setNegativeButton(R.string.cancel, null)

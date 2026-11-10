@@ -24,7 +24,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatDialogFragment;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.appcompat.widget.AppCompatCheckedTextView;
 import androidx.preference.PreferenceManager;
 
@@ -34,6 +33,7 @@ import com.automattic.simplenote.utils.DrawableUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.StrUtils;
 import com.automattic.simplenote.utils.WordPressUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import net.openid.appauth.AuthorizationException;
 import net.openid.appauth.AuthorizationRequest;
@@ -126,7 +126,7 @@ public class WordPressDialogFragment extends AppCompatDialogFragment {
         });
 
         if (getActivity() != null) {
-            return new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), R.style.Dialog))
+            return new MaterialAlertDialogBuilder(requireContext())
                     .setView(view)
                     .setTitle(R.string.post_to_wordpress)
                     .setPositiveButton(R.string.send_post, null)

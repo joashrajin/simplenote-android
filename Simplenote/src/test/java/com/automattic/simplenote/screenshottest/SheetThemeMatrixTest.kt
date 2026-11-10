@@ -24,9 +24,11 @@ import org.robolectric.annotation.Config
  * themes: for each harness [AppStyle] x light/dark, bottomSheetDialogTheme must resolve to the
  * expected ThemeOverlay.Simplestyle.BottomSheetDialog variant, and the sheet surface the overlay
  * carries (colorSurfaceContainerLow, the Material 3 modal sheet container color) must equal the
- * documented per-style surface. Light cells and the night Black/Matrix/Sepia overrides equal the
- * legacy sheetBackgroundColor exactly; the base night cells pin the deliberate one-step shift
- * from the legacy background_dark_8 to the shared ladder's background_dark_4.
+ * documented per-style surface. Light cells and the night Black/Matrix/Sepia overrides render
+ * the legacy sheetBackgroundColor exactly — the overlay disables elevationOverlayEnabled, so no
+ * elevation tint lands on top of the attribute value (it would seam against the navigation bar
+ * applyToSheet paints in that raw value) — and the base night cells pin the deliberate one-step
+ * shift from the legacy background_dark_8 to the shared ladder's background_dark_4.
  *
  * The width clamp the base fragment used to apply by hand is pinned too: every cell's
  * bottomSheetStyle must be Widget.Simplenote.BottomSheet, whose android:maxWidth is the
@@ -130,6 +132,14 @@ class SheetThemeMatrixTest {
             themed.getColor(expectedSheetSurface),
             resolveColor(sheetContext, R.attr.colorSurfaceContainerLow)
         )
+
+        // No elevation tint on top of the attribute value: the rendered sheet equals the matrix.
+        val overlayAttrs = sheetContext.obtainStyledAttributes(intArrayOf(R.attr.elevationOverlayEnabled))
+        try {
+            assertEquals(false, overlayAttrs.getBoolean(0, true))
+        } finally {
+            overlayAttrs.recycle()
+        }
 
         val sheetStyle = TypedValue()
         assertTrue(

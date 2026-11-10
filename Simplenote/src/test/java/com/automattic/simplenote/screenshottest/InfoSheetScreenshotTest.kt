@@ -23,9 +23,11 @@ import org.robolectric.annotation.GraphicsMode
  * Acceptance record for the Material 3 bottom-sheet migration: the info sheet, shown over
  * TagsActivity, captures the M3 modal container (colorSurfaceContainerLow surface, 28dp top
  * corners) under the documented surface matrix. The matrix mirrors the dialog goldens'
- * {light, dark} x {Default, Black}: light Default/Black pin the unchanged white surface, dark
- * Default pins the deliberate background_dark_8 -> background_dark_4 shift, and dark Black pins
- * the per-style override that keeps the legacy background_dark_black_8.
+ * {light, dark} x {Default, Black}: light Default/Black render the unchanged white surface
+ * exactly (the sheet overlay disables the elevation overlay, whose ~5% colorPrimary tint would
+ * wash the sheet per style and seam against the navigation bar painted in the raw attribute
+ * color), dark Default pins the deliberate background_dark_8 -> background_dark_4 shift, and
+ * dark Black pins the per-style override that keeps the legacy background_dark_black_8.
  *
  * The note fixture is fully deterministic: fixed content and fixed GMT timestamps (the default
  * time zone is pinned because DateTimeUtils formats in it), and the fake SyncTimes make the note

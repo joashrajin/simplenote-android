@@ -191,9 +191,15 @@
     <!-- Material 3 modal bottom sheet: the container color (colorSurfaceContainerLow), 28dp top
          corners, and edge-to-edge behavior come from the Material 3 defaults; only the width
          clamp is ours, reproducing the legacy per-qualifier clamp the base fragment used to
-         apply by hand (unclamped on phones, 360dp/600dp on large portrait/landscape). -->
+         apply by hand (unclamped on phones, 360dp/600dp on large portrait/landscape). The
+         elevation overlay is disabled so the sheet renders colorSurfaceContainerLow exactly:
+         in light mode the overlay would composite ~5% colorPrimary onto the sheet (a per-style
+         wash, and a visible seam against the navigation bar applyToSheet paints in the raw
+         attribute color on API 27-34). Night inherits the item harmlessly; dark already
+         rendered the raw value. -->
     <style name="ThemeOverlay.Simplestyle.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
         <item name="bottomSheetStyle">@style/Widget.Simplenote.BottomSheet</item>
+        <item name="elevationOverlayEnabled">false</item>
     </style>
 
     <style name="Widget.Simplenote.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">

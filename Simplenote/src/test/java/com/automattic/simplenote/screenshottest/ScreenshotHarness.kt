@@ -3,6 +3,7 @@ package com.automattic.simplenote.screenshottest
 import android.app.Activity
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.os.Looper
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ActivityScenario
@@ -62,6 +63,13 @@ object ScreenshotHarness {
         TagItem(tag("work", "Work"), 0),
     )
 
+    /** Deterministic collaborator fixture served by [ScreenshotCollaboratorsRepository]. */
+    val SAMPLE_COLLABORATORS: List<String> = listOf(
+        "ada@example.com",
+        "grace@example.com",
+        "katherine@example.com",
+    )
+
     /** Path of a golden image, relative to the module directory the test JVM runs in. */
     fun goldenFilePath(goldenName: String): String = "$GOLDEN_DIR/$goldenName.png"
 
@@ -89,6 +97,18 @@ object ScreenshotHarness {
     ): ActivityScenario<A> {
         applyStyle(style, darkMode)
         val scenario = ActivityScenario.launch(activityClass)
+        settle()
+        return scenario
+    }
+
+    /** [launchSettled] for activities that need intent extras (e.g. CollaboratorsActivity). */
+    fun <A : Activity> launchSettled(
+        intent: Intent,
+        style: AppStyle,
+        darkMode: Boolean,
+    ): ActivityScenario<A> {
+        applyStyle(style, darkMode)
+        val scenario = ActivityScenario.launch<A>(intent)
         settle()
         return scenario
     }

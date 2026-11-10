@@ -2,44 +2,62 @@ package com.automattic.simplenote
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.SpannableString
 import android.view.HapticFeedbackConstants
-import android.view.Menu
-import android.view.MenuItem
-import android.view.View
-import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.annotation.DrawableRes
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.view.ContextThemeWrapper
-import androidx.appcompat.widget.SearchView
-import androidx.appcompat.widget.Toolbar
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.automattic.simplenote.databinding.ActivityCollaboratorsBinding
-import com.automattic.simplenote.utils.CollaboratorsAdapter
-import com.automattic.simplenote.utils.CollaboratorsAdapter.CollaboratorDataItem.*
-import com.automattic.simplenote.utils.DisplayUtils
-import com.automattic.simplenote.utils.DrawableUtils
-import com.automattic.simplenote.utils.HtmlCompat
+import androidx.annotation.StringRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.automattic.simplenote.compose.AddCollaboratorDialog
+import com.automattic.simplenote.compose.CollaboratorsScreen
+import com.automattic.simplenote.compose.RemoveCollaboratorDialog
+import com.automattic.simplenote.compose.SimplenoteTheme
 import com.automattic.simplenote.utils.IntentUtils
-import com.automattic.simplenote.utils.SystemBarUtils
-import com.automattic.simplenote.utils.getColorStr
 import com.automattic.simplenote.utils.toast
+import com.automattic.simplenote.viewmodels.AddCollaboratorViewModel
 import com.automattic.simplenote.viewmodels.CollaboratorsViewModel
 import com.automattic.simplenote.viewmodels.CollaboratorsViewModel.Event
-import com.automattic.simplenote.viewmodels.CollaboratorsViewModel.UiState.*
+import com.automattic.simplenote.viewmodels.CollaboratorsViewModel.UiState
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * First Compose screen conversion: the window is a single ComposeView hosting
+ * [CollaboratorsScreen] under [SimplenoteTheme]. The frozen ViewModels are untouched — uiState
+ * renders through observeAsState() inside the screen, while both SingleLiveEvent streams stay
+ * observed here, exactly as the View world did: toasts, finish/navigate, and the visibility of
+ * the two dialogs (add + remove-confirm), which compose over the screen from activity-held state.
+ *
+ * Edge to edge is unchanged: ThemedAppCompatActivity.onCreate applies
+ * SystemBarUtils.applyEdgeToEdge, and the Scaffold inside [CollaboratorsScreen] consumes
+ * WindowInsets.safeDrawing in place of the deleted SystemBarUtils.applyInsets wiring.
+ */
 @AndroidEntryPoint
 class CollaboratorsActivity : ThemedAppCompatActivity() {
     private val viewModel: CollaboratorsViewModel by viewModels()
+    private val addCollaboratorViewModel: AddCollaboratorViewModel by viewModels()
 
-    private var searchMenuItem: MenuItem? = null
+    // The AddCollaboratorFragment used to be scoped to its own show; its replacement dialog's
+    // visibility and inline error live here so the SingleLiveEvent streams (whose observers
+    // cannot be unregistered per-dialog) are observed exactly once, for the activity's lifetime.
+    private var addCollaboratorDialog by mutableStateOf<AddCollaboratorDialogState?>(null)
+    private var collaboratorToRemove by mutableStateOf<String?>(null)
+
+    private data class AddCollaboratorDialogState(
+        val noteId: String,
+        @StringRes val errorRes: Int? = null,
+        /**
+         * True from Accept until the ViewModel answers. The valid path suspends on IO, so a late
+         * CollaboratorAdded/Close/NoteDeleted/NoteInTrash could otherwise dismiss a fresh dialog
+         * the user reopened after cancelling; a reopened dialog starts false, so stale
+         * dismiss-class events are ignored.
+         */
+        val submitting: Boolean = false,
+    )
 
     companion object {
         const val NOTE_ID_ARG = "note_id"
-        const val DIALOG_TAG = "dialog_tag"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -51,84 +69,35 @@ class CollaboratorsActivity : ThemedAppCompatActivity() {
             return
         }
 
-        with(ActivityCollaboratorsBinding.inflate(layoutInflater)) {
-            setContentView(root)
+        setObservers()
+        viewModel.loadCollaborators(noteId)
 
-            setupViews()
-            setObservers()
+        setContent {
+            SimplenoteTheme {
+                CollaboratorsScreen(viewModel)
 
-            viewModel.loadCollaborators(noteId)
-
-            // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets.
-            val toolbar = findViewById<Toolbar>(R.id.toolbar)
-            SystemBarUtils.applyInsets(
-                findViewById(R.id.main_parent_view),
-                toolbar,
-                collaboratorsList
-            )
-        }
-    }
-
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        super.onCreateOptionsMenu(menu)
-
-        menuInflater.inflate(R.menu.collaborators_list, menu)
-        DrawableUtils.tintMenuWithAttribute(this, menu, R.attr.toolbarIconColor)
-        val searchMenuItem = menu.findItem(R.id.menu_search)
-        this.searchMenuItem = searchMenuItem
-        val searchView = searchMenuItem.actionView as SearchView
-        val searchEditFrame = searchView.findViewById<LinearLayout>(R.id.search_edit_frame)
-        (searchEditFrame.layoutParams as LinearLayout.LayoutParams).leftMargin = 0
-
-        val hintHexColor = getColorStr(R.color.text_title_disabled)
-        searchView.queryHint = HtmlCompat.fromHtml(String.format(
-            "<font color=\"%s\">%s</font>",
-            hintHexColor,
-            getString(R.string.search_collaborators_hint)
-        ))
-
-        searchView.setOnQueryTextListener(
-            object : SearchView.OnQueryTextListener {
-                override fun onQueryTextChange(query: String): Boolean {
-                    if (searchMenuItem.isActionViewExpanded) {
-                        viewModel.search(query)
-                    }
-
-                    return true
+                addCollaboratorDialog?.let { dialog ->
+                    AddCollaboratorDialog(
+                        errorRes = dialog.errorRes,
+                        onTextChanged = { clearAddCollaboratorError() },
+                        onAddCollaborator = { collaborator ->
+                            addCollaboratorDialog = addCollaboratorDialog?.copy(submitting = true)
+                            addCollaboratorViewModel.addCollaborator(dialog.noteId, collaborator)
+                        },
+                        onDismiss = { addCollaboratorDialog = null },
+                    )
                 }
 
-                override fun onQueryTextSubmit(queryText: String): Boolean {
-                    return true
+                collaboratorToRemove?.let { collaborator ->
+                    RemoveCollaboratorDialog(
+                        onConfirm = {
+                            collaboratorToRemove = null
+                            viewModel.removeCollaborator(collaborator)
+                        },
+                        onDismiss = { collaboratorToRemove = null },
+                    )
                 }
             }
-        )
-
-        searchView.setOnCloseListener {
-            viewModel.closeSearch()
-            false
-        }
-
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            viewModel.close()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
-    }
-
-    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
-        updateSearchVisibility(viewModel.uiState.value)
-
-        return super.onPrepareOptionsMenu(menu)
-    }
-
-    private fun updateSearchVisibility(uiState: CollaboratorsViewModel.UiState?) {
-        searchMenuItem?.isVisible = when (uiState) {
-            is EmptyCollaborators -> !uiState.allCollaboratorsRemoved
-            else -> true
         }
     }
 
@@ -144,189 +113,68 @@ class CollaboratorsActivity : ThemedAppCompatActivity() {
         viewModel.stopListeningChanges()
     }
 
-    private fun ActivityCollaboratorsBinding.setupViews() {
-        setupToolbar()
-
-        collaboratorsList.adapter = CollaboratorsAdapter(viewModel::clickRemoveCollaborator, viewModel::longClickRemoveCollaborator)
-        collaboratorsList.isNestedScrollingEnabled = false
-        collaboratorsList.layoutManager = LinearLayoutManager(this@CollaboratorsActivity)
-        collaboratorsList.setEmptyView(empty.root)
-
-        buttonAddCollaborator.setOnClickListener { viewModel.clickAddCollaborator() }
-        buttonAddCollaborator.setOnApplyWindowInsetsListener { view, insets ->
-            DisplayUtils.applyWindowInsetsForFloatingActionButton(insets, resources, view)
-        }
-        buttonAddCollaborator.setOnLongClickListener {
-            viewModel.longClickAddCollaborator()
-            true
-        }
-
-        empty.image.setImageResource(R.drawable.ic_collaborate_24dp)
-        empty.title.text = getString(R.string.no_collaborators)
-        empty.message.text = getString(R.string.add_email_collaborator_message)
-    }
-
-    private fun setupToolbar() {
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-
-        supportActionBar?.apply {
-            title = SpannableString(getString(R.string.collaborators))
-            setDisplayHomeAsUpEnabled(true)
-        }
-    }
-
-    private fun ActivityCollaboratorsBinding.setObservers() {
-        viewModel.uiState.observe(this@CollaboratorsActivity, { uiState ->
-            updateSearchVisibility(uiState)
-
+    private fun setObservers() {
+        viewModel.uiState.observe(this) { uiState ->
             when (uiState) {
-                is EmptyCollaborators -> {
-                    handleEmptyCollaborators(uiState.allCollaboratorsRemoved, uiState.searchUpdate)
-                }
-                is CollaboratorsList -> {
-                    handleCollaboratorsList(uiState.collaborators, uiState.searchUpdate, uiState.searchQuery)
-                }
-                is NoteDeleted -> {
+                is UiState.NoteDeleted -> {
                     toast(R.string.collaborators_note_deleted, Toast.LENGTH_LONG)
                     navigateToNotesList()
                 }
-                is NoteInTrash -> {
+                is UiState.NoteInTrash -> {
                     toast(R.string.collaborators_note_trashed, Toast.LENGTH_LONG)
                     navigateToNotesList()
                 }
+                // Rendered by CollaboratorsScreen through observeAsState().
+                is UiState.CollaboratorsList, is UiState.EmptyCollaborators -> Unit
             }
-        })
+        }
 
-        viewModel.event.observe(this@CollaboratorsActivity, { event ->
+        viewModel.event.observe(this) { event ->
             when (event) {
-                is Event.AddCollaboratorEvent -> showAddCollaboratorFragment(event)
-                is Event.LongAddCollaboratorEvent -> showLongAddToast()
-                is Event.LongRemoveCollaboratorEvent -> showLongRemoveToast()
-                is Event.RemoveCollaboratorEvent -> showRemoveCollaboratorDialog(event)
+                is Event.AddCollaboratorEvent ->
+                    addCollaboratorDialog = AddCollaboratorDialogState(event.noteId)
+                is Event.LongAddCollaboratorEvent -> showLongPressToast(R.string.add_collaborator)
+                is Event.LongRemoveCollaboratorEvent -> showLongPressToast(R.string.remove_collaborator)
+                is Event.RemoveCollaboratorEvent -> collaboratorToRemove = event.collaborator
                 Event.CloseCollaboratorsEvent -> finish()
             }
-        })
-    }
-
-    private fun ActivityCollaboratorsBinding.showLongAddToast() {
-        if (buttonAddCollaborator.isHapticFeedbackEnabled) {
-            buttonAddCollaborator.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
-        toast(R.string.add_collaborator)
-    }
-
-    private fun ActivityCollaboratorsBinding.showLongRemoveToast() {
-        if (buttonAddCollaborator.isHapticFeedbackEnabled) {
-            buttonAddCollaborator.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
 
-        toast(R.string.remove_collaborator)
-    }
-
-    private fun ActivityCollaboratorsBinding.handleCollaboratorsList(collaborators: List<String>, searchUpdate: Boolean, searchQuery: String?) {
-        hideEmptyView()
-        val items = listOf(HeaderItem) + collaborators.map { CollaboratorItem(it) }
-        (collaboratorsList.adapter as CollaboratorsAdapter).submitList(items) {
-            if (searchUpdate) {
-                collaboratorsList.scrollToPosition(0)
-
-                if (searchQuery != null) {
-                    setEmptyViewSearch()
-                } else {
-                    setEmptyViewDefault()
+        addCollaboratorViewModel.event.observe(this) { event ->
+            when (event) {
+                AddCollaboratorViewModel.Event.CollaboratorAdded,
+                AddCollaboratorViewModel.Event.Close,
+                AddCollaboratorViewModel.Event.NoteDeleted, // The uiState observer handles the note.
+                AddCollaboratorViewModel.Event.NoteInTrash -> {
+                    // Only a dialog with a submission in flight dismisses: a stale event arriving
+                    // after cancel-and-reopen (submitting == false) must not close the new dialog.
+                    if (addCollaboratorDialog?.submitting == true) {
+                        addCollaboratorDialog = null
+                    }
                 }
+                AddCollaboratorViewModel.Event.InvalidCollaborator ->
+                    setAddCollaboratorError(R.string.invalid_collaborator)
+                AddCollaboratorViewModel.Event.CollaboratorCurrentUser ->
+                    setAddCollaboratorError(R.string.collaborator_is_current_user)
             }
         }
     }
 
-    private fun ActivityCollaboratorsBinding.handleEmptyCollaborators(allCollaboratorsRemoved: Boolean, searchUpdate: Boolean) {
-        showEmptyView()
-        (collaboratorsList.adapter as CollaboratorsAdapter).submitList(emptyList()) {
-            if (searchUpdate) {
-                collaboratorsList.scrollToPosition(0)
-            }
-
-            if (allCollaboratorsRemoved) {
-                invalidateOptionsMenu()
-                setEmptyViewDefault()
-            } else {
-                setEmptyViewSearch()
-            }
-        }
+    private fun setAddCollaboratorError(@StringRes errorRes: Int) {
+        addCollaboratorDialog = addCollaboratorDialog?.copy(errorRes = errorRes, submitting = false)
     }
 
-    private fun ActivityCollaboratorsBinding.hideEmptyView() {
-        empty.image.visibility = View.GONE
-        empty.title.visibility = View.GONE
-        empty.message.visibility = View.GONE
+    private fun clearAddCollaboratorError() {
+        addCollaboratorDialog = addCollaboratorDialog?.copy(errorRes = null)
     }
 
-    private fun ActivityCollaboratorsBinding.showEmptyView() {
-        empty.image.visibility = View.VISIBLE
-        empty.title.visibility = View.VISIBLE
-        empty.message.visibility = View.VISIBLE
-    }
-
-    private fun ActivityCollaboratorsBinding.setEmptyListImage(@DrawableRes image: Int) {
-        if (image != -1) {
-            empty.image.visibility = View.VISIBLE
-            empty.image.setImageResource(image)
-        } else {
-            empty.image.visibility = View.GONE
-        }
-    }
-
-    private fun ActivityCollaboratorsBinding.setEmptyListMessage(message: String?) {
-        message?.let {
-            empty.message.text = it
-        }
-    }
-
-    private fun ActivityCollaboratorsBinding.setEmptyListTitle(title: String?) {
-        title?.let {
-            empty.title.text = it
-        }
-    }
-
-    private fun ActivityCollaboratorsBinding.setEmptyViewDefault() {
-        if (DisplayUtils.isLandscape(this@CollaboratorsActivity) &&
-            !DisplayUtils.isLargeScreen(this@CollaboratorsActivity)
-        ) {
-            setEmptyListImage(-1)
-        } else {
-            setEmptyListImage(R.drawable.ic_collaborate_24dp)
+    private fun showLongPressToast(@StringRes message: Int) {
+        // The View world performed the haptic on the FAB; the decor view is its stand-in.
+        if (window.decorView.isHapticFeedbackEnabled) {
+            window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
 
-        setEmptyListMessage(getString(R.string.add_email_collaborator_message))
-        setEmptyListTitle(getString(R.string.no_collaborators))
-    }
-
-    private fun ActivityCollaboratorsBinding.setEmptyViewSearch() {
-        if (DisplayUtils.isLandscape(this@CollaboratorsActivity) &&
-            !DisplayUtils.isLargeScreen(this@CollaboratorsActivity)
-        ) {
-            setEmptyListImage(-1)
-        } else {
-            setEmptyListImage(R.drawable.ic_search_24dp)
-        }
-
-        setEmptyListMessage("")
-        setEmptyListTitle(getString(R.string.no_collaborators_search))
-    }
-
-    private fun showAddCollaboratorFragment(event: Event.AddCollaboratorEvent) {
-        val dialog = AddCollaboratorFragment(event.noteId)
-        dialog.show(supportFragmentManager.beginTransaction(), DIALOG_TAG)
-    }
-
-    private fun showRemoveCollaboratorDialog(event: Event.RemoveCollaboratorEvent) {
-        val alert = AlertDialog.Builder(ContextThemeWrapper(this, R.style.Dialog))
-        alert.setTitle(R.string.remove_collaborator)
-        alert.setMessage(R.string.remove_collaborator_message)
-        alert.setNegativeButton(R.string.cancel, null)
-        alert.setPositiveButton(R.string.remove) {  _, _ -> viewModel.removeCollaborator(event.collaborator) }
-        alert.show()
+        toast(message)
     }
 
     private fun navigateToNotesList() {

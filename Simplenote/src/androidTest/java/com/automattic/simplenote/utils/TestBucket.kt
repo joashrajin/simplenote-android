@@ -57,6 +57,13 @@ abstract class TestBucket<T : BucketObject>(name: String) : Bucket<T>(null, name
         } ?: throw BucketObjectMissingException()
     }
 
+    // The real Bucket.get resolves through the ghost store, which this in-memory double does not
+    // have (constructed with null), so it would NPE; repositories reach objects this way
+    // (e.g. SimperiumCollaboratorsRepository.getNote), so resolve from the in-memory list instead.
+    override fun get(uuid: String?): T {
+        return getObject(uuid)
+    }
+
     override fun sync(`object`: T?) {
         `object`?.let { o ->
             o.bucket = this

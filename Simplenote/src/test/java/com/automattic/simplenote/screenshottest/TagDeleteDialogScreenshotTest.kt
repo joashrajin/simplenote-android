@@ -15,9 +15,11 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Baseline goldens for the tag-delete confirmation dialog, driven through the real
- * TagsActivity -> TagsViewModel event path and captured with the dialog window on top of the
- * activity. Proof matrix for the harness: {light, dark} x {Default, Black}.
+ * Goldens for the tag-delete confirmation dialog — the Compose M3 AlertDialog since the Tags
+ * conversion (same strings/accents as the MaterialAlertDialogBuilder it replaced; the Compose
+ * dialog drops the View overlay's light-mode tonal tint and dims its own scrim) — driven through
+ * the real TagsActivity -> TagsViewModel event path and captured with the dialog window on top of
+ * the activity. Proof matrix for the harness: {light, dark} x {Default, Black}.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)

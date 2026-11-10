@@ -1,130 +1,89 @@
 package com.automattic.simplenote
 
-import android.app.ActivityOptions
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
-import android.text.SpannableString
-import android.view.*
-import android.widget.*
+import android.view.HapticFeedbackConstants
+import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.annotation.DrawableRes
-import androidx.appcompat.widget.SearchView
-import androidx.appcompat.widget.Toolbar
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.automattic.simplenote.databinding.ActivityTagsBinding
-import com.automattic.simplenote.utils.*
-import com.automattic.simplenote.utils.SystemBarUtils
+import androidx.annotation.StringRes
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.automattic.simplenote.compose.DeleteTagDialog
+import com.automattic.simplenote.compose.SimplenoteTheme
+import com.automattic.simplenote.compose.TagsScreen
+import com.automattic.simplenote.models.TagItem
+import com.automattic.simplenote.utils.DisplayUtils
+import com.automattic.simplenote.utils.toast
 import com.automattic.simplenote.viewmodels.TagsEvent
-import com.automattic.simplenote.viewmodels.TagsEvent.*
+import com.automattic.simplenote.viewmodels.TagsEvent.AddTagEvent
+import com.automattic.simplenote.viewmodels.TagsEvent.DeleteTagEvent
+import com.automattic.simplenote.viewmodels.TagsEvent.EditTagEvent
+import com.automattic.simplenote.viewmodels.TagsEvent.FinishEvent
+import com.automattic.simplenote.viewmodels.TagsEvent.LongAddTagEvent
+import com.automattic.simplenote.viewmodels.TagsEvent.LongDeleteTagEvent
 import com.automattic.simplenote.viewmodels.TagsViewModel
-import com.automattic.simplenote.widgets.MorphSetup
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 
+/**
+ * Second Compose screen conversion (the Collaborators screen set the pattern): the window is a
+ * single ComposeView hosting [TagsScreen] under [SimplenoteTheme]. The ViewModel's uiState renders
+ * through observeAsState() inside the screen, while the SingleLiveEvent stream stays observed
+ * here, exactly as the View world did: toasts, finish, the AddTagActivity launch, the rename
+ * [TagDialogFragment] (still a View DialogFragment), and the delete-confirmation dialog's
+ * visibility, which composes over the screen from activity-held state.
+ *
+ * The FAB -> AddTagActivity MorphSetup shared-element morph is dropped (the design's accepted
+ * loss): a Compose FAB cannot anchor a View scene-transition, so the launch is a plain
+ * startActivityForResult and AddTagActivity's faux-dialog window simply appears.
+ *
+ * Edge to edge is unchanged: ThemedAppCompatActivity.onCreate applies
+ * SystemBarUtils.applyEdgeToEdge, and the Scaffold inside [TagsScreen] consumes
+ * WindowInsets.safeDrawing in place of the deleted SystemBarUtils.applyInsets wiring.
+ */
 @AndroidEntryPoint
 class TagsActivity : ThemedAppCompatActivity() {
     private val viewModel: TagsViewModel by viewModels()
 
+    // The delete-confirm dialog's visibility lives here so the SingleLiveEvent stream (whose
+    // observers cannot be unregistered per-dialog) is observed exactly once, for the activity's
+    // lifetime.
+    private var tagToDelete by mutableStateOf<TagItem?>(null)
+
     public override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val binding = ActivityTagsBinding.inflate(layoutInflater)
-        setContentView(binding.root)
-
-        binding.setupViews()
-        binding.setObservers()
-
+        setObservers()
         viewModel.start()
 
-        // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets.
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        SystemBarUtils.applyInsets(
-            findViewById(R.id.main_parent_view),
-            toolbar,
-            binding.list
-        )
-    }
+        setContent {
+            SimplenoteTheme {
+                TagsScreen(viewModel)
 
-    private fun ActivityTagsBinding.setupViews() {
-        val toolbar = findViewById<Toolbar>(R.id.toolbar)
-        setSupportActionBar(toolbar)
-
-        supportActionBar?.apply {
-            title = SpannableString(getString(R.string.edit_tags))
-            setDisplayHomeAsUpEnabled(true)
-        }
-
-        list.adapter = TagItemAdapter(
-            viewModel::clickEditTag,
-            viewModel::clickDeleteTag,
-            viewModel::longClickDeleteTag
-        )
-        list.layoutManager = LinearLayoutManager(this@TagsActivity)
-
-        setLabelEmptyTagList()
-        list.setEmptyView(empty.root)
-
-        buttonAdd.setOnClickListener { viewModel.clickAddTag() }
-        buttonAdd.setOnLongClickListener {
-            viewModel.longClickAddTag()
-            true
-        }
-        buttonAdd.setOnApplyWindowInsetsListener { view, insets ->
-            DisplayUtils.applyWindowInsetsForFloatingActionButton(insets, resources, view)
-        }
-    }
-
-    private fun ActivityTagsBinding.setObservers() {
-        viewModel.uiState.observe(this@TagsActivity, { (tagItems, searchUpdate, searchQuery) ->
-            val adapter = list.adapter as TagItemAdapter
-            adapter.submitList(tagItems) {
-                if (searchUpdate) {
-                    list.scrollToPosition(0)
-                    if (searchQuery != null) {
-                        setLabelEmptyTagListSearchResults()
-                    } else {
-                        setLabelEmptyTagList()
-                    }
+                tagToDelete?.let { tagItem ->
+                    DeleteTagDialog(
+                        onConfirm = {
+                            tagToDelete = null
+                            viewModel.deleteTag(tagItem)
+                        },
+                        onDismiss = { tagToDelete = null },
+                    )
                 }
             }
         }
-        )
+    }
 
-        viewModel.event.observe(this@TagsActivity, { event: TagsEvent ->
+    private fun setObservers() {
+        viewModel.event.observe(this) { event: TagsEvent ->
             when (event) {
                 is AddTagEvent -> startAddTagActivity()
-                is LongAddTagEvent -> showLongAddToast()
+                is LongAddTagEvent -> showLongPressToast(R.string.add_tag)
                 is FinishEvent -> finish()
                 is EditTagEvent -> showTagDialogFragment(event)
-                is DeleteTagEvent -> showDeleteDialog(event)
-                is LongDeleteTagEvent -> showLongDeleteToast(event)
+                is DeleteTagEvent -> tagToDelete = event.tagItem
+                is LongDeleteTagEvent -> showLongPressToast(R.string.delete_tag)
             }
-        })
-    }
-
-    private fun ActivityTagsBinding.showLongAddToast() {
-        if (buttonAdd.isHapticFeedbackEnabled) {
-            buttonAdd.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
-        toast(R.string.add_tag)
-    }
-
-    private fun showLongDeleteToast(event: LongDeleteTagEvent) {
-        val v = event.view
-        if (v.isHapticFeedbackEnabled) {
-            v.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-        }
-        toast(R.string.delete_tag)
-    }
-
-    private fun showDeleteDialog(event: DeleteTagEvent) {
-        val alert = MaterialAlertDialogBuilder(this)
-        alert.setTitle(R.string.delete_tag)
-        alert.setMessage(getString(R.string.confirm_delete_tag))
-        alert.setNegativeButton(R.string.no, null)
-        alert.setPositiveButton(R.string.yes) { _: DialogInterface?, _: Int -> viewModel.deleteTag(event.tagItem) }
-        alert.show()
     }
 
     private fun showTagDialogFragment(event: EditTagEvent) {
@@ -133,55 +92,18 @@ class TagsActivity : ThemedAppCompatActivity() {
     }
 
     @Suppress("DEPRECATION")
-    private fun ActivityTagsBinding.startAddTagActivity() {
-        val intent = Intent(this@TagsActivity, AddTagActivity::class.java)
-        intent.putExtra(MorphSetup.EXTRA_SHARED_ELEMENT_COLOR_END,
-            ThemeUtils.getColorFromAttribute(this@TagsActivity, R.attr.colorSurface))
-        intent.putExtra(MorphSetup.EXTRA_SHARED_ELEMENT_COLOR_START,
-            ThemeUtils.getColorFromAttribute(this@TagsActivity, R.attr.colorPrimary))
-        val options = ActivityOptions.makeSceneTransitionAnimation(this@TagsActivity, buttonAdd, "shared_button")
-        startActivityForResult(intent, REQUEST_ADD_TAG, options.toBundle())
+    private fun startAddTagActivity() {
+        startActivityForResult(Intent(this, AddTagActivity::class.java), REQUEST_ADD_TAG)
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        super.onCreateOptionsMenu(menu)
-
-        menuInflater.inflate(R.menu.tags_list, menu)
-        DrawableUtils.tintMenuWithAttribute(this, menu, R.attr.toolbarIconColor)
-        val searchMenuItem = menu.findItem(R.id.menu_search)
-        val searchView = searchMenuItem.actionView as SearchView
-        val searchEditFrame = searchView.findViewById<LinearLayout>(R.id.search_edit_frame)
-        (searchEditFrame.layoutParams as LinearLayout.LayoutParams).leftMargin = 0
-
-
-        val hintHexColor = getColorStr(R.color.text_title_disabled)
-        searchView.queryHint = HtmlCompat.fromHtml(String.format(
-            "<font color=\"%s\">%s</font>",
-            hintHexColor,
-            getString(R.string.search_tags_hint)
-        ))
-
-        searchView.setOnQueryTextListener(
-            object : SearchView.OnQueryTextListener {
-                override fun onQueryTextChange(query: String): Boolean {
-                    if (searchMenuItem.isActionViewExpanded) {
-                        viewModel.search(query)
-                    }
-                    return true
-                }
-
-                override fun onQueryTextSubmit(queryText: String): Boolean {
-                    return true
-                }
-            }
-        )
-
-        searchView.setOnCloseListener {
-            viewModel.closeSearch()
-            false
+    private fun showLongPressToast(@StringRes message: Int) {
+        // The View world performed the haptic on the long-pressed view; the decor view is its
+        // stand-in now that the event no longer carries one.
+        if (window.decorView.isHapticFeedbackEnabled) {
+            window.decorView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
         }
 
-        return true
+        toast(message)
     }
 
     override fun onResume() {
@@ -201,45 +123,6 @@ class TagsActivity : ThemedAppCompatActivity() {
             viewModel.updateOnResult()
         }
         super.onActivityResult(requestCode, resultCode, data)
-    }
-
-    private fun ActivityTagsBinding.setLabelEmptyTagList() {
-        setEmptyListImage(R.drawable.ic_tag_24dp)
-        setEmptyListMessage(getString(R.string.empty_tags))
-    }
-
-    private fun ActivityTagsBinding.setLabelEmptyTagListSearchResults() {
-        if (DisplayUtils.isLandscape(this@TagsActivity) &&
-            !DisplayUtils.isLargeScreen(this@TagsActivity)
-        ) {
-            setEmptyListImage(-1)
-        } else {
-            setEmptyListImage(R.drawable.ic_search_24dp)
-        }
-        setEmptyListMessage(getString(R.string.empty_tags_search))
-    }
-
-    private fun ActivityTagsBinding.setEmptyListImage(@DrawableRes image: Int) {
-        if (image != -1) {
-            empty.image.visibility = View.VISIBLE
-            empty.image.setImageResource(image)
-        } else {
-            empty.image.visibility = View.GONE
-        }
-    }
-
-    private fun ActivityTagsBinding.setEmptyListMessage(message: String?) {
-        message?.let {
-            empty.text.text = it
-        }
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == android.R.id.home) {
-            viewModel.close()
-            return true
-        }
-        return super.onOptionsItemSelected(item)
     }
 
     companion object {

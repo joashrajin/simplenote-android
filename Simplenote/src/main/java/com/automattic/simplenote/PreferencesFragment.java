@@ -31,9 +31,7 @@ import android.widget.Switch;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.view.ContextThemeWrapper;
 import androidx.core.app.ShareCompat;
-import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.LifecycleOwnerKt;
 import androidx.preference.ListPreference;
@@ -58,6 +56,7 @@ import com.automattic.simplenote.utils.HtmlCompat;
 import com.automattic.simplenote.utils.NetworkUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SimplenoteProgressDialogFragment;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
 import com.simperium.client.BucketObjectMissingException;
@@ -406,7 +405,8 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         Simplenote currentApp = (Simplenote) requireActivity().getApplication();
         Simperium simperium = currentApp.getSimperium();
         String userEmail = simperium.getUser().getEmail();
-        final AlertDialog dialogDeleteAccount = new AlertDialog.Builder(new ContextThemeWrapper(context, R.style.Dialog))
+        final AlertDialog dialogDeleteAccount =
+                new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_Simplestyle_Dialog_Destructive)
                 .setTitle(R.string.delete_account)
                 .setMessage(getString(R.string.delete_account_email_message, userEmail))
                 .setPositiveButton(R.string.delete_account, new DialogInterface.OnClickListener() {
@@ -449,20 +449,6 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 .setNegativeButton(R.string.cancel, null)
                 .create();
 
-        dialogDeleteAccount.setOnShowListener(new DialogInterface.OnShowListener() {
-            @Override
-            public void onShow(DialogInterface dialog) {
-                FragmentActivity activity = getActivity();
-                if (activity == null) {
-                    return;
-                }
-
-                int colorRed = ContextCompat.getColor(activity, R.color.text_button_red);
-                dialogDeleteAccount
-                        .getButton(AlertDialog.BUTTON_POSITIVE)
-                        .setTextColor(colorRed);
-            }
-        });
         dialogDeleteAccount.show();
     }
 
@@ -472,8 +458,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             return;
         }
 
-        AlertDialog dialogDeleteAccountConfirmation = new AlertDialog.Builder(
-                new ContextThemeWrapper(activity, R.style.Dialog))
+        AlertDialog dialogDeleteAccountConfirmation = new MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.error)
                 .setMessage(R.string.simperium_dialog_message_network)
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -510,8 +495,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         Simperium simperium = currentApp.getSimperium();
         String userEmail = simperium.getUser().getEmail();
 
-        AlertDialog dialogDeleteAccountConfirmation = new AlertDialog.Builder(
-                new ContextThemeWrapper(activity, R.style.Dialog))
+        AlertDialog dialogDeleteAccountConfirmation = new MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.request_received)
                 .setMessage(getString(R.string.account_deletion_message, userEmail))
                 .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
@@ -555,7 +539,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     private void onUnsyncedNotesChecked(Boolean hasUnsyncedNotes) {
         // Safety first! Check if any notes are unsynced and warn the user if so.
         if (hasUnsyncedNotes) {
-            new AlertDialog.Builder(new ContextThemeWrapper(requireContext(), R.style.Dialog))
+            new MaterialAlertDialogBuilder(requireContext())
                 .setTitle(R.string.unsynced_notes)
                 .setMessage(R.string.unsynced_notes_message)
                 .setPositiveButton(R.string.log_out_anyway,

@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'kotlin-android'
+apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: 'kotlin-kapt'
 apply plugin: 'dagger.hilt.android.plugin'
 // Adds recordRoborazzi<Variant> / verifyRoborazzi<Variant> / compareRoborazzi<Variant> tasks for
@@ -80,6 +81,11 @@ android {
 
     viewBinding {
         enabled = true
+    }
+    buildFeatures {
+        // The Compose compiler version comes from the Kotlin-bundled plugin; no composeOptions
+        // block on Kotlin 2.x.
+        compose true
     }
     lint {
         checkReleaseBuilds false
@@ -161,6 +167,21 @@ dependencies {
     testImplementation "androidx.lifecycle:lifecycle-runtime-testing:$androidxLifecycleVersion"
     // Support for androidx Fragments
     implementation "androidx.lifecycle:lifecycle-viewmodel-savedstate:$androidxLifecycleVersion"
+
+    // Jetpack Compose (SimplenoteTheme bridge; screens arrive in later PRs). The BOM pins every
+    // androidx.compose artifact version; it must also be applied to the androidTest configuration,
+    // which does not inherit the main one's platform.
+    implementation platform('androidx.compose:compose-bom:2026.06.01')
+    androidTestImplementation platform('androidx.compose:compose-bom:2026.06.01')
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.ui:ui-tooling-preview'
+    implementation 'androidx.activity:activity-compose'
+    implementation "androidx.lifecycle:lifecycle-runtime-compose:$androidxLifecycleVersion"
+    // The candidate screens' ViewModels all expose LiveData.
+    implementation 'androidx.compose.runtime:runtime-livedata'
+    debugImplementation 'androidx.compose.ui:ui-tooling'
+    debugImplementation 'androidx.compose.ui:ui-test-manifest'
+    androidTestImplementation 'androidx.compose.ui:ui-test-junit4'
 
     // Third Party
     implementation 'com.squareup.okhttp3:okhttp:5.1.0'

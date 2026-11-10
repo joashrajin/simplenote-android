@@ -18,6 +18,8 @@ buildscript {
     dependencies {
         classpath 'com.android.tools.build:gradle:8.11.1'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // The Compose compiler ships with Kotlin since 2.0, so this MUST stay equal to kotlin_version.
+        classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin_version"
         classpath "com.google.dagger:hilt-android-gradle-plugin:$google_dagger"
         classpath 'com.automattic.android:configure:0.6.5'
     }

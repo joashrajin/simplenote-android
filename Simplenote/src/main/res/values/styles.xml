@@ -53,8 +53,8 @@
         <item name="listSearchHighlightBackgroundColor">@color/simplenote_blue_5</item>
         <item name="listSearchHighlightForegroundColor">@color/simplenote_blue_60</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.Simplestyle.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/ThemeOverlay.Simplestyle.BottomSheetDialog</item>
         <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
-        <item name="sheetBackgroundColor">@color/background_light</item>
         <item name="styleFontFamily">sans-serif</item>
         <item name="toolbarIconColor">@color/gray_50</item>
         <item name="windowActionModeOverlay">true</item>
@@ -62,7 +62,6 @@
         <!-- Material 2 pins: keep every component's current appearance under the Material 3
              parent. Each pin is retired by the Phase 3 PR that deliberately restyles it. -->
         <item name="appBarLayoutStyle">@style/Widget.Simplenote.AppBarLayout</item>
-        <item name="bottomSheetDialogTheme">@style/Theme.MaterialComponents.Light.BottomSheetDialog</item>
         <item name="floatingActionButtonStyle">@style/Widget.Simplenote.Fab</item>
         <item name="materialCardViewStyle">@style/Widget.MaterialComponents.CardView</item>
         <item name="shapeAppearanceLargeComponent">@style/ShapeAppearance.MaterialComponents.LargeComponent</item>
@@ -189,58 +188,25 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
-    <style name="Theme.Simplestyle.BottomSheetDialog" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
-        <item name="android:colorBackground">?attr/sheetBackgroundColor</item>
-        <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowIsFloating">false</item>
-        <item name="bottomSheetStyle">@style/Widget.Design.BottomSheet.Modal</item>
-        <item name="colorAccent">@color/item_default_light</item>
-        <item name="colorSecondary">@color/item_publication_light</item>
-        <item name="colorPrimary">@color/blue</item>
-        <item name="colorPrimaryDark">@color/blue_dark</item>
+    <!-- Material 3 modal bottom sheet: the container color (colorSurfaceContainerLow), 28dp top
+         corners, and edge-to-edge behavior come from the Material 3 defaults; only the width
+         clamp is ours, reproducing the legacy per-qualifier clamp the base fragment used to
+         apply by hand (unclamped on phones, 360dp/600dp on large portrait/landscape). The
+         elevation overlay is disabled so the sheet renders colorSurfaceContainerLow exactly:
+         in light mode the overlay would composite ~5% colorPrimary onto the sheet (a per-style
+         wash, and a visible seam against the navigation bar applyToSheet paints in the raw
+         attribute color on API 27-34). Night inherits the item harmlessly; dark already
+         rendered the raw value. -->
+    <style name="ThemeOverlay.Simplestyle.BottomSheetDialog" parent="ThemeOverlay.Material3.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Widget.Simplenote.BottomSheet</item>
+        <item name="elevationOverlayEnabled">false</item>
     </style>
 
-    <style name="Theme.Simplestyle.BottomSheetDialog.Black" parent="@style/Theme.Simplestyle.BottomSheetDialog">
-        <item name="colorAccent">@color/item_black_light</item>
-        <item name="colorPrimary">@android:color/black</item>
-        <item name="colorPrimaryDark">@android:color/black</item>
-        <item name="colorSecondary">@color/item_publication_dark</item>
+    <style name="Widget.Simplenote.BottomSheet" parent="Widget.Material3.BottomSheet.Modal">
+        <item name="android:maxWidth">@dimen/bottom_sheet_max_width</item>
     </style>
 
-    <style name="Theme.Simplestyle.BottomSheetDialog.Classic" parent="@style/Theme.Simplestyle.BottomSheetDialog">
-        <item name="colorAccent">@color/item_classic_light</item>
-        <item name="colorPrimary">@color/blue_50</item>
-        <item name="colorPrimaryDark">@color/blue_50</item>
-    </style>
-
-    <style name="Theme.Simplestyle.BottomSheetDialog.Default" parent="@style/Theme.Simplestyle.BottomSheetDialog">
-    </style>
-
-    <style name="Theme.Simplestyle.BottomSheetDialog.Matrix" parent="@style/Theme.Simplestyle.BottomSheetDialog">
-        <item name="colorAccent">@color/item_matrix_light</item>
-        <item name="colorPrimary">@color/green</item>
-        <item name="colorPrimaryDark">@color/background_light</item>
-    </style>
-
-    <style name="Theme.Simplestyle.BottomSheetDialog.Mono" parent="@style/Theme.Simplestyle.BottomSheetDialog">
-        <item name="colorAccent">@color/item_mono_light</item>
-        <item name="colorPrimary">@color/gray</item>
-        <item name="colorPrimaryDark">@color/gray</item>
-    </style>
-
-    <style name="Theme.Simplestyle.BottomSheetDialog.Publication" parent="@style/Theme.Simplestyle.BottomSheetDialog">
-        <item name="colorAccent">@color/item_publication_light</item>
-        <item name="colorPrimary">@color/red</item>
-        <item name="colorPrimaryDark">@color/red</item>
-    </style>
-
-    <style name="Theme.Simplestyle.BottomSheetDialog.Sepia" parent="@style/Theme.Simplestyle.BottomSheetDialog">
-        <item name="colorAccent">@color/item_sepia_light</item>
-        <item name="colorPrimary">@color/orange</item>
-        <item name="colorPrimaryDark">@color/background_light_sepia</item>
-    </style>
-
-    <style name="Theme.Simplestyle.BottomSheetDialog.Label" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+    <style name="Simplestyle.BottomSheetRow.Label" parent="">
         <item name="android:ellipsize">end</item>
         <item name="android:gravity">center_vertical|start</item>
         <item name="android:maxLines">1</item>
@@ -250,7 +216,7 @@
         <item name="android:textSize">@dimen/text_bottom_sheet</item>
     </style>
 
-    <style name="Theme.Simplestyle.BottomSheetDialog.Value" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+    <style name="Simplestyle.BottomSheetRow.Value" parent="">
         <item name="android:gravity">center_vertical|end</item>
         <item name="android:minHeight">@dimen/bottom_sheet_row_height</item>
         <item name="android:paddingBottom">@dimen/padding_large</item>
@@ -260,7 +226,7 @@
         <item name="android:textSize">@dimen/text_bottom_sheet</item>
     </style>
 
-    <style name="Theme.Simplestyle.BottomSheetDialogText" parent="Theme.MaterialComponents.Light.BottomSheetDialog">
+    <style name="Simplestyle.BottomSheetText" parent="">
         <item name="android:textColor">@color/text_title_light</item>
     </style>
 
@@ -619,7 +585,6 @@
         <item name="listBackgroundSelector">@drawable/bg_list_sepia</item>
         <item name="listSearchHighlightBackgroundColor">@color/orange_5</item>
         <item name="listSearchHighlightForegroundColor">@color/orange_60</item>
-        <item name="sheetBackgroundColor">@color/background_light_sepia</item>
         <item name="toolbarStyle">@style/Widget.Simplenote.Toolbar.Sepia</item>
     </style>
 

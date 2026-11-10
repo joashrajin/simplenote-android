@@ -96,18 +96,23 @@ object SystemBarUtils {
 
     /**
      * Bottom sheet windows are separate from the activity, so they reproduce the deleted sheet
-     * themes' navigation bar directly: a sheet-colored bar with dark icons for light themes on
-     * API 27-34 (values-night still paints it for dark themes, and API 35+ ignores bar colors).
+     * themes' navigation bar directly: a bar in the sheet's own surface color
+     * (colorSurfaceContainerLow, the Material 3 modal sheet container color, resolved from the
+     * dialog context so per-style sheet overlays apply). Light themes gate on API 27 because
+     * the bar needs dark icons; dark themes paint from API 21 as the deleted night sheet theme
+     * did. API 35+ ignores bar colors.
      */
     @JvmStatic
     fun applyToSheet(dialog: Dialog) {
         val window = dialog.window ?: return
-        val lightNavigationBar = isLightTheme(dialog.context) &&
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
-        if (lightNavigationBar && Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+        val lightTheme = isLightTheme(dialog.context)
+        val lightNavigationBar = lightTheme && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1
+        val paintNavigationBar = (!lightTheme || lightNavigationBar) &&
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM
+        if (paintNavigationBar) {
             @Suppress("DEPRECATION")
             window.navigationBarColor =
-                ThemeUtils.getColorFromAttribute(dialog.context, R.attr.sheetBackgroundColor)
+                ThemeUtils.getColorFromAttribute(dialog.context, R.attr.colorSurfaceContainerLow)
         }
         WindowCompat.getInsetsController(window, window.decorView)
             .isAppearanceLightNavigationBars = lightNavigationBar

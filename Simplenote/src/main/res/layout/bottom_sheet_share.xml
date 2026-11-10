@@ -24,7 +24,7 @@
             android:layout_weight="1"
             android:layout_width="0dp"
             android:text="@string/collaborate"
-            style="@style/Theme.Simplestyle.BottomSheetDialogText">
+            style="@style/Simplestyle.BottomSheetText">
         </com.automattic.simplenote.widgets.RobotoRegularTextView>
 
         <com.automattic.simplenote.widgets.RobotoRegularTextView
@@ -38,7 +38,7 @@
             android:layout_weight="1"
             android:layout_width="0dp"
             android:text="@string/publish"
-            style="@style/Theme.Simplestyle.BottomSheetDialogText">
+            style="@style/Simplestyle.BottomSheetText">
         </com.automattic.simplenote.widgets.RobotoRegularTextView>
 
         <com.automattic.simplenote.widgets.RobotoRegularTextView
@@ -52,7 +52,7 @@
             android:layout_weight="1"
             android:layout_width="0dp"
             android:text="@string/unpublish"
-            style="@style/Theme.Simplestyle.BottomSheetDialogText">
+            style="@style/Simplestyle.BottomSheetText">
         </com.automattic.simplenote.widgets.RobotoRegularTextView>
 
         <com.automattic.simplenote.widgets.RobotoRegularTextView
@@ -66,7 +66,7 @@
             android:layout_weight="1"
             android:layout_width="0dp"
             android:text="@string/wordpress_post"
-            style="@style/Theme.Simplestyle.BottomSheetDialogText">
+            style="@style/Simplestyle.BottomSheetText">
         </com.automattic.simplenote.widgets.RobotoRegularTextView>
 
         <com.automattic.simplenote.widgets.RobotoRegularTextView
@@ -80,7 +80,7 @@
             android:layout_weight="1"
             android:layout_width="0dp"
             android:text="@string/share"
-            style="@style/Theme.Simplestyle.BottomSheetDialogText">
+            style="@style/Simplestyle.BottomSheetText">
         </com.automattic.simplenote.widgets.RobotoRegularTextView>
 
     </LinearLayout>

@@ -2,9 +2,6 @@
 
 <resources>
 
-    <!-- Retired by the bottom-sheet Material 3 migration, not the attr retirement pass. -->
-    <attr name="sheetBackgroundColor" format="reference|color"/>
-
     <attr name="listBackgroundSelector" format="reference"/>
     <attr name="listSearchHighlightForegroundColor" format="reference|color"/>
     <attr name="listSearchHighlightBackgroundColor" format="reference|color"/>

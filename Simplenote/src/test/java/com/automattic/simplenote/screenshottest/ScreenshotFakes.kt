@@ -49,15 +49,33 @@ class ScreenshotTagsRepository : TagsRepository {
 class ScreenshotCollaboratorsRepository : CollaboratorsRepository {
     override fun isValidCollaborator(collaborator: String): Boolean = false
     override suspend fun getCollaborators(noteId: String, query: String?): CollaboratorsActionResult =
-        CollaboratorsActionResult.CollaboratorsList(emptyList())
+        CollaboratorsActionResult.CollaboratorsList(
+            collaboratorsFor(noteId).filter { it.contains(query ?: "", ignoreCase = true) }
+        )
 
     override suspend fun addCollaborator(noteId: String, collaborator: String): CollaboratorsActionResult =
-        CollaboratorsActionResult.CollaboratorsList(emptyList())
+        CollaboratorsActionResult.CollaboratorsList(collaboratorsFor(noteId))
 
     override suspend fun removeCollaborator(noteId: String, collaborator: String): CollaboratorsActionResult =
-        CollaboratorsActionResult.CollaboratorsList(emptyList())
+        CollaboratorsActionResult.CollaboratorsList(collaboratorsFor(noteId) - collaborator)
 
     override suspend fun collaboratorsChanged(noteId: String): Flow<Boolean> = emptyFlow()
+
+    private fun collaboratorsFor(noteId: String): List<String> = when (noteId) {
+        NOTE_WITH_COLLABORATORS -> ScreenshotHarness.SAMPLE_COLLABORATORS
+        // A remote client can sync exact duplicate tag emails; the repository does not dedupe.
+        NOTE_WITH_DUPLICATE_COLLABORATORS -> listOf("ada@example.com", "ada@example.com")
+        else -> emptyList()
+    }
+
+    companion object {
+        /** Note ids the CollaboratorsActivity goldens launch with. */
+        const val NOTE_WITH_COLLABORATORS = "screenshot-note-collaborators"
+        const val NOTE_EMPTY = "screenshot-note-empty"
+
+        /** Note id for the duplicate-email regression test (no golden). */
+        const val NOTE_WITH_DUPLICATE_COLLABORATORS = "screenshot-note-duplicate-collaborators"
+    }
 }
 
 class ScreenshotNotesRepository : NotesRepository {

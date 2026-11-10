@@ -23,7 +23,6 @@ import androidx.work.NetworkType;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
-import com.automattic.android.tracks.crashlogging.CrashLogging;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.analytics.AnalyticsTrackerNosara;
 import com.automattic.simplenote.models.Account;
@@ -34,6 +33,7 @@ import com.automattic.simplenote.repositories.AccountStatus;
 import com.automattic.simplenote.repositories.PreferencesRepository;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
+import com.automattic.simplenote.utils.crashlogging.CrashLoggingInitializer;
 import com.automattic.simplenote.utils.DisplayUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SyncWorker;
@@ -81,9 +81,10 @@ public class Simplenote extends Application implements HeartbeatListener {
     private Runnable mHeartbeatRunnable;
     private boolean mIsInBackground = true;
 
-    //Do not remove, it's needed for Sentry initialization
+    // Do not remove: constructing the initializer starts Sentry. Its position before mSimperium,
+    // plus providesSimperium's dependency on it, keeps crash logging live before any bucket work.
     @Inject
-    CrashLogging crashLogging;
+    CrashLoggingInitializer crashLoggingInitializer;
 
     // Field injection runs at the top of super.onCreate(), so the Simperium client and the bucket
     // graph are constructed there, on the main thread, before any activity, worker, or widget code
@@ -97,7 +98,6 @@ public class Simplenote extends Application implements HeartbeatListener {
     public void onCreate() {
         super.onCreate();
         sInstance = this;
-        crashLogging.initialize();
 
         SimplenoteAppLock appLock = new SimplenoteAppLock(this);
         AppLockManager.getInstance().setCurrentAppLock(appLock);
@@ -196,6 +196,13 @@ public class Simplenote extends Application implements HeartbeatListener {
 
     public Bucket<Account> getAccountBucket() {
         return mBuckets.getAccount();
+    }
+
+    // For callers that can run during application field injection, before mBuckets is assigned —
+    // the crash-logging data provider is constructed there. The bucket getters above assume
+    // injection has completed.
+    public boolean bucketsAreInitialized() {
+        return mBuckets != null;
     }
 
     public boolean isInBackground() {

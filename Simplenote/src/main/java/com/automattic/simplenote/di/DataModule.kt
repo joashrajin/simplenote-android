@@ -20,6 +20,7 @@ import com.automattic.simplenote.repositories.SimperiumNotesRepository
 import com.automattic.simplenote.repositories.SimperiumPreferencesRepository
 import com.automattic.simplenote.repositories.SimperiumTagsRepository
 import com.automattic.simplenote.repositories.TagsRepository
+import com.automattic.simplenote.utils.crashlogging.CrashLoggingInitializer
 import com.simperium.Simperium
 import com.simperium.client.Bucket
 import dagger.Binds
@@ -37,10 +38,15 @@ abstract class DataModule {
         private const val SIMPERIUM_AUTH_PROVIDER = "simplenote.com"
 
         // The client construction and the static auth provider moved here from Simplenote.onCreate;
-        // the heartbeat watchdog stays in Simplenote, which registers itself as the listener.
+        // the heartbeat watchdog stays in Simplenote, which registers itself as the listener. The
+        // initializer parameter is ordering-only: Sentry must be live before the client and the
+        // buckets are constructed, as it was when onCreate initialized it before all bucket work.
         @Provides
         @Singleton
-        fun providesSimperium(@ApplicationContext context: Context): Simperium = Simperium.newClient(
+        fun providesSimperium(
+            @ApplicationContext context: Context,
+            crashLoggingInitializer: CrashLoggingInitializer,
+        ): Simperium = Simperium.newClient(
             BuildConfig.SIMPERIUM_APP_ID,
             BuildConfig.SIMPERIUM_APP_KEY,
             context,

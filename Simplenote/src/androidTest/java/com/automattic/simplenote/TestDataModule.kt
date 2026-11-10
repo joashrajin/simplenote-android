@@ -68,8 +68,12 @@ object TestDataModule {
     fun providesNoteSyncTimes(): SyncTimes<Note> = SyncTimes(emptyMap())
 
     // Constructed only if a test's object graph actually requests it. Creating the client opens no
-    // network connection (nothing starts the real buckets in tests), matching the idle client the
-    // old SimplenoteTest application carried.
+    // network connection (nothing starts the real buckets in tests), but it is not side-effect
+    // free: it opens the simperium-store SQLite database, synchronously commits a session-id
+    // preference, spins up a thread pool plus the AsyncServer thread, and registers a connectivity
+    // receiver — the same idle footprint the old SimplenoteTest application carried. If that ever
+    // matters, the follow-up shape is the three-argument Simperium constructor with a no-op
+    // ClientFactory instead of newClient.
     @Provides
     @Singleton
     fun providesSimperium(@ApplicationContext context: Context): Simperium =

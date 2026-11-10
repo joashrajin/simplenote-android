@@ -4,8 +4,6 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.ComponentCallbacks2;
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.os.Build;
 import android.os.Bundle;
@@ -25,26 +23,23 @@ import androidx.work.NetworkType;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
-import com.automattic.android.tracks.crashlogging.CrashLogging;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.analytics.AnalyticsTrackerNosara;
 import com.automattic.simplenote.models.Account;
 import com.automattic.simplenote.models.Note;
-import com.automattic.simplenote.models.NoteCountIndexer;
-import com.automattic.simplenote.models.NoteTagger;
 import com.automattic.simplenote.models.Preferences;
 import com.automattic.simplenote.models.Tag;
 import com.automattic.simplenote.repositories.AccountStatus;
 import com.automattic.simplenote.repositories.PreferencesRepository;
 import com.automattic.simplenote.utils.AppLog;
 import com.automattic.simplenote.utils.AppLog.Type;
+import com.automattic.simplenote.utils.crashlogging.CrashLoggingInitializer;
 import com.automattic.simplenote.utils.DisplayUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SyncWorker;
 import com.simperium.Simperium;
 import com.simperium.android.WebSocketManager;
 import com.simperium.client.Bucket;
-import com.simperium.client.BucketNameInvalid;
 import com.simperium.client.ChannelProvider.HeartbeatListener;
 
 import dagger.hilt.EntryPoint;
@@ -54,9 +49,6 @@ import dagger.hilt.components.SingletonComponent;
 
 import org.wordpress.passcodelock.AppLockManager;
 
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import dagger.hilt.android.HiltAndroidApp;
@@ -76,7 +68,6 @@ public class Simplenote extends Application implements HeartbeatListener {
     public static final int TEN_SECONDS_MILLIS = 10 * 1000;  // 10 seconds
     public static final int TWENTY_SECONDS_MILLIS = 20 * 1000;  // 20 seconds
 
-    private static final String AUTH_PROVIDER = "simplenote.com";
     private static final String TAG_SYNC = "sync";
     private static final long HEARTBEAT_TIMEOUT =  WebSocketManager.HEARTBEAT_INTERVAL * 2;
 
@@ -86,37 +77,32 @@ public class Simplenote extends Application implements HeartbeatListener {
     @SuppressLint("StaticFieldLeak")
     private static volatile Simplenote sInstance;
 
-    private static Bucket<Account> mAccountBucket;
-    private static Bucket<Preferences> mPreferencesBucket;
-
-    private Bucket<Note> mNotesBucket;
-    private Bucket<Tag> mTagsBucket;
-    private SyncTimes<Note> mNoteSyncTimes;
     private Handler mHeartbeatHandler;
     private Runnable mHeartbeatRunnable;
-    private Simperium mSimperium;
     private boolean mIsInBackground = true;
 
-    //Do not remove, it's needed for Sentry initialization
+    // Do not remove: constructing the initializer starts Sentry. Its position before mSimperium,
+    // plus providesSimperium's dependency on it, keeps crash logging live before any bucket work.
     @Inject
-    CrashLogging crashLogging;
+    CrashLoggingInitializer crashLoggingInitializer;
+
+    // Field injection runs at the top of super.onCreate(), so the Simperium client and the bucket
+    // graph are constructed there, on the main thread, before any activity, worker, or widget code
+    // can run — the same guarantee the inline construction in onCreate used to give.
+    @Inject
+    Simperium mSimperium;
+
+    @Inject
+    SimperiumBuckets mBuckets;
 
     public void onCreate() {
         super.onCreate();
         sInstance = this;
-        crashLogging.initialize();
 
         SimplenoteAppLock appLock = new SimplenoteAppLock(this);
         AppLockManager.getInstance().setCurrentAppLock(appLock);
         appLock.enable();
 
-        mSimperium = Simperium.newClient(
-                BuildConfig.SIMPERIUM_APP_ID,
-                BuildConfig.SIMPERIUM_APP_KEY,
-                this
-        );
-
-        mSimperium.setAuthProvider(AUTH_PROVIDER);
         mSimperium.addHeartbeatListener(this);
 
         mHeartbeatHandler = new Handler();
@@ -128,24 +114,6 @@ public class Simplenote extends Application implements HeartbeatListener {
                 mHeartbeatHandler.postDelayed(mHeartbeatRunnable, HEARTBEAT_TIMEOUT);
             }
         };
-
-        SyncTimePersister syncTimePersister = new SyncTimePersister();
-        mNoteSyncTimes = new SyncTimes<>(syncTimePersister.load());
-        mNoteSyncTimes.addListener(syncTimePersister);
-
-        try {
-            mNotesBucket = mSimperium.bucket(new Note.Schema());
-            mNotesBucket.addListener(mNoteSyncTimes.bucketListener);
-            Tag.Schema tagSchema = new Tag.Schema();
-            tagSchema.addIndex(new NoteCountIndexer(mNotesBucket));
-            mTagsBucket = mSimperium.bucket(tagSchema);
-            mPreferencesBucket = mSimperium.bucket(new Preferences.Schema());
-            mAccountBucket = mSimperium.bucket(new Account.Schema());
-            // Every time a note changes or is deleted we need to reindex the tag counts
-            mNotesBucket.addListener(new NoteTagger(mTagsBucket));
-        } catch (BucketNameInvalid e) {
-            throw new RuntimeException("Could not create bucket", e);
-        }
 
         // Replaces the AccountVerificationWatcher bucket listener; the collection delivers on
         // the main thread, where the listener's fragment transactions always belonged.
@@ -173,10 +141,10 @@ public class Simplenote extends Application implements HeartbeatListener {
     }
 
     public static boolean analyticsIsEnabled() {
-        // Static callers can run before onCreate creates the buckets (or, in unit tests, without an
-        // application at all). Preserve the legacy pre-init default of enabled analytics.
+        // Static callers can run before injection creates the buckets (or, in unit tests, without
+        // an application at all). Preserve the legacy pre-init default of enabled analytics.
         Simplenote app = sInstance;
-        if (app == null || mPreferencesBucket == null) {
+        if (app == null || app.mBuckets == null) {
             return true;
         }
 
@@ -193,8 +161,8 @@ public class Simplenote extends Application implements HeartbeatListener {
 
     private String getAccountInfo() {
         String email = "Email: " + (mSimperium != null && mSimperium.getUser() != null ? mSimperium.getUser().getEmail() : "?");
-        String notes = "Notes: " + (mNotesBucket != null ? mNotesBucket.count() : "?");
-        String tags = "Tags: " + (mTagsBucket != null ? mTagsBucket.count() : "?");
+        String notes = "Notes: " + (mBuckets != null ? mBuckets.getNotes().count() : "?");
+        String tags = "Tags: " + (mBuckets != null ? mBuckets.getTags().count() : "?");
         return email + "\n" + notes + "\n" + tags + "\n\n";
     }
 
@@ -211,23 +179,30 @@ public class Simplenote extends Application implements HeartbeatListener {
     }
 
     public Bucket<Note> getNotesBucket() {
-        return mNotesBucket;
+        return mBuckets.getNotes();
     }
 
     public SyncTimes<Note> getNoteSyncTimes() {
-        return mNoteSyncTimes;
+        return mBuckets.getNoteSyncTimes();
     }
 
     public Bucket<Tag> getTagsBucket() {
-        return mTagsBucket;
+        return mBuckets.getTags();
     }
 
     public Bucket<Preferences> getPreferencesBucket() {
-        return mPreferencesBucket;
+        return mBuckets.getPreferences();
     }
 
     public Bucket<Account> getAccountBucket() {
-        return mAccountBucket;
+        return mBuckets.getAccount();
+    }
+
+    // For callers that can run during application field injection, before mBuckets is assigned —
+    // the crash-logging data provider is constructed there. The bucket getters above assume
+    // injection has completed.
+    public boolean bucketsAreInitialized() {
+        return mBuckets != null;
     }
 
     public boolean isInBackground() {
@@ -316,25 +291,17 @@ public class Simplenote extends Application implements HeartbeatListener {
                             return;
                         }
 
-                        if (mAccountBucket != null) {
-                            mAccountBucket.stop();
-                            AppLog.add(Type.SYNC, "Stopped account bucket (Simplenote)");
-                        }
+                        mBuckets.getAccount().stop();
+                        AppLog.add(Type.SYNC, "Stopped account bucket (Simplenote)");
 
-                        if (mNotesBucket != null) {
-                            mNotesBucket.stop();
-                            AppLog.add(Type.SYNC, "Stopped note bucket (Simplenote)");
-                        }
+                        mBuckets.getNotes().stop();
+                        AppLog.add(Type.SYNC, "Stopped note bucket (Simplenote)");
 
-                        if (mTagsBucket != null) {
-                            mTagsBucket.stop();
-                            AppLog.add(Type.SYNC, "Stopped tag bucket (Simplenote)");
-                        }
+                        mBuckets.getTags().stop();
+                        AppLog.add(Type.SYNC, "Stopped tag bucket (Simplenote)");
 
-                        if (mPreferencesBucket != null) {
-                            mPreferencesBucket.stop();
-                            AppLog.add(Type.SYNC, "Stopped preference bucket (Simplenote)");
-                        }
+                        mBuckets.getPreferences().stop();
+                        AppLog.add(Type.SYNC, "Stopped preference bucket (Simplenote)");
                     }
                 }, TEN_SECONDS_MILLIS);
 
@@ -396,13 +363,13 @@ public class Simplenote extends Application implements HeartbeatListener {
 
             String activitySimpleName = activity.getClass().getSimpleName();
 
-            mAccountBucket.start();
+            mBuckets.getAccount().start();
             AppLog.add(Type.SYNC, "Started account bucket (" + activitySimpleName + ")");
-            mPreferencesBucket.start();
+            mBuckets.getPreferences().start();
             AppLog.add(Type.SYNC, "Started preference bucket (" + activitySimpleName + ")");
-            mNotesBucket.start();
+            mBuckets.getNotes().start();
             AppLog.add(Type.SYNC, "Started note bucket (" + activitySimpleName + ")");
-            mTagsBucket.start();
+            mBuckets.getTags().start();
             AppLog.add(Type.SYNC, "Started tag bucket (" + activitySimpleName + ")");
         }
 
@@ -430,39 +397,6 @@ public class Simplenote extends Application implements HeartbeatListener {
 
         @Override
         public void onActivityDestroyed(@NonNull Activity activity) {
-        }
-    }
-
-    private class SyncTimePersister implements SyncTimes.SyncTimeListener {
-        private final SharedPreferences mPreferences;
-
-        public SyncTimePersister() {
-            mPreferences = getSharedPreferences(SYNC_TIME_PREFERENCES, Context.MODE_PRIVATE);
-        }
-
-        public HashMap<String, Calendar> load() {
-            HashMap<String, Calendar> syncTimes = new HashMap<>();
-
-            //noinspection unchecked
-            for (Map.Entry<String, Long> syncTime : ((Map<String, Long>) mPreferences.getAll()).entrySet()) {
-                Calendar instant = Calendar.getInstance();
-                instant.setTimeInMillis(syncTime.getValue());
-                syncTimes.put(syncTime.getKey(), instant);
-            }
-
-            return syncTimes;
-        }
-
-        @Override
-        public void onRemove(String entityId) {
-            mPreferences.edit().remove(entityId).apply();
-        }
-
-        @Override
-        public void onUpdate(String entityId, Calendar lastSyncTime, boolean isSynced) {
-            if(lastSyncTime != null){
-                mPreferences.edit().putLong(entityId, lastSyncTime.getTimeInMillis()).apply();
-            }
         }
     }
 

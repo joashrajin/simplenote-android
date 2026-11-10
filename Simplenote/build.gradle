@@ -46,7 +46,14 @@ android {
         minSdkVersion 23
         targetSdkVersion 36
 
-        testInstrumentationRunner 'com.automattic.simplenote.SimplenoteAppRunner'
+        // The manifest merger permits exactly one <instrumentation> entry (AGP stamps the
+        // configured runner's name onto any declared in a source manifest), so the runner is
+        // switched at build time instead: the fastlane screenshots lane assembles the test APK
+        // with -PscreenshotInstrumentation to declare ScreenshotAppRunner, which keeps the
+        // production application class that ScreenshotTest's real-account flow needs.
+        testInstrumentationRunner project.hasProperty('screenshotInstrumentation') \
+            ? 'com.automattic.simplenote.ScreenshotAppRunner' \
+            : 'com.automattic.simplenote.SimplenoteAppRunner'
         // ScreenshotTest logs in to a real account. The fastlane take_screenshots lane runs it separately.
         testInstrumentationRunnerArgument 'notClass', 'com.automattic.simplenote.screenshots.ScreenshotTest'
 
@@ -116,6 +123,10 @@ dependencies {
     androidTestImplementation 'androidx.test.uiautomator:uiautomator:2.4.0'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.7.0'
     androidTestImplementation 'androidx.test.espresso:espresso-contrib:3.7.0'
+    // Hilt instrumentation harness: HiltTestApplication (installed by SimplenoteAppRunner) and the
+    // TestDataModule @TestInstallIn replacement of DataModule.
+    androidTestImplementation "com.google.dagger:hilt-android-testing:$google_dagger"
+    kaptAndroidTest "com.google.dagger:hilt-compiler:$google_dagger"
     // Infrastructure to test fragments
     testImplementation "androidx.arch.core:core-testing:2.2.0"
     testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.10.2"

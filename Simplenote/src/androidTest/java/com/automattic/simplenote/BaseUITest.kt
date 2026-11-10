@@ -1,5 +1,6 @@
 package com.automattic.simplenote
 
+import android.app.Application
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -8,34 +9,52 @@ import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.utils.TagUtils
 import com.automattic.simplenote.utils.TestBucket
 import com.automattic.simplenote.utils.getRandomStringOfLen
+import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectMissingException
-import org.junit.After
+import dagger.hilt.android.testing.HiltAndroidRule
+import javax.inject.Inject
 import org.junit.Before
-import java.security.SecureRandom
+import org.junit.Rule
+import org.wordpress.passcodelock.AppLockManager
+import org.wordpress.passcodelock.DefaultAppLock
 
+/**
+ * Base for the Hilt UI tests. Subclasses must be annotated with @HiltAndroidTest so
+ * [TestDataModule] supplies the in-memory buckets this class clears between tests.
+ */
 open class BaseUITest {
-    protected lateinit var application: SimplenoteTest
+    @JvmField
+    @Rule
+    val hiltRule = HiltAndroidRule(this)
+
+    @Inject
+    lateinit var injectedTagsBucket: Bucket<Tag>
+
+    @Inject
+    lateinit var injectedNotesBucket: Bucket<Note>
+
     protected lateinit var tagsBucket: TestBucket<Tag>
     protected lateinit var notesBucket: TestBucket<Note>
 
     @Before
     fun setup() {
-        application = ApplicationProvider.getApplicationContext() as SimplenoteTest
-        // Make sure to use TestBucket buckets in UI tests
-        application.useTestBucket = true
+        hiltRule.inject()
 
-        tagsBucket = application.tagsBucket as TestBucket<Tag>
-        tagsBucket.clear()
-        tagsBucket.newObjectShouldFail = false
+        // Some activities under test call DisplayUtils.disableScreenshotsIfLocked from onResume,
+        // which requires an installed app lock. The production Simplenote.onCreate installs one,
+        // but these tests run on HiltTestApplication.
+        val application = ApplicationProvider.getApplicationContext<Application>()
+        AppLockManager.getInstance().setCurrentAppLock(DefaultAppLock(application))
 
-        notesBucket = application.notesBucket as TestBucket<Note>
-        notesBucket.clear()
-        notesBucket.newObjectShouldFail = false
-    }
+        tagsBucket = (injectedTagsBucket as TestBucket<Tag>).apply {
+            clear()
+            newObjectShouldFail = false
+        }
 
-    @After
-    fun cleanup() {
-        application.useTestBucket = false
+        notesBucket = (injectedNotesBucket as TestBucket<Note>).apply {
+            clear()
+            newObjectShouldFail = false
+        }
     }
 
     protected fun getResourceString(id: Int): String {

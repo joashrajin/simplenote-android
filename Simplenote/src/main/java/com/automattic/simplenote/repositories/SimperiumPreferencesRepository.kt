@@ -29,11 +29,12 @@ class SimperiumPreferencesRepository @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : PreferencesRepository {
 
-    // The repository is unscoped, so a per-instance bucket listener would leak on every injection.
-    // Instead of listening, the snapshot is read from the bucket once at construction (matching the
-    // one legacy read each static analyticsIsEnabled() call performed) and refreshed by every
-    // suspend read and write. The construction-time read is guarded so dependency injection never
-    // fails: any failure falls back to the legacy pre-init default of enabled analytics.
+    // The repository is deliberately left unscoped in DataModule (unlike its singleton siblings),
+    // so a per-instance bucket listener would leak on every injection. Instead of listening, the
+    // snapshot is read from the bucket once at construction (matching the one legacy read each
+    // static analyticsIsEnabled() call performed) and refreshed by every suspend read and write.
+    // The construction-time read is guarded so dependency injection never fails: any failure falls
+    // back to the legacy pre-init default of enabled analytics.
     private val analyticsSnapshot = AtomicBoolean(
         try {
             readAnalyticsEnabled()

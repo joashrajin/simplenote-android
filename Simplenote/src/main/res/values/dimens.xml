@@ -43,6 +43,7 @@
     <!-- SIZE -->
     <dimen name="about_logo">56dp</dimen>
     <dimen name="button_floating">56dp</dimen>
+    <dimen name="bottom_sheet_max_width">-1px</dimen>  <!-- -1 means unclamped; large overrides clamp -->
     <dimen name="bottom_sheet_row_height">48dp</dimen>
     <dimen name="cell_widget">40dp</dimen>
     <dimen name="cell_widget_double">80dp</dimen>

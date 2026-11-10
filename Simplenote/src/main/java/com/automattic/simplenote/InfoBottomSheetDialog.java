@@ -76,15 +76,10 @@ public class InfoBottomSheetDialog extends BottomSheetDialogBase {
             getDialog().setOnShowListener(new DialogInterface.OnShowListener() {
                 @Override
                 public void onShow(DialogInterface dialogInterface) {
-                    BottomSheetDialog bottomSheetDialog = (BottomSheetDialog) dialogInterface;
-                    FrameLayout bottomSheet = bottomSheetDialog.findViewById(com.google.android.material.R.id.design_bottom_sheet);
-
-                    if (bottomSheet != null) {
-                        BottomSheetBehavior<FrameLayout> behavior = BottomSheetBehavior.from(bottomSheet);
-                        behavior.setPeekHeight(DisplayUtils.getDisplayPixelSize(requireContext()).y / 2);
-                        behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
-                        behavior.setSkipCollapsed(true);
-                    }
+                    BottomSheetBehavior<FrameLayout> behavior = ((BottomSheetDialog) dialogInterface).getBehavior();
+                    behavior.setPeekHeight(DisplayUtils.getDisplayPixelSize(requireContext()).y / 2);
+                    behavior.setState(BottomSheetBehavior.STATE_COLLAPSED);
+                    behavior.setSkipCollapsed(true);
                 }
             });
 

@@ -1,91 +1,93 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import android.text.Editable;
+import android.text.Editable
+import com.automattic.simplenote.utils.ChecklistUtils.CHAR_BULLET
+import com.automattic.simplenote.utils.ChecklistUtils.CHAR_NO_BREAK_SPACE
+import com.automattic.simplenote.widgets.CheckableSpan
+import java.util.regex.Pattern
 
-import com.automattic.simplenote.widgets.CheckableSpan;
+object AutoBullet {
+    private const val PATTERN_BULLET = "^([\\s]*)([-*+$CHAR_BULLET$CHAR_NO_BREAK_SPACE])[\\s]+(.*)$"
+    private const val STR_SPACE = " "
 
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static com.automattic.simplenote.utils.ChecklistUtils.CHAR_BULLET;
-import static com.automattic.simplenote.utils.ChecklistUtils.CHAR_NO_BREAK_SPACE;
-
-public class AutoBullet {
-    private static final String PATTERN_BULLET = "^([\\s]*)([-*+" + CHAR_BULLET + CHAR_NO_BREAK_SPACE + "])[\\s]+(.*)$";
-    private static final String STR_LINE_BREAK = System.getProperty("line.separator");
-    private static final String STR_SPACE = " ";
-
-    public static void apply(Editable editable, int oldCursorPosition, int newCursorPosition) {
-        if (!isValidCursorIncrement(editable, oldCursorPosition, newCursorPosition)) {
-            return;
+    @JvmStatic
+    fun apply(editable: Editable?, oldCursorPosition: Int, newCursorPosition: Int) {
+        if (editable == null || !isValidCursorIncrement(editable, oldCursorPosition, newCursorPosition)) {
+            return
         }
 
-        char prevChar = editable.charAt(newCursorPosition - 1);
+        val prevChar = editable[newCursorPosition - 1]
         if (prevChar == '\n') {
-            int prevParagraphEnd = newCursorPosition - 1;
-            int prevParagraphStart = 0;
-            for (int i = prevParagraphEnd - 1; i >= 0; i--) {
-                if (editable.charAt(i) == '\n') {
-                    prevParagraphStart = i + 1;
-                    break;
+            val prevParagraphEnd = newCursorPosition - 1
+            var prevParagraphStart = 0
+            for (i in prevParagraphEnd - 1 downTo 0) {
+                if (editable[i] == '\n') {
+                    prevParagraphStart = i + 1
+                    break
                 }
             }
-            String prevParagraph = editable.subSequence(prevParagraphStart, prevParagraphEnd).toString();
-            BulletMetadata metadata = extractBulletMetadata(prevParagraph);
+            val prevParagraph = editable.subSequence(prevParagraphStart, prevParagraphEnd).toString()
+            val metadata = extractBulletMetadata(prevParagraph)
             // See if there's a CheckableSpan in the previous line
-            CheckableSpan[] checkableSpans = editable.getSpans(prevParagraphStart, prevParagraphEnd, CheckableSpan.class);
+            val checkableSpans = editable.getSpans(prevParagraphStart, prevParagraphEnd, CheckableSpan::class.java)
 
-            if (checkableSpans.length > 0) {
-                if (prevParagraph.trim().equalsIgnoreCase(String.valueOf(CHAR_NO_BREAK_SPACE))) {
+            if (checkableSpans.isNotEmpty()) {
+                if (prevParagraph.javaTrim().equals(CHAR_NO_BREAK_SPACE.toString(), ignoreCase = true)) {
                     // Empty checklist item, remove and place cursor at start of line
-                    editable.replace(prevParagraphStart, newCursorPosition, "");
+                    editable.replace(prevParagraphStart, newCursorPosition, "")
                 } else {
                     // We can add a new checkbox!
-                    String leadingWhitespace = metadata.leadingWhitespace != null ? metadata.leadingWhitespace : "";
-                    editable.insert(newCursorPosition, leadingWhitespace + ChecklistUtils.UNCHECKED_MARKDOWN + STR_SPACE);
+                    val leadingWhitespace = metadata.leadingWhitespace ?: ""
+                    editable.insert(
+                        newCursorPosition,
+                        leadingWhitespace + ChecklistUtils.UNCHECKED_MARKDOWN + STR_SPACE
+                    )
                 }
 
-                return;
+                return
             }
 
             if (metadata.isBullet) {
                 if (!metadata.isEmptyBullet) {
-                    editable.insert(newCursorPosition, buildBullet(metadata));
+                    editable.insert(newCursorPosition, buildBullet(metadata))
                 } else {
-                    editable.replace(prevParagraphStart, newCursorPosition, "");
+                    editable.replace(prevParagraphStart, newCursorPosition, "")
                 }
             }
         }
     }
 
-    private static boolean isValidCursorIncrement(Editable editable, int oldCursorPosition, int newCursorPosition) {
-        return editable != null && newCursorPosition > 0 && newCursorPosition <= editable.length() && newCursorPosition > oldCursorPosition;
+    private fun isValidCursorIncrement(editable: Editable, oldCursorPosition: Int, newCursorPosition: Int): Boolean {
+        return newCursorPosition > 0 && newCursorPosition <= editable.length && newCursorPosition > oldCursorPosition
     }
 
-    private static String buildBullet(BulletMetadata metadata) {
-        return metadata.leadingWhitespace + metadata.bulletChar + STR_SPACE;
+    private fun buildBullet(metadata: BulletMetadata): String {
+        return "${metadata.leadingWhitespace}${metadata.bulletChar}$STR_SPACE"
     }
 
-    private static BulletMetadata extractBulletMetadata(String input) {
-        BulletMetadata metadata = new BulletMetadata();
+    private fun extractBulletMetadata(input: String): BulletMetadata {
+        val metadata = BulletMetadata()
 
-        Pattern pattern = Pattern.compile(PATTERN_BULLET);
-        Matcher matcher = pattern.matcher(input);
+        val pattern = Pattern.compile(PATTERN_BULLET)
+        val matcher = pattern.matcher(input)
 
         if (matcher.find()) {
-            metadata.isBullet = true;
-            metadata.leadingWhitespace = matcher.group(1);
-            metadata.bulletChar = matcher.group(2);
-            metadata.isEmptyBullet = matcher.group(3).trim().isEmpty();
+            metadata.isBullet = true
+            metadata.leadingWhitespace = matcher.group(1)
+            metadata.bulletChar = matcher.group(2)
+            metadata.isEmptyBullet = matcher.group(3)!!.javaTrim().isEmpty()
         }
 
-        return metadata;
+        return metadata
     }
 
-    private static class BulletMetadata {
-        String bulletChar;
-        String leadingWhitespace;
-        boolean isBullet = false;
-        boolean isEmptyBullet = false;
+    // java.lang.String.trim(): Kotlin's trim() would also strip the no-break space that marks a checkbox.
+    private fun String.javaTrim(): String = trim { it <= ' ' }
+
+    private class BulletMetadata {
+        var bulletChar: String? = null
+        var leadingWhitespace: String? = null
+        var isBullet = false
+        var isEmptyBullet = false
     }
 }

@@ -33,8 +33,9 @@ import java.util.regex.Pattern
 /**
  * Pins ChecklistUtils on inputs with a single checklist marker. ART's Matcher works on a String snapshot, but the
  * JVM's reads the Editable lazily while ChecklistUtils shrinks it and keeps scanning up to the original length. So
- * multi-match conversions only run on device (ChecklistsDeviceTest, SimplenoteEditTextChecklistLayoutTest), and
- * the unanchored CHECKLIST_REGEX inputs here end at most three characters after their marker.
+ * multi-match conversions run through ChecklistUtilsMultiMatchTest's snapshot input or on device (ChecklistsDeviceTest,
+ * SimplenoteEditTextChecklistLayoutTest), and the unanchored CHECKLIST_REGEX inputs here end at most three characters
+ * after their marker.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

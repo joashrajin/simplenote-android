@@ -1,60 +1,56 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import android.text.SpannableString;
-import android.text.Spanned;
-import android.text.TextUtils;
-import android.widget.MultiAutoCompleteTextView;
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.TextUtils
+import android.widget.MultiAutoCompleteTextView
 
 // Use spaces in tag autocompletion list
 // From http://stackoverflow.com/questions/3482981/how-to-replace-the-comma-with-a-space-when-i-use-the-multiautocompletetextview
-public class SpaceTokenizer implements MultiAutoCompleteTextView.Tokenizer {
+class SpaceTokenizer : MultiAutoCompleteTextView.Tokenizer {
+    override fun findTokenStart(text: CharSequence, cursor: Int): Int {
+        var i = cursor
 
-    public int findTokenStart(CharSequence text, int cursor) {
-        int i = cursor;
-
-        while (i > 0 && text.charAt(i - 1) != ' ') {
-            i--;
+        while (i > 0 && text[i - 1] != ' ') {
+            i--
         }
-        while (i < cursor && text.charAt(i) == ' ') {
-            i++;
+        while (i < cursor && text[i] == ' ') {
+            i++
         }
 
-        return i;
+        return i
     }
 
-    public int findTokenEnd(CharSequence text, int cursor) {
-        int i = cursor;
-        int len = text.length();
+    override fun findTokenEnd(text: CharSequence, cursor: Int): Int {
+        var i = cursor
+        val len = text.length
 
         while (i < len) {
-            if (text.charAt(i) == ' ') {
-                return i;
+            if (text[i] == ' ') {
+                return i
             } else {
-                i++;
+                i++
             }
         }
 
-        return len;
+        return len
     }
 
-    public CharSequence terminateToken(CharSequence text) {
-        int i = text.length();
+    override fun terminateToken(text: CharSequence): CharSequence {
+        var i = text.length
 
-        while (i > 0 && text.charAt(i - 1) == ' ') {
-            i--;
+        while (i > 0 && text[i - 1] == ' ') {
+            i--
         }
 
-        if (i > 0 && text.charAt(i - 1) == ' ') {
-            return text;
+        return if (i > 0 && text[i - 1] == ' ') {
+            text
+        } else if (text is Spanned) {
+            val sp = SpannableString("$text ")
+            TextUtils.copySpansFrom(text, 0, text.length, Any::class.java, sp, 0)
+            sp
         } else {
-            if (text instanceof Spanned) {
-                SpannableString sp = new SpannableString(text + " ");
-                TextUtils.copySpansFrom((Spanned) text, 0, text.length(),
-                        Object.class, sp, 0);
-                return sp;
-            } else {
-                return text + " ";
-            }
+            "$text "
         }
     }
 }

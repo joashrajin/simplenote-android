@@ -1,18 +1,18 @@
 package com.automattic.simplenote.utils;
 
+import android.app.Application;
 import android.text.Editable;
-
-import androidx.test.filters.SmallTest;
-import androidx.test.runner.AndroidJUnit4;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
-import static androidx.test.espresso.matcher.ViewMatchers.assertThat;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-@RunWith(AndroidJUnit4.class)
-@SmallTest
+@RunWith(RobolectricTestRunner.class)
+@Config(application = Application.class, sdk = 35)
 public class AutoBulletTest {
     private Editable buildEditable(CharSequence source) {
         return Editable.Factory.getInstance().newEditable(source);

@@ -1,22 +1,20 @@
-package com.automattic.simplenote.models;
+package com.automattic.simplenote.models
 
-import com.simperium.client.FullTextIndex;
+import com.simperium.client.FullTextIndex
 
-import java.util.HashMap;
-import java.util.Map;
-
-public class NoteFullTextIndexer implements FullTextIndex.Indexer<Note> {
-
-    @SuppressWarnings("unused")
-    static public final String COMMA = ", ";
-    static public final String[] INDEXES = Note.FULL_TEXT_INDEXES;
-
-    @Override
-    public Map<String, String> index(String[] keys, Note note) {
-        Map<String, String> values = new HashMap<>(keys.length);
-        values.put(INDEXES[0], note.getTitle());
-        values.put(INDEXES[1], note.getContent());
-        return values;
+class NoteFullTextIndexer : FullTextIndex.Indexer<Note> {
+    override fun index(keys: Array<String>, note: Note): Map<String, String> {
+        val values = HashMap<String, String>(keys.size)
+        values[INDEXES[0]] = note.title
+        values[INDEXES[1]] = note.content
+        return values
     }
 
+    companion object {
+        @Suppress("unused")
+        const val COMMA = ", "
+
+        @JvmField
+        val INDEXES: Array<String> = Note.FULL_TEXT_INDEXES
+    }
 }

@@ -293,9 +293,9 @@ public class AutoBulletTest {
     }
 
     @Test
-    public void testEmptyTabIndentedBulletKeepsTabType() {
+    public void testEmptyTabIndentedBulletIsRemoved() {
         String source = "- first\n\t- second\n\t- \n";
-        String target = "- first\n\t- second\n- ";
+        String target = "- first\n\t- second\n";
         int oldPos = source.length() - 1;
         int newPos = source.length();
 
@@ -306,9 +306,9 @@ public class AutoBulletTest {
     }
 
     @Test
-    public void testEmptyMultiSpaceBulletOutdentsOneCharacterPerBreak() {
+    public void testEmptyMultiSpaceIndentedBulletIsRemoved() {
         String source = "- first\n  - second\n  - \n";
-        String target = "- first\n  - second\n - ";
+        String target = "- first\n  - second\n";
         int oldPos = source.length() - 1;
         int newPos = source.length();
 

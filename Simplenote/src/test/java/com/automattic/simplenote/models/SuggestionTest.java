@@ -29,23 +29,8 @@ public class SuggestionTest {
     }
 
     @Test
-    public void settersReplaceNameAndType() {
-        Suggestion suggestion = new Suggestion("gro", Suggestion.Type.QUERY);
-
-        suggestion.setName("grocery");
-        suggestion.setType(Suggestion.Type.HISTORY);
-
-        assertEquals("grocery", suggestion.getName());
-        assertEquals(Suggestion.Type.HISTORY, suggestion.getType());
-    }
-
-    @Test
     public void nameAcceptsNull() {
         Suggestion suggestion = new Suggestion(null, Suggestion.Type.QUERY);
-        assertNull(suggestion.getName());
-
-        suggestion.setName("query");
-        suggestion.setName(null);
         assertNull(suggestion.getName());
     }
 

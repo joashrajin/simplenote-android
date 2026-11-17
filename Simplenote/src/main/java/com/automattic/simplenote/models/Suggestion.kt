@@ -3,8 +3,8 @@ package com.automattic.simplenote.models
 import androidx.annotation.IntDef
 
 class Suggestion(
-    var name: String?,
-    @param:Type @get:Type @setparam:Type var type: Int,
+    val name: String?,
+    @param:Type @get:Type val type: Int,
 ) {
     @Retention(AnnotationRetention.SOURCE)
     @IntDef(Type.HISTORY, Type.QUERY, Type.TAG)

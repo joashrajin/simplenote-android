@@ -1,8 +1,11 @@
 package org.wordpress.passcodelock;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 
@@ -15,6 +18,14 @@ public class PasscodePreferenceFragmentCompat extends PreferenceFragmentCompat
 
     private Preference mTogglePasscodePreference;
     private Preference mChangePasscodePreference;
+
+    private final ActivityResultLauncher<Intent> mManagePasscodeLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    refreshPreferenceState();
+                }
+            });
 
     @Override
     public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -64,7 +75,7 @@ public class PasscodePreferenceFragmentCompat extends PreferenceFragmentCompat
                 ? DISABLE_PASSLOCK : ENABLE_PASSLOCK;
         Intent i = new Intent(getActivity(), PasscodeManagePasswordActivity.class);
         i.putExtra(PasscodeManagePasswordActivity.KEY_TYPE, type);
-        startActivityForResult(i, type);
+        mManagePasscodeLauncher.launch(i);
 
         return true;
     }
@@ -80,7 +91,7 @@ public class PasscodePreferenceFragmentCompat extends PreferenceFragmentCompat
         i.putExtra(PasscodeManagePasswordActivity.KEY_TYPE, CHANGE_PASSWORD);
         i.putExtra(AbstractPasscodeKeyboardActivity.KEY_MESSAGE,
                 getString(R.string.passcode_enter_old_passcode));
-        startActivityForResult(i, CHANGE_PASSWORD);
+        mManagePasscodeLauncher.launch(i);
 
         return true;
     }

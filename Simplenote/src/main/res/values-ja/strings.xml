@@ -351,8 +351,6 @@ Language: ja_JP
     <string name="confirm_delete_tag">本当にこのタグを削除しますか ?</string>
     <string name="note_deleted">ノートをゴミ箱に入れました。</string>
     <string name="undo">取り消し</string>
-    <string name="yesterday">昨日</string>
-    <string name="today">今日</string>
     <string name="trash">ゴミ箱</string>
     <string name="sort_order">ソート順</string>
     <string name="word">単語</string>

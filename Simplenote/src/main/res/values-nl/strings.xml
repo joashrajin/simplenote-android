@@ -351,8 +351,6 @@ Language: nl
     <string name="confirm_delete_tag">Weet je zeker dat je deze tag wil verwijderen?</string>
     <string name="note_deleted">Notitie in prullenbak.</string>
     <string name="undo">Ongedaan maken</string>
-    <string name="yesterday">Gisteren</string>
-    <string name="today">Vandaag</string>
     <string name="trash">Prullenbak</string>
     <string name="sort_order">Sorteervolgorde</string>
     <string name="word">Woord</string>

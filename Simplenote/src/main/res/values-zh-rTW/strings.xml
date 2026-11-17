@@ -351,8 +351,6 @@ Language: zh_TW
     <string name="confirm_delete_tag">你確定要刪除這個標籤嗎？</string>
     <string name="note_deleted">筆記已移至垃圾桶。</string>
     <string name="undo">復原</string>
-    <string name="yesterday">昨天</string>
-    <string name="today">今天</string>
     <string name="trash">垃圾桶</string>
     <string name="sort_order">排序</string>
     <string name="word">字</string>

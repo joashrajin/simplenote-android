@@ -351,8 +351,6 @@ Language: fr
     <string name="confirm_delete_tag">Êtes-vous sûr de vouloir supprimer ce tag ?</string>
     <string name="note_deleted">Note placée dans la corbeille</string>
     <string name="undo">Défaire</string>
-    <string name="yesterday">Hier</string>
-    <string name="today">Aujourd\'hui</string>
     <string name="trash">Corbeille</string>
     <string name="sort_order">Trier par</string>
     <string name="word">Mot</string>

@@ -351,8 +351,6 @@ Language: ar
     <string name="confirm_delete_tag">هل أنت متأكد من رغبتك في حذف هذا الوسم؟</string>
     <string name="note_deleted">تم وضع الملاحظة بسلة المهملات.</string>
     <string name="undo">تراجع</string>
-    <string name="yesterday">أمس</string>
-    <string name="today">اليوم</string>
     <string name="trash">سلة المهملات</string>
     <string name="sort_order">ترتيب الفرز</string>
     <string name="word">الكلمة</string>

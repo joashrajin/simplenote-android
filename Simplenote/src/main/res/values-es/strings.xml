@@ -351,8 +351,6 @@ Language: es
     <string name="confirm_delete_tag">¿Estás seguro de borrar esta etiqueta?</string>
     <string name="note_deleted">Nota movida a la papelera.</string>
     <string name="undo">Deshacer</string>
-    <string name="yesterday">Ayer</string>
-    <string name="today">Hoy</string>
     <string name="trash">Papelera</string>
     <string name="sort_order">Criterio de ordenación</string>
     <string name="word">Palabra</string>

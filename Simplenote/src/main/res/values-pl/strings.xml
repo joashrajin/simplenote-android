@@ -70,8 +70,6 @@
     <string name="search">Szukaj</string>
     <string name="notes">Wszystkie notatki</string>
     <string name="trash">Kosz</string>
-    <string name="today">Dzisiaj</string>
-    <string name="yesterday">Wczoraj</string>
     <string name="undo">Cofnij</string>
     <string name="note_deleted">Notatka usunięta.</string>
 </resources>

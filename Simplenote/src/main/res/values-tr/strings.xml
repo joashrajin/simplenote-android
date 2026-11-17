@@ -351,8 +351,6 @@ Language: tr
     <string name="confirm_delete_tag">Bu etiketi silmek istediğinizden emin misiniz?</string>
     <string name="note_deleted">Not çöpe atıldı.</string>
     <string name="undo">Geri al</string>
-    <string name="yesterday">Dün</string>
-    <string name="today">Bugün</string>
     <string name="trash">Çöp Kutusu</string>
     <string name="sort_order">Sıralama</string>
     <string name="word">Sözcük</string>

@@ -76,6 +76,7 @@ public class NoteWidgetDarkConfigureActivity extends AppCompatActivity {
         if (user.getStatus().equals(User.Status.NOT_AUTHORIZED)) {
             Toast.makeText(NoteWidgetDarkConfigureActivity.this, R.string.log_in_add_widget, Toast.LENGTH_LONG).show();
             finish();
+            return;
         }
 
         // Get widget information

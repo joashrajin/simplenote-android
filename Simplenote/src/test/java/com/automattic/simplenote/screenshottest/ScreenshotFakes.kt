@@ -22,6 +22,7 @@ import com.automattic.simplenote.search.SortOrder
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import org.json.JSONObject
+import org.mockito.kotlin.mock
 
 /**
  * Deterministic in-memory repositories backing the screenshot surfaces. They replace the
@@ -79,7 +80,10 @@ class ScreenshotCollaboratorsRepository : CollaboratorsRepository {
 }
 
 class ScreenshotNotesRepository : NotesRepository {
-    override suspend fun search(request: NoteSearchRequest): NoteQueryResult = NoteQueryResult.InvalidQuery
+    // An empty note list; the caller owns and closes the cursor, so each search returns a fresh one.
+    override suspend fun search(request: NoteSearchRequest): NoteQueryResult =
+        NoteQueryResult.Notes(mock(), searchSnapshot = null)
+
     override suspend fun getNote(key: String): Note? = null
     override suspend fun trashedNoteCount(): Int = 0
     override suspend fun interlinkSuggestions(titleFilter: String, sort: SortOrder): NoteQueryResult =

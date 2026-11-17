@@ -12,15 +12,17 @@ import com.automattic.simplenote.repositories.PreferencesRepository
 import com.automattic.simplenote.repositories.TagsRepository
 import com.simperium.Simperium
 import com.simperium.client.Bucket
+import com.simperium.client.User
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.components.SingletonComponent
 import dagger.hilt.testing.TestInstallIn
+import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 
 /**
  * Replaces [DataModule] for every @HiltAndroidTest in this compilation unit (the screenshot tests
- * are the only Hilt tests in the source set), so @AndroidEntryPoint activities can launch on top
+ * and the widget configure activity tests), so @AndroidEntryPoint activities can launch on top
  * of [dagger.hilt.android.testing.HiltTestApplication] without a Simperium session.
  */
 @Module
@@ -52,8 +54,13 @@ object ScreenshotDataModule {
     @Provides
     fun providesNotesBucket(): Bucket<Note> = mock()
 
+    // The widget configure activities read the session straight off Simperium; it is signed out,
+    // matching ScreenshotAccountRepository.
     @Provides
-    fun providesSimperium(): Simperium = mock()
+    fun providesSimperium(): Simperium {
+        val signedOutUser = mock<User> { on { status } doReturn User.Status.NOT_AUTHORIZED }
+        return mock { on { user } doReturn signedOutUser }
+    }
 
     // InfoBottomSheetDialog injects the sync-time lookup; with no Simperium session every
     // screenshot note reads as never synced.

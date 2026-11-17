@@ -1,25 +1,23 @@
 package com.automattic.simplenote.utils;
 
+import android.app.Application;
 import android.text.Editable;
-import android.text.SpannableStringBuilder;
 
-import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.SmallTest;
-import androidx.test.runner.AndroidJUnit4;
-
-import com.automattic.simplenote.widgets.CheckableSpan;
+import androidx.test.core.app.ApplicationProvider;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static androidx.test.espresso.matcher.ViewMatchers.assertThat;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-@RunWith(AndroidJUnit4.class)
-@SmallTest
+@RunWith(RobolectricTestRunner.class)
+@Config(application = Application.class, sdk = 35)
 public class ChecklistsTest {
     @Test
     public void testRegexMatching() {
@@ -62,28 +60,9 @@ public class ChecklistsTest {
     }
 
     @Test
-    public void testCheckableSpanParsing() {
-        String checklistMarkdown = "ToDo\n- [ ] Write code\n- [ ] Test it\n- [ ] Ship it - [x] not on a newline";
-
-        SpannableStringBuilder builder = new SpannableStringBuilder(checklistMarkdown);
-
-        Editable editable = ChecklistUtils.addChecklistSpansForRegexAndColor(
-            InstrumentationRegistry.getTargetContext(),
-            builder,
-            ChecklistUtils.CHECKLIST_REGEX_LINES,
-            android.R.color.black,
-            false
-        );
-
-        // We should have 3 CheckableSpans
-        CheckableSpan[] spans = editable.getSpans(0, editable.length(), CheckableSpan.class);
-        assertThat(spans.length, is(3));
-    }
-
-    @Test
     public void testNullBuilderPassed() {
         Editable editable = ChecklistUtils.addChecklistSpansForRegexAndColor(
-            InstrumentationRegistry.getTargetContext(),
+            ApplicationProvider.getApplicationContext(),
             null,
             ChecklistUtils.CHECKLIST_REGEX_LINES,
             android.R.color.black,

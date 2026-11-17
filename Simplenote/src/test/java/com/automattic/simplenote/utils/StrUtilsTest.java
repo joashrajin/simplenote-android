@@ -56,6 +56,24 @@ public class StrUtilsTest {
     }
 
     @Test
+    public void strToIntParsesSignedIntegers() {
+        assertEquals(42, StrUtils.strToInt("42", 0));
+        assertEquals(-7, StrUtils.strToInt("-7", 0));
+        assertEquals(5, StrUtils.strToInt("+5", 0));
+        assertEquals(Integer.MAX_VALUE, StrUtils.strToInt("2147483647", 0));
+        assertEquals(Integer.MIN_VALUE, StrUtils.strToInt("-2147483648", 0));
+    }
+
+    @Test
+    public void strToIntRejectsWhatIntegerParsingRejects() {
+        assertEquals(3, StrUtils.strToInt("", 3));
+        assertEquals(3, StrUtils.strToInt("1.5", 3));
+        assertEquals(3, StrUtils.strToInt(" 1", 3));
+        assertEquals(3, StrUtils.strToInt("2147483648", 3));
+        assertEquals(3, StrUtils.strToInt("-2147483649", 3));
+    }
+
+    @Test
     public void strToIntWithDefaultReturnsTheDefaultOnFailure() {
         assertEquals(9, StrUtils.strToInt(null, 9));
         assertEquals(-1, StrUtils.strToInt("x", -1));

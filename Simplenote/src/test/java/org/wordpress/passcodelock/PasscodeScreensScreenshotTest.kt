@@ -11,6 +11,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -38,6 +39,13 @@ class PasscodeScreensScreenshotTest {
     fun setUp() {
         val application = ApplicationProvider.getApplicationContext<Application>()
         AppLockManager.getInstance().setCurrentAppLock(DefaultAppLock(application))
+    }
+
+    // AppLockManager is a process-wide singleton; disable and clear the lock so it can't leak into
+    // later tests in the same Robolectric process.
+    @After
+    fun tearDown() {
+        AppLockManager.getInstance().setCurrentAppLock(null)
     }
 
     @Test

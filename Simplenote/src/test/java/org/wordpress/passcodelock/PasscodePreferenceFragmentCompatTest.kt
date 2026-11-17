@@ -14,6 +14,7 @@ import dagger.hilt.android.testing.HiltTestApplication
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -45,6 +46,13 @@ class PasscodePreferenceFragmentCompatTest {
     fun setUp() {
         appLock = DefaultAppLock(application)
         AppLockManager.getInstance().setCurrentAppLock(appLock)
+    }
+
+    // AppLockManager is a process-wide singleton; disable and clear the lock so it can't leak into
+    // later tests in the same Robolectric process.
+    @After
+    fun tearDown() {
+        AppLockManager.getInstance().setCurrentAppLock(null)
     }
 
     @Test

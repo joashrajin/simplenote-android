@@ -1,95 +1,111 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import android.content.Context;
-import android.content.res.Resources;
-import android.graphics.drawable.AnimatedVectorDrawable;
-import android.graphics.drawable.Drawable;
-import android.os.Build;
-import android.util.TypedValue;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.content.Context
+import android.graphics.drawable.AnimatedVectorDrawable
+import android.graphics.drawable.Drawable
+import android.os.Build
+import android.util.TypedValue
+import android.view.Menu
+import android.view.MenuItem
+import androidx.annotation.AttrRes
+import androidx.annotation.ColorInt
+import androidx.annotation.ColorRes
+import androidx.annotation.DrawableRes
+import androidx.annotation.FloatRange
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
+import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat
 
-import androidx.annotation.AttrRes;
-import androidx.annotation.ColorInt;
-import androidx.annotation.ColorRes;
-import androidx.annotation.DrawableRes;
-import androidx.annotation.FloatRange;
-import androidx.core.content.ContextCompat;
-import androidx.core.graphics.drawable.DrawableCompat;
-import androidx.vectordrawable.graphics.drawable.AnimatedVectorDrawableCompat;
-
-@SuppressWarnings("unused")
-public class DrawableUtils {
-    public static void setMenuItemAlpha(MenuItem menuItem, @FloatRange(from=0,to=1) double alpha) {
-        Drawable drawable = menuItem.getIcon();
+@Suppress("unused")
+object DrawableUtils {
+    @JvmStatic
+    fun setMenuItemAlpha(menuItem: MenuItem, @FloatRange(from = 0.0, to = 1.0) alpha: Double) {
+        val drawable = menuItem.icon
 
         if (drawable != null) {
-            drawable = DrawableCompat.wrap(drawable).mutate();
-            drawable.setAlpha((int) (alpha * 255));  // 255 is 100% opacity.
+            DrawableCompat.wrap(drawable).mutate().alpha = (alpha * 255).toInt() // 255 is 100% opacity.
         }
     }
 
-    public static Drawable tintDrawableWithResource(Context context, @DrawableRes int drawableRes, @ColorRes int colorRes) {
-        return tintDrawableWithResource(context, ContextCompat.getDrawable(context, drawableRes), colorRes);
+    @JvmStatic
+    fun tintDrawableWithResource(context: Context, @DrawableRes drawableRes: Int, @ColorRes colorRes: Int): Drawable? {
+        return tintDrawableWithResource(context, ContextCompat.getDrawable(context, drawableRes), colorRes)
     }
 
-    public static Drawable tintDrawable(Context context, @DrawableRes int drawableRes, @ColorInt int color) {
-        return tintDrawable(ContextCompat.getDrawable(context, drawableRes), color);
+    @JvmStatic
+    fun tintDrawable(context: Context, @DrawableRes drawableRes: Int, @ColorInt color: Int): Drawable? {
+        return tintDrawable(ContextCompat.getDrawable(context, drawableRes), color)
     }
 
-    public static Drawable tintDrawableWithResource(Context context, Drawable drawable, @ColorRes int colorRes) {
-        @ColorInt int tint = ContextCompat.getColor(context, colorRes);
-        return tintDrawable(drawable, tint);
+    @JvmStatic
+    fun tintDrawableWithResource(context: Context, drawable: Drawable?, @ColorRes colorRes: Int): Drawable? {
+        @ColorInt val tint = ContextCompat.getColor(context, colorRes)
+        return tintDrawable(drawable, tint)
     }
 
-    public static Drawable tintDrawable(Drawable drawable, @ColorInt int color) {
-        if (drawable != null) {
-            drawable = DrawableCompat.wrap(drawable).mutate();
-            DrawableCompat.setTint(drawable, color);
+    @JvmStatic
+    fun tintDrawable(drawable: Drawable?, @ColorInt color: Int): Drawable? {
+        if (drawable == null) {
+            return null
         }
-        return drawable;
+
+        val tinted = DrawableCompat.wrap(drawable).mutate()
+        DrawableCompat.setTint(tinted, color)
+        return tinted
     }
 
-    public static Drawable tintDrawableWithAttribute(Context context, @DrawableRes int drawableRes,
-                                                     @AttrRes int tintColorAttribute) {
-        @ColorInt int color = getColor(context, tintColorAttribute);
-        return tintDrawable(context, drawableRes, color);
+    @JvmStatic
+    fun tintDrawableWithAttribute(
+        context: Context,
+        @DrawableRes drawableRes: Int,
+        @AttrRes tintColorAttribute: Int
+    ): Drawable? {
+        @ColorInt val color = getColor(context, tintColorAttribute)
+        return tintDrawable(context, drawableRes, color)
     }
 
-    public static int getColor(Context context, @AttrRes int tintColorAttribute) {
-        TypedValue typedValue = new TypedValue();
-        Resources.Theme theme = context.getTheme();
-        theme.resolveAttribute(tintColorAttribute, typedValue, true);
-        return typedValue.data;
+    @JvmStatic
+    fun getColor(context: Context, @AttrRes tintColorAttribute: Int): Int {
+        val typedValue = TypedValue()
+        val theme = context.theme
+        theme.resolveAttribute(tintColorAttribute, typedValue, true)
+        return typedValue.data
     }
 
-    public static void startAnimatedVectorDrawable(Drawable drawable) {
-        if (drawable instanceof AnimatedVectorDrawable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            ((AnimatedVectorDrawable) drawable).start();
-        } else if (drawable instanceof AnimatedVectorDrawableCompat) {
-            ((AnimatedVectorDrawableCompat) drawable).start();
+    @JvmStatic
+    fun startAnimatedVectorDrawable(drawable: Drawable?) {
+        if (drawable is AnimatedVectorDrawable && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            drawable.start()
+        } else if (drawable is AnimatedVectorDrawableCompat) {
+            drawable.start()
         }
     }
 
-    public static void tintMenuWithAttribute(Context context, Menu menu, @AttrRes int tintColorAttribute) {
-        @ColorInt int color = getColor(context, tintColorAttribute);
-        DrawableUtils.tintMenu(menu, color);
+    @JvmStatic
+    fun tintMenuWithAttribute(context: Context, menu: Menu, @AttrRes tintColorAttribute: Int) {
+        @ColorInt val color = getColor(context, tintColorAttribute)
+        tintMenu(menu, color)
     }
 
-    public static void tintMenu(Menu menu, @ColorInt int color) {
-        for (int i = 0; i < menu.size(); i++) {
-            MenuItem item = menu.getItem(i);
-            DrawableUtils.tintMenuItem(item, color);
+    @JvmStatic
+    fun tintMenu(menu: Menu, @ColorInt color: Int) {
+        for (i in 0 until menu.size()) {
+            val item = menu.getItem(i)
+            tintMenuItem(item, color)
         }
     }
 
-    public static void tintMenuItem(MenuItem menuItem, @ColorInt int color) {
-        Drawable tinted = DrawableUtils.tintDrawable(menuItem.getIcon(), color);
-        menuItem.setIcon(tinted);
+    @JvmStatic
+    fun tintMenuItem(menuItem: MenuItem, @ColorInt color: Int) {
+        val tinted = tintDrawable(menuItem.icon, color)
+        menuItem.setIcon(tinted)
     }
 
-    public static void tintMenuItemWithAttribute(Context context, MenuItem menuItem, @AttrRes int tintColorAttribute) {
-        @ColorInt int color = getColor(context, tintColorAttribute);
-        DrawableUtils.tintMenuItem(menuItem, color);
+    // Context is nullable because NoteMarkdownFragment passes Fragment.getActivity(); like the Java
+    // version, a null context still throws NullPointerException.
+    @JvmStatic
+    fun tintMenuItemWithAttribute(context: Context?, menuItem: MenuItem, @AttrRes tintColorAttribute: Int) {
+        @ColorInt val color = getColor(context!!, tintColorAttribute)
+        tintMenuItem(menuItem, color)
     }
 }

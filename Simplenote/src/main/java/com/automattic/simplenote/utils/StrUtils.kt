@@ -1,53 +1,37 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-/*
- *  misc. string utilities
- *  added 01-Apr-2013 by Nick Bradbury
- */
+import android.text.TextUtils
+import androidx.core.util.PatternsCompat.EMAIL_ADDRESS
 
-import static androidx.core.util.PatternsCompat.EMAIL_ADDRESS;
+object StrUtils {
+    const val SPACE_STRING = " "
 
-import android.text.TextUtils;
-
-@SuppressWarnings("unused")
-public class StrUtils {
-    public static final String SPACE_STRING = " ";
-
-    // suppress default constructor for non-instantiability
-    private StrUtils() {
-        throw new AssertionError();
+    @JvmStatic
+    fun isEmail(str: String?): Boolean {
+        // TextUtils.isEmpty has no Kotlin contract, so the compiler cannot smart-cast str here.
+        return !TextUtils.isEmpty(str) && EMAIL_ADDRESS.matcher(str!!).matches()
     }
 
-    public static boolean isEmail(String str) {
-        return !TextUtils.isEmpty(str) && EMAIL_ADDRESS.matcher(str).matches();
+    @JvmStatic
+    fun notNullStr(value: String?): String {
+        return value ?: ""
     }
 
-    // returns "" if the passed string is null, otherwise returns the passed string
-    public static String notNullStr(final String value) {
-        if (value == null)
-            return "";
-        return value;
-    }
-
-    // exception-less conversion of string to int
-    public static int strToInt(final String value) {
-        return strToInt(value, 0);
-    }
-
-    public static int strToInt(String value, int defaultInt) {
-        if (value == null)
-            return defaultInt;
-        try {
-            return Integer.valueOf(value);
-        } catch (NumberFormatException e) {
-            return defaultInt;
+    @JvmStatic
+    @JvmOverloads
+    fun strToInt(value: String?, defaultInt: Int = 0): Int {
+        if (value == null) {
+            return defaultInt
+        }
+        return try {
+            value.toInt()
+        } catch (e: NumberFormatException) {
+            defaultInt
         }
     }
 
-    // returns true if passed strings are the same, handles null so caller can skip null check before comparison
-    public static boolean isSameStr(String s1, String s2) {
-        if (s1 == null || s2 == null)
-            return (s1 == null && s2 == null);
-        return s1.equals(s2);
+    @JvmStatic
+    fun isSameStr(s1: String?, s2: String?): Boolean {
+        return s1 == s2
     }
 }

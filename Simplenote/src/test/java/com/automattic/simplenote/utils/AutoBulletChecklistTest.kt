@@ -78,8 +78,9 @@ class AutoBulletChecklistTest {
         assertEquals("", editable.toString())
     }
 
+    // JVM-only: OpenJDK's `\s` excludes U+00A0, ICU's includes it. AutoBulletDeviceTest pins the ART result.
     @Test
-    fun noBreakSpaceAfterBulletIsNotAnEmptyBullet() {
+    fun noBreakSpaceAfterBulletContinuesUnderJvmRegex() {
         val editable = editable("- \u00a0\n")
 
         AutoBullet.apply(editable, 3, 4)

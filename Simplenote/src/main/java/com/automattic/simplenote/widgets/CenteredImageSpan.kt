@@ -1,61 +1,62 @@
-package com.automattic.simplenote.widgets;
+package com.automattic.simplenote.widgets
 
-import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
-import android.text.style.ImageSpan;
-
-import androidx.annotation.NonNull;
-
-import com.automattic.simplenote.utils.DisplayUtils;
+import android.content.Context
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.drawable.Drawable
+import android.text.style.ImageSpan
+import com.automattic.simplenote.utils.DisplayUtils
 
 // From https://stackoverflow.com/a/38788432/309558
 
-public class CenteredImageSpan extends ImageSpan {
+class CenteredImageSpan(context: Context, d: Drawable) : ImageSpan(d) {
     // Ensures icon is centered properly
-    private int mIconOversizeAdjustment;
+    private val iconOversizeAdjustment: Int = DisplayUtils.dpToPx(context, 1)
 
-    public CenteredImageSpan(Context context, @NonNull Drawable d) {
-        super(d);
-
-        mIconOversizeAdjustment = DisplayUtils.dpToPx(context, 1);
-    }
-
-    @Override
-    public int getSize(@NonNull Paint paint, CharSequence text, int start, int end,
-                       Paint.FontMetricsInt fontMetricsInt) {
-        Drawable drawable = getDrawable();
-        Rect rect = drawable.getBounds();
+    override fun getSize(
+        paint: Paint,
+        text: CharSequence?,
+        start: Int,
+        end: Int,
+        fontMetricsInt: Paint.FontMetricsInt?
+    ): Int {
+        val drawable = getDrawable()
+        val rect = drawable.bounds
         if (fontMetricsInt != null) {
-            Paint.FontMetricsInt fmPaint = paint.getFontMetricsInt();
-            int fontHeight = fmPaint.descent - fmPaint.ascent;
-            int drHeight = (rect.bottom - rect.top) + mIconOversizeAdjustment;
-            int centerY = fmPaint.ascent + fontHeight / 2;
+            val fmPaint = paint.fontMetricsInt
+            val fontHeight = fmPaint.descent - fmPaint.ascent
+            val drHeight = (rect.bottom - rect.top) + iconOversizeAdjustment
+            val centerY = fmPaint.ascent + fontHeight / 2
 
-            fontMetricsInt.ascent = centerY - drHeight / 2;
-            fontMetricsInt.top = fontMetricsInt.ascent;
-            fontMetricsInt.bottom = centerY + drHeight / 2;
-            fontMetricsInt.descent = fontMetricsInt.bottom;
+            fontMetricsInt.ascent = centerY - drHeight / 2
+            fontMetricsInt.top = fontMetricsInt.ascent
+            fontMetricsInt.bottom = centerY + drHeight / 2
+            fontMetricsInt.descent = fontMetricsInt.bottom
         }
-        return rect.right;
+        return rect.right
     }
 
-    @Override
-    public void draw(@NonNull Canvas canvas, CharSequence text, int start, int end,
-                     float x, int top, int y, int bottom, @NonNull Paint paint) {
-
-        Drawable drawable = getDrawable();
-        Rect rect = drawable.getBounds();
-        canvas.save();
-        Paint.FontMetricsInt fmPaint = paint.getFontMetricsInt();
-        int fontHeight = fmPaint.descent - fmPaint.ascent;
-        int centerY = y + fmPaint.descent - fontHeight / 2;
-        int drHeight = (rect.bottom - rect.top) + mIconOversizeAdjustment;
-        int transY = centerY - drHeight / 2;
-        canvas.translate(x, transY);
-        drawable.draw(canvas);
-        canvas.restore();
+    override fun draw(
+        canvas: Canvas,
+        text: CharSequence?,
+        start: Int,
+        end: Int,
+        x: Float,
+        top: Int,
+        y: Int,
+        bottom: Int,
+        paint: Paint
+    ) {
+        val drawable = getDrawable()
+        val rect = drawable.bounds
+        canvas.save()
+        val fmPaint = paint.fontMetricsInt
+        val fontHeight = fmPaint.descent - fmPaint.ascent
+        val centerY = y + fmPaint.descent - fontHeight / 2
+        val drHeight = (rect.bottom - rect.top) + iconOversizeAdjustment
+        val transY = centerY - drHeight / 2
+        canvas.translate(x, transY.toFloat())
+        drawable.draw(canvas)
+        canvas.restore()
     }
 }

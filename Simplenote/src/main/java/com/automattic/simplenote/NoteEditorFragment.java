@@ -64,6 +64,7 @@ import androidx.lifecycle.LifecycleOwnerKt;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.preference.PreferenceManager;
 
+import com.automattic.android.tracks.crashlogging.CrashLogging;
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Tag;
@@ -99,6 +100,7 @@ import com.simperium.client.BucketObjectMissingException;
 import com.simperium.client.Query;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -130,6 +132,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
     private static final int MAX_REVISIONS = 30;
     private static final int PUBLISH_TIMEOUT = 20000;
     private static final int HISTORY_TIMEOUT = 10000;
+    @Inject CrashLogging mCrashLogging;
     private Note mNote;
     private final Runnable mAutoSaveRunnable = this::saveAndSyncNote;
     private Bucket<Note> mNotesBucket;
@@ -456,6 +459,9 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         }
         mContentEditText.addOnSelectionChangedListener(this);
         mContentEditText.setOnCheckboxToggledListener(this);
+        mContentEditText.setOnChecklistErrorListener(
+            error -> mCrashLogging.sendReport(error, Collections.emptyMap(), null)
+        );
         mContentEditText.setMovementMethod(SimplenoteMovementMethod.getInstance());
         mContentEditText.setOnFocusChangeListener(this);
         mContentEditText.setTextSize(TypedValue.COMPLEX_UNIT_SP, PrefUtils.getFontSize(requireContext()));

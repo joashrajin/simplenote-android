@@ -21,7 +21,6 @@ import com.automattic.simplenote.utils.ThemeUtils.STYLE_PUBLICATION
 import com.automattic.simplenote.utils.ThemeUtils.STYLE_SEPIA
 import com.simperium.client.Query
 
-@Suppress("unused")
 object PrefUtils {
     // key names for various preferences - note that these same key names are hard-coded in Preferences.xml
 
@@ -34,9 +33,6 @@ object PrefUtils {
     // boolean, determines whether to sort the tags list alphabetically
     const val PREF_SORT_TAGS_ALPHA = "pref_key_sort_tags_alpha"
 
-    // boolean, determines whether dates are shown
-    const val PREF_SHOW_DATES = "pref_key_show_dates"
-
     // int, preferred font size
     private const val PREF_FONT_SIZE = "pref_key_font_size"
 
@@ -48,9 +44,6 @@ object PrefUtils {
 
     // boolean, set to require an account to access the app
     const val PREF_ACCOUNT_REQUIRED = "pref_key_account_required"
-
-    // boolean, set on when user taps to just try the app in the welcome view
-    const val PREF_APP_TRIAL = "pref_key_app_trial"
 
     // boolean, allow notes to preview markdown
     const val PREF_MARKDOWN_ENABLED = "pref_key_markdown_enabled"
@@ -66,9 +59,6 @@ object PrefUtils {
 
     // string. WordPress.com access token
     const val PREF_WP_TOKEN = "pref_key_wp_token"
-
-    // boolean. determines if analytics is enabled
-    const val PREF_ANALYTICS_ENABLED = "pref_key_analytics_enabled"
 
     // string. json array of sites used to publish to WordPress
     const val PREF_WORDPRESS_SITES = "pref_key_wordpress_sites"

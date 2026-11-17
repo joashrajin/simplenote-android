@@ -11,9 +11,6 @@ class NoteFullTextIndexer : FullTextIndex.Indexer<Note> {
     }
 
     companion object {
-        @Suppress("unused")
-        const val COMMA = ", "
-
         @JvmField
         val INDEXES: Array<String> = Note.FULL_TEXT_INDEXES
     }

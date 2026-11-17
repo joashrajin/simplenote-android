@@ -21,11 +21,6 @@ public class NoteFullTextIndexerTest {
     }
 
     @Test
-    public void commaConstant() {
-        assertEquals(", ", NoteFullTextIndexer.COMMA);
-    }
-
-    @Test
     public void indexesTitleAndContent() {
         Note note = new Note("key");
         note.setContent("Groceries\nmilk\neggs");

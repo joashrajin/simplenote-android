@@ -18,8 +18,7 @@ object StrUtils {
     }
 
     @JvmStatic
-    @JvmOverloads
-    fun strToInt(value: String?, defaultInt: Int = 0): Int {
+    fun strToInt(value: String?, defaultInt: Int): Int {
         if (value == null) {
             return defaultInt
         }

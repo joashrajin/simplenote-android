@@ -333,11 +333,15 @@
         <item name="android:textSize">@dimen/text_about_title</item>
     </style>
 
-    <style name="Theme.Simplestyle.Passcode" parent="@style/Theme.MaterialComponents.Light.NoActionBar" tools:targetApi="o_mr1">
+    <style name="Theme.Simplestyle.Passcode" parent="@style/Theme.Material3.Light.NoActionBar" tools:targetApi="o_mr1">
         <item name="android:navigationBarColor">@color/passcodelock_background</item>
         <item name="android:statusBarColor">@color/passcodelock_background</item>
+        <item name="android:windowBackground">@color/passcodelock_background</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLightNavigationBar">false</item>
+        <!-- The phone keypad layout pads its top by ?attr/actionBarSize; Material 3 raises it from
+             MaterialComponents' 56dp to 64dp, which would push the whole keypad down. -->
+        <item name="actionBarSize">56dp</item>
         <item name="colorPrimary">@color/passcodelock_background</item>
     </style>
 

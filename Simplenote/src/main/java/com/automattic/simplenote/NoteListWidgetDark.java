@@ -42,7 +42,7 @@ public class NoteListWidgetDark extends AppWidgetProvider {
             resizeWidget(context, newOptions, views);
         }
 
-        appWidgetManager.updateAppWidget(appWidgetId, views);
+        appWidgetManager.partiallyUpdateAppWidget(appWidgetId, views);
     }
 
     @Override

@@ -351,8 +351,6 @@ Language: id
     <string name="confirm_delete_tag">Anda yakin ingin menghapus label ini?</string>
     <string name="note_deleted">Catatan dibuang.</string>
     <string name="undo">Urungkan</string>
-    <string name="yesterday">Kemarin</string>
-    <string name="today">Hari ini</string>
     <string name="trash">Sampah</string>
     <string name="sort_order">Urutkan</string>
     <string name="word">Kata</string>

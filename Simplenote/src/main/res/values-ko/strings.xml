@@ -351,8 +351,6 @@ Language: ko_KR
     <string name="confirm_delete_tag">이 태그를 삭제하시겠습니까?</string>
     <string name="note_deleted">메모가 삭제되었습니다.</string>
     <string name="undo">실행 취소</string>
-    <string name="yesterday">어제</string>
-    <string name="today">오늘</string>
     <string name="trash">휴지통</string>
     <string name="sort_order">정렬 순서</string>
     <string name="word">단어</string>

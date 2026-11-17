@@ -87,8 +87,6 @@
     <string name="delete">העברה לפח</string>
     <string name="note_deleted">הפתק הועבר לאשפה.</string>
     <string name="undo">ביטול</string>
-    <string name="yesterday">אתמול</string>
-    <string name="today">היום</string>
     <string name="trash">פח אשפה</string>
     <string name="notes">כל הפתקים</string>
     <string name="sort_order">מיון לפי</string>

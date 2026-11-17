@@ -76,8 +76,6 @@ Language: cy_GB
     <string name="word">Geiriau</string>
     <string name="sort_order">Trefn didoli</string>
     <string name="trash">Sbwriel</string>
-    <string name="today">Heddiw</string>
-    <string name="yesterday">Ddoe</string>
     <string name="undo">Dadwneud</string>
     <string name="note_deleted">Dilëwyd y nodyn.</string>
 </resources>

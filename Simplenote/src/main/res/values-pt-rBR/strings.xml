@@ -351,8 +351,6 @@ Language: pt_BR
     <string name="confirm_delete_tag">Tem certeza que deseja excluir esta tag?</string>
     <string name="note_deleted">Anotação enviada para a lixeira.</string>
     <string name="undo">Desfazer</string>
-    <string name="yesterday">Ontem</string>
-    <string name="today">Hoje</string>
     <string name="trash">Lixeira</string>
     <string name="sort_order">Organizar</string>
     <string name="word">Palavras</string>

@@ -70,8 +70,6 @@
     <string name="search">Cari</string>
     <string name="notes">Semua Catatan</string>
     <string name="trash">Sampah</string>
-    <string name="today">Hari ini</string>
-    <string name="yesterday">Kemarin</string>
     <string name="undo">Urungkan</string>
     <string name="note_deleted">Catatan dibuang.</string>
 </resources>

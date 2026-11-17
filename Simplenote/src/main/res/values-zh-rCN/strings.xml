@@ -351,8 +351,6 @@ Language: zh_CN
     <string name="confirm_delete_tag">是否确定要删除此标签？</string>
     <string name="note_deleted">已将笔记放入回收站。</string>
     <string name="undo">撤消</string>
-    <string name="yesterday">昨天</string>
-    <string name="today">今天</string>
     <string name="trash">回收站</string>
     <string name="sort_order">排序</string>
     <string name="word">字数</string>

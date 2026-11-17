@@ -351,8 +351,6 @@ Language: it
     <string name="confirm_delete_tag">Sei sicuro di voler cancellare questo tag?</string>
     <string name="note_deleted">Nota eliminata.</string>
     <string name="undo">Annulla</string>
-    <string name="yesterday">Ieri</string>
-    <string name="today">Oggi</string>
     <string name="trash">Cestino</string>
     <string name="sort_order">Ordina per</string>
     <string name="word">Parole</string>

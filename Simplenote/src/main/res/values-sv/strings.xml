@@ -351,8 +351,6 @@ Language: sv_SE
     <string name="confirm_delete_tag">Är du säker på att du vill ta bort etiketten?</string>
     <string name="note_deleted">Anteckning borttagen.</string>
     <string name="undo">Ångra</string>
-    <string name="yesterday">Igår</string>
-    <string name="today">Idag</string>
     <string name="trash">Papperskorg</string>
     <string name="sort_order">Sorteringsordning</string>
     <string name="word">Ord</string>

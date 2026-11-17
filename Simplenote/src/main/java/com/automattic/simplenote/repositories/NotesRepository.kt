@@ -16,7 +16,7 @@ import java.util.Calendar
  * treat a missing object as absence (with the LoadNoteTask fallback scan of the object store
  * before concluding absence), [trashedNoteCount] NotesActivity.updateTrashMenuItem,
  * [interlinkSuggestions] the NoteEditorFragment link autocomplete, [referencesTo]
- * Note.getReferences as InfoBottomSheetDialog consumes it, and [hasUnsyncedNotes] plus
+ * the InfoBottomSheetDialog inbound-link scan, and [hasUnsyncedNotes] plus
  * [allNotesForExport] the PreferencesFragment logout and export scans.
  *
  * The write surface reproduces the legacy mutation sequences: [createNote] the shared-content

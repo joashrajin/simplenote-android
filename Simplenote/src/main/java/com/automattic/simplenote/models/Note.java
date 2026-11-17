@@ -1,11 +1,9 @@
 package com.automattic.simplenote.models;
 
-import android.content.Context;
 import android.text.TextUtils;
 
 import androidx.annotation.NonNull;
 
-import com.automattic.simplenote.R;
 import com.automattic.simplenote.utils.DateTimeUtils;
 import com.automattic.simplenote.utils.StrUtils;
 import com.automattic.simplenote.utils.TagUtils;
@@ -21,7 +19,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.math.BigDecimal;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -31,8 +28,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import static com.automattic.simplenote.utils.SimplenoteLinkify.SIMPLENOTE_LINK_PREFIX;
 
 public class Note extends BucketObject {
     public static final String BUCKET_NAME = "note";
@@ -129,77 +124,6 @@ public class Note extends BucketObject {
         note.setMarkdownEnabled(noteJson.optBoolean("markdown", false));
 
         return note;
-    }
-
-    @SuppressWarnings("unused")
-    public static String dateString(Number time, boolean useShortFormat, Context context) {
-        Calendar c = numberToDate(time);
-        return dateString(c, useShortFormat, context);
-    }
-
-    public static String dateString(Calendar c, boolean useShortFormat, Context context) {
-        int year, month, day;
-
-        String time, date, retVal;
-
-        Calendar diff = Calendar.getInstance();
-        diff.setTimeInMillis(diff.getTimeInMillis() - c.getTimeInMillis());
-
-        year = diff.get(Calendar.YEAR);
-        month = diff.get(Calendar.MONTH);
-        day = diff.get(Calendar.DAY_OF_MONTH);
-
-        diff.setTimeInMillis(0); // starting time
-        time = DateFormat.getTimeInstance(DateFormat.SHORT).format(c.getTime());
-        if ((year == diff.get(Calendar.YEAR)) && (month == diff.get(Calendar.MONTH)) && (day == diff.get(Calendar.DAY_OF_MONTH))) {
-            date = context.getResources().getString(R.string.today);
-            if (useShortFormat)
-                retVal = time;
-            else
-                retVal = date + ", " + time;
-        } else if ((year == diff.get(Calendar.YEAR)) && (month == diff.get(Calendar.MONTH)) && (day == 1)) {
-            date = context.getResources().getString(R.string.yesterday);
-            if (useShortFormat)
-                retVal = date;
-            else
-                retVal = date + ", " + time;
-        } else {
-            date = new SimpleDateFormat("MMM dd", Locale.US).format(c.getTime());
-            retVal = date + ", " + time;
-        }
-
-        return retVal;
-    }
-
-    private static int getReferenceCount(String key, String content) {
-        Pattern pattern = Pattern.compile(SIMPLENOTE_LINK_PREFIX + key);
-        Matcher matcher = pattern.matcher(content);
-        int count = 0;
-
-        while (matcher.find()) {
-            count++;
-        }
-
-        return count;
-    }
-
-    public static List<Reference> getReferences(Bucket<Note> bucket, String key) {
-        List<Reference> references = new ArrayList<>();
-        Bucket.ObjectCursor<Note> cursor = Note.search(bucket, SIMPLENOTE_LINK_PREFIX + key).execute();
-
-        while (cursor.moveToNext()) {
-            Note note = cursor.getObject();
-            references.add(
-                new Reference(
-                    note.getSimperiumKey(),
-                    note.getTitle(),
-                    note.getModificationDate(),
-                    getReferenceCount(key, note.getContent())
-                )
-            );
-        }
-
-        return references;
     }
 
     public static Calendar numberToDate(Number time) {

@@ -83,19 +83,9 @@ public class DrawableUtils {
         }
     }
 
-    public static void tintMenuWithResource(Context context, Menu menu, @ColorRes int colorRes) {
-        @ColorInt int color = ContextCompat.getColor(context, colorRes);
-        DrawableUtils.tintMenu(menu, color);
-    }
-
     public static void tintMenuItem(MenuItem menuItem, @ColorInt int color) {
         Drawable tinted = DrawableUtils.tintDrawable(menuItem.getIcon(), color);
         menuItem.setIcon(tinted);
-    }
-
-    public static void tintMenuItemWithResource(Context context, MenuItem menuItem, @ColorRes int colorRes) {
-        @ColorInt int color = ContextCompat.getColor(context, colorRes);
-        DrawableUtils.tintMenuItem(menuItem, color);
     }
 
     public static void tintMenuItemWithAttribute(Context context, MenuItem menuItem, @AttrRes int tintColorAttribute) {

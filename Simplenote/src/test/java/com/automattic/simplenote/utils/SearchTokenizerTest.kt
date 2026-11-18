@@ -1,62 +1,61 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Test
 
-import org.junit.Test;
-
-public class SearchTokenizerTest {
+class SearchTokenizerTest {
 
     @Test
-    public void testPerformsLiteralQuery() {
-        SearchTokenizer tokenizer = new SearchTokenizer("/hello world");
+    fun testPerformsLiteralQuery() {
+        val tokenizer = SearchTokenizer("/hello world")
 
-        assertThat(tokenizer.toString(), is("hello world"));
+        assertThat(tokenizer.toString(), `is`("hello world"))
     }
 
     @Test
-    public void testFixesMalformedLiteralQuery() {
-        SearchTokenizer tokenizer = new SearchTokenizer("/\"hello\" \"world");
+    fun testFixesMalformedLiteralQuery() {
+        val tokenizer = SearchTokenizer("/\"hello\" \"world")
 
-        assertThat(tokenizer.toString(), is("\"hello\" \"world\""));
+        assertThat(tokenizer.toString(), `is`("\"hello\" \"world\""))
     }
 
     @Test
-    public void testDetectsTokensAndAddsGlobs() {
-        SearchTokenizer tokenizer = new SearchTokenizer("hello world");
+    fun testDetectsTokensAndAddsGlobs() {
+        val tokenizer = SearchTokenizer("hello world")
 
-        assertThat(tokenizer.toString(), is("hello* world*"));
+        assertThat(tokenizer.toString(), `is`("hello* world*"))
     }
 
     @Test
-    public void testDetectsStrictSearchStrings() {
-        SearchTokenizer tokenizer = new SearchTokenizer("\"hello world\" lorem");
+    fun testDetectsStrictSearchStrings() {
+        val tokenizer = SearchTokenizer("\"hello world\" lorem")
 
-        assertThat(tokenizer.toString(), is("\"hello world\" lorem*"));
+        assertThat(tokenizer.toString(), `is`("\"hello world\" lorem*"))
     }
 
     @Test
-    public void testDetectsFieldScopes() {
-        SearchTokenizer tokenizer = new SearchTokenizer("tag: something");
+    fun testDetectsFieldScopes() {
+        val tokenizer = SearchTokenizer("tag: something")
 
-        assertThat(tokenizer.toString(), is("tag: something*"));
+        assertThat(tokenizer.toString(), `is`("tag: something*"))
     }
 
     @Test
-    public void testDetectsEscapedQuotes() {
-        SearchTokenizer tokenizer = new SearchTokenizer("this is \\\" an escaped quote");
-        assertThat(tokenizer.toString(), is("this* is* \\\"* an* escaped* quote*"));
+    fun testDetectsEscapedQuotes() {
+        var tokenizer = SearchTokenizer("this is \\\" an escaped quote")
+        assertThat(tokenizer.toString(), `is`("this* is* \\\"* an* escaped* quote*"))
 
-        tokenizer = new SearchTokenizer("this is \\' an escaped quote");
-        assertThat(tokenizer.toString(), is("this* is* \\'* an* escaped* quote*"));
+        tokenizer = SearchTokenizer("this is \\' an escaped quote")
+        assertThat(tokenizer.toString(), `is`("this* is* \\'* an* escaped* quote*"))
     }
 
     @Test
-    public void testMixedQuotes() {
-        SearchTokenizer tokenizer = new SearchTokenizer("quote in 'a \" quote");
-        assertThat(tokenizer.toString(), is("quote* in* 'a \" quote'"));
+    fun testMixedQuotes() {
+        var tokenizer = SearchTokenizer("quote in 'a \" quote")
+        assertThat(tokenizer.toString(), `is`("quote* in* 'a \" quote'"))
 
-        tokenizer = new SearchTokenizer("quote in \"a ' quote\"");
-        assertThat(tokenizer.toString(), is("quote* in* \"a ' quote\""));
+        tokenizer = SearchTokenizer("quote in \"a ' quote\"")
+        assertThat(tokenizer.toString(), `is`("quote* in* \"a ' quote\""))
     }
 }

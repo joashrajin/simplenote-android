@@ -1,49 +1,44 @@
-package com.automattic.simplenote.models;
+package com.automattic.simplenote.models
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
 
-import org.junit.Test;
-
-public class SuggestionTest {
+class SuggestionTest {
     @Test
-    public void typeConstantsAreSwitchableCompileTimeConstants() {
-        assertEquals("history", label(Suggestion.Type.HISTORY));
-        assertEquals("query", label(Suggestion.Type.QUERY));
-        assertEquals("tag", label(Suggestion.Type.TAG));
+    fun typeConstantsAreSwitchableCompileTimeConstants() {
+        assertEquals("history", label(Suggestion.Type.HISTORY))
+        assertEquals("query", label(Suggestion.Type.QUERY))
+        assertEquals("tag", label(Suggestion.Type.TAG))
     }
 
     @Test
-    public void typeConstantValues() {
-        assertEquals(0, Suggestion.Type.HISTORY);
-        assertEquals(1, Suggestion.Type.QUERY);
-        assertEquals(2, Suggestion.Type.TAG);
+    fun typeConstantValues() {
+        assertEquals(0, Suggestion.Type.HISTORY)
+        assertEquals(1, Suggestion.Type.QUERY)
+        assertEquals(2, Suggestion.Type.TAG)
     }
 
     @Test
-    public void constructorSetsNameAndType() {
-        Suggestion suggestion = new Suggestion("groceries", Suggestion.Type.TAG);
+    fun constructorSetsNameAndType() {
+        val suggestion = Suggestion("groceries", Suggestion.Type.TAG)
 
-        assertEquals("groceries", suggestion.getName());
-        assertEquals(Suggestion.Type.TAG, suggestion.getType());
+        assertEquals("groceries", suggestion.name)
+        assertEquals(Suggestion.Type.TAG, suggestion.type)
     }
 
     @Test
-    public void nameAcceptsNull() {
-        Suggestion suggestion = new Suggestion(null, Suggestion.Type.QUERY);
-        assertNull(suggestion.getName());
+    fun nameAcceptsNull() {
+        val suggestion = Suggestion(null, Suggestion.Type.QUERY)
+        assertNull(suggestion.name)
     }
 
-    private static String label(@Suggestion.Type int type) {
-        switch (type) {
-            case Suggestion.Type.HISTORY:
-                return "history";
-            case Suggestion.Type.QUERY:
-                return "query";
-            case Suggestion.Type.TAG:
-                return "tag";
-            default:
-                return "unknown";
+    private fun label(@Suggestion.Type type: Int): String {
+        return when (type) {
+            Suggestion.Type.HISTORY -> "history"
+            Suggestion.Type.QUERY -> "query"
+            Suggestion.Type.TAG -> "tag"
+            else -> "unknown"
         }
     }
 }

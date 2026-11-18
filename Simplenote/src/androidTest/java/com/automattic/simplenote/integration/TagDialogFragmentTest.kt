@@ -15,12 +15,14 @@ import com.automattic.simplenote.TagDialogFragment
 import com.automattic.simplenote.utils.TagUtils
 import com.automattic.simplenote.utils.hasTextInputLayoutErrorText
 import com.automattic.simplenote.utils.launchDialogFragmentInHiltContainer
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.hamcrest.CoreMatchers.allOf
 import org.hamcrest.CoreMatchers.not
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@HiltAndroidTest
 @RunWith(AndroidJUnit4ClassRunner::class)
 @MediumTest
 class TagDialogFragmentTest : BaseUITest() {

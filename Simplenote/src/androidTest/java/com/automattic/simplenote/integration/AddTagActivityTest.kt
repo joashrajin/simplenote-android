@@ -14,11 +14,13 @@ import com.automattic.simplenote.AddTagActivity
 import com.automattic.simplenote.BaseUITest
 import com.automattic.simplenote.R
 import com.automattic.simplenote.utils.hasTextInputLayoutErrorText
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.hamcrest.CoreMatchers.not
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
 
+@HiltAndroidTest
 @RunWith(AndroidJUnit4ClassRunner::class)
 @MediumTest
 class AddTagActivityTest : BaseUITest() {

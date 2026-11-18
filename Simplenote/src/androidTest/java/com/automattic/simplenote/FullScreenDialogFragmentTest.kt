@@ -12,6 +12,8 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner
 import com.automattic.simplenote.FullScreenDialogFragment.FullScreenDialogContent
 import com.automattic.simplenote.FullScreenDialogFragment.FullScreenDialogController
 import com.automattic.simplenote.utils.launchHiltTestActivity
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -20,15 +22,21 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
  * The tests call the [androidx.activity.OnBackPressedDispatcher] directly to simulate predictive back gestures.
  */
+@HiltAndroidTest
 @RunWith(AndroidJUnit4ClassRunner::class)
 @MediumTest
 class FullScreenDialogFragmentTest {
+    @JvmField
+    @Rule
+    val hiltRule = HiltAndroidRule(this)
+
     private lateinit var scenario: ActivityScenario<HiltTestActivity>
     private lateinit var dialog: FullScreenDialogFragment
     private var dismissCount = 0

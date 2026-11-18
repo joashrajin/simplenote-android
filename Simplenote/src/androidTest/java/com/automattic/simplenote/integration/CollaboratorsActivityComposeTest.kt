@@ -19,6 +19,7 @@ import androidx.test.internal.runner.junit4.AndroidJUnit4ClassRunner
 import com.automattic.simplenote.BaseUITest
 import com.automattic.simplenote.CollaboratorsActivity
 import com.automattic.simplenote.R
+import dagger.hilt.android.testing.HiltAndroidTest
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith
  * CollaboratorsViewModel/AddCollaboratorViewModel over the Simperium repositories backed by
  * [com.automattic.simplenote.utils.TestBucket] — the same seam the Espresso integration tests use.
  */
+@HiltAndroidTest
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4ClassRunner::class)
 @MediumTest

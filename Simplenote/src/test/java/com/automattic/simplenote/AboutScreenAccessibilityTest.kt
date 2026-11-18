@@ -170,6 +170,39 @@ class AboutScreenAccessibilityTest {
         assertTrue(terms.textLayout().lineCount > 1)
     }
 
+    @Test
+    fun privacyAndTermsEachTakeHalfTheRow() {
+        launch()
+
+        val center = composeRule.onRoot().bounds().center.x
+        val privacy = composeRule.onNodeWithText(link(R.string.link_privacy)).performScrollTo()
+        val terms = composeRule.onNodeWithText(link(R.string.link_terms))
+
+        assertTrue(privacy.bounds().right <= center)
+        assertTrue(terms.bounds().left >= center)
+    }
+
+    @Test
+    fun titleIsAHeadingAndTheLinkSeparatorIsSilent() {
+        val activity = launch()
+
+        composeRule.onNodeWithText(activity.getString(R.string.app_name))
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        composeRule.onAllNodes(hasText(activity.getString(R.string.link_divider)), useUnmergedTree = true)
+            .assertCountEquals(0)
+        assertEquals(activity.getString(R.string.about), activity.title)
+    }
+
+    @Test
+    fun legalLinksAreAnnouncedAsButtons() {
+        launch()
+
+        LINKS.forEach { label ->
+            composeRule.onNodeWithText(link(label)).performScrollTo()
+                .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Button))
+        }
+    }
+
     // Without a MaterialTheme or LocalIndication, plain clickables get Compose's debug indication: a
     // 30% black overlay while pressed. Robolectric does not paint the platform RippleDrawable that the
     // M3 ripple uses, so this can only pin that the overlay is gone.

@@ -34,6 +34,7 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberPlatformOverscrollFactory
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,7 +43,6 @@ import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Text
 import androidx.compose.material3.ripple
-import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -63,6 +63,9 @@ import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -177,7 +180,8 @@ private fun AboutContent(
             text = stringResource(R.string.app_name),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp)
+                .semantics { heading() },
             style = aboutTextStyle(fonts.medium, 24.sp, Color.White),
             textAlign = TextAlign.Center,
         )
@@ -221,7 +225,9 @@ private fun AboutContent(
             }
             Text(
                 text = stringResource(R.string.link_divider),
-                modifier = Modifier.alignByBaseline(),
+                modifier = Modifier
+                    .alignByBaseline()
+                    .clearAndSetSemantics {},
                 style = aboutTextStyle(fonts.regular, 14.sp, colors.subtitle),
             )
             Box(
@@ -292,7 +298,7 @@ private fun LegalLink(
 ) {
     Box(
         modifier = Modifier
-            .clickable(onClick = onClick)
+            .clickable(role = Role.Button, onClick = onClick)
             .sizeIn(minWidth = MinimumTouchTarget, minHeight = MinimumTouchTarget)
             .padding(4.dp),
         contentAlignment = Alignment.Center,

@@ -27,6 +27,7 @@ import java.util.Calendar
 open class AboutActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setTitle(R.string.about)
         // The About screen is blue in both modes, so force light bar icons.
         SystemBarUtils.applyEdgeToEdge(this, false)
         setScreenContent(PrefUtils.versionInfo().toString(), Calendar.getInstance().get(Calendar.YEAR))

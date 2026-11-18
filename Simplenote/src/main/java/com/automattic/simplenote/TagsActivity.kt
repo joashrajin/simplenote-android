@@ -33,7 +33,7 @@ import dagger.hilt.android.AndroidEntryPoint
  * [TagDialogFragment] (still a View DialogFragment), and the delete-confirmation dialog's
  * visibility, which composes over the screen from activity-held state.
  *
- * The FAB -> AddTagActivity MorphSetup shared-element morph is dropped (the design's accepted
+ * The FAB -> AddTagActivity shared-element morph is dropped (the design's accepted
  * loss): a Compose FAB cannot anchor a View scene-transition, so the launch is a plain
  * startActivityForResult and AddTagActivity's faux-dialog window simply appears.
  *

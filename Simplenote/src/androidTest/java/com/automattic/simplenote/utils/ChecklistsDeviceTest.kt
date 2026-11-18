@@ -1,43 +1,38 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import android.text.Editable;
-import android.text.SpannableStringBuilder;
-
-import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.SmallTest;
-import androidx.test.runner.AndroidJUnit4;
-
-import com.automattic.simplenote.widgets.CheckableSpan;
-
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import static androidx.test.espresso.matcher.ViewMatchers.assertThat;
-import static org.hamcrest.CoreMatchers.is;
+import android.text.SpannableStringBuilder
+import androidx.test.InstrumentationRegistry
+import androidx.test.espresso.matcher.ViewMatchers.assertThat
+import androidx.test.filters.SmallTest
+import androidx.test.runner.AndroidJUnit4
+import com.automattic.simplenote.widgets.CheckableSpan
+import org.hamcrest.CoreMatchers.`is`
+import org.junit.Test
+import org.junit.runner.RunWith
 
 /**
  * Stays on device: with several matches, ChecklistUtils shrinks the Editable while the Matcher iterates. ART's
  * Matcher works on a String snapshot; the JVM's reads the Editable lazily and throws IndexOutOfBoundsException.
  */
-@RunWith(AndroidJUnit4.class)
+@RunWith(AndroidJUnit4::class)
 @SmallTest
-public class ChecklistsDeviceTest {
+class ChecklistsDeviceTest {
     @Test
-    public void testCheckableSpanParsing() {
-        String checklistMarkdown = "ToDo\n- [ ] Write code\n- [ ] Test it\n- [ ] Ship it - [x] not on a newline";
+    fun testCheckableSpanParsing() {
+        val checklistMarkdown = "ToDo\n- [ ] Write code\n- [ ] Test it\n- [ ] Ship it - [x] not on a newline"
 
-        SpannableStringBuilder builder = new SpannableStringBuilder(checklistMarkdown);
+        val builder = SpannableStringBuilder(checklistMarkdown)
 
-        Editable editable = ChecklistUtils.addChecklistSpansForRegexAndColor(
+        val editable = ChecklistUtils.addChecklistSpansForRegexAndColor(
             InstrumentationRegistry.getTargetContext(),
             builder,
             ChecklistUtils.CHECKLIST_REGEX_LINES,
             android.R.color.black,
             false
-        );
+        )
 
         // We should have 3 CheckableSpans
-        CheckableSpan[] spans = editable.getSpans(0, editable.length(), CheckableSpan.class);
-        assertThat(spans.length, is(3));
+        val spans = editable.getSpans(0, editable.length, CheckableSpan::class.java)
+        assertThat(spans.size, `is`(3))
     }
 }

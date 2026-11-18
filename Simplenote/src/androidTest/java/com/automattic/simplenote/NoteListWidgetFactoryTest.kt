@@ -1,72 +1,67 @@
-package com.automattic.simplenote;
+package com.automattic.simplenote
 
-import android.content.Context;
-import android.content.Intent;
-import android.widget.RemoteViews;
-
-import androidx.test.core.app.ApplicationProvider;
-import androidx.test.filters.SmallTest;
-import androidx.test.runner.AndroidJUnit4;
-
-import com.automattic.simplenote.utils.PrefUtils;
-
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import dagger.hilt.android.testing.HiltAndroidRule;
-import dagger.hilt.android.testing.HiltAndroidTest;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import android.content.Context
+import android.content.Intent
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.filters.SmallTest
+import androidx.test.runner.AndroidJUnit4
+import com.automattic.simplenote.utils.PrefUtils
+import dagger.hilt.android.testing.HiltAndroidRule
+import dagger.hilt.android.testing.HiltAndroidTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
 
 @HiltAndroidTest
-@RunWith(AndroidJUnit4.class)
+@RunWith(AndroidJUnit4::class)
 @SmallTest
-public class NoteListWidgetFactoryTest {
+class NoteListWidgetFactoryTest {
     // The factory reaches NotesRepository through an entry point (WidgetStreams), which resolves
     // against the TestDataModule buckets on HiltTestApplication.
+    @JvmField
     @Rule
-    public HiltAndroidRule hiltRule = new HiltAndroidRule(this);
+    val hiltRule = HiltAndroidRule(this)
 
     @Test
-    public void getViewAtBeforeDataSetChangedReturnsEmptyRow() {
-        Context context = ApplicationProvider.getApplicationContext();
-        NoteListWidgetFactory factory = new NoteListWidgetFactory(context, new Intent());
+    fun getViewAtBeforeDataSetChangedReturnsEmptyRow() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val factory = NoteListWidgetFactory(context, Intent())
 
-        assertEquals(0, factory.getCount());
+        assertEquals(0, factory.count)
 
-        RemoteViews views = factory.getViewAt(0);
+        val views = factory.getViewAt(0)
 
-        assertNotNull(views);
-        assertEquals(context.getPackageName(), views.getPackage());
-        assertEquals(PrefUtils.getLayoutWidgetListItem(context, true), views.getLayoutId());
+        assertNotNull(views)
+        assertEquals(context.packageName, views.`package`)
+        assertEquals(PrefUtils.getLayoutWidgetListItem(context, true), views.layoutId)
     }
 
     @Test
-    public void getViewAtAfterDestroyReturnsEmptyRow() {
-        Context context = ApplicationProvider.getApplicationContext();
-        NoteListWidgetFactory factory = new NoteListWidgetFactory(context, new Intent());
-        factory.onDataSetChanged();
-        factory.onDestroy();
+    fun getViewAtAfterDestroyReturnsEmptyRow() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val factory = NoteListWidgetFactory(context, Intent())
+        factory.onDataSetChanged()
+        factory.onDestroy()
 
-        assertEquals(0, factory.getCount());
+        assertEquals(0, factory.count)
 
-        RemoteViews views = factory.getViewAt(0);
+        val views = factory.getViewAt(0)
 
-        assertNotNull(views);
-        assertEquals(context.getPackageName(), views.getPackage());
-        assertEquals(PrefUtils.getLayoutWidgetListItem(context, true), views.getLayoutId());
+        assertNotNull(views)
+        assertEquals(context.packageName, views.`package`)
+        assertEquals(PrefUtils.getLayoutWidgetListItem(context, true), views.layoutId)
     }
 
     @Test
-    public void positionItemIdsAreReportedAsUnstable() {
-        Context context = ApplicationProvider.getApplicationContext();
-        NoteListWidgetFactory factory = new NoteListWidgetFactory(context, new Intent());
+    fun positionItemIdsAreReportedAsUnstable() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val factory = NoteListWidgetFactory(context, Intent())
 
-        assertEquals(0L, factory.getItemId(0));
-        assertEquals(7L, factory.getItemId(7));
-        assertFalse(factory.hasStableIds());
+        assertEquals(0L, factory.getItemId(0))
+        assertEquals(7L, factory.getItemId(7))
+        assertFalse(factory.hasStableIds())
     }
 }

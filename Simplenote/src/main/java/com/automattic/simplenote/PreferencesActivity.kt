@@ -1,85 +1,75 @@
-package com.automattic.simplenote;
+package com.automattic.simplenote
 
-import android.os.Bundle;
-import android.view.ViewGroup;
-
-import androidx.appcompat.widget.Toolbar;
-import androidx.fragment.app.FragmentManager;
-import androidx.preference.Preference;
-
-import com.automattic.simplenote.utils.SystemBarUtils;
-
-import org.wordpress.passcodelock.PasscodePreferenceFragment;
-import org.wordpress.passcodelock.PasscodePreferenceFragmentCompat;
-
-import static com.automattic.simplenote.utils.DisplayUtils.disableScreenshotsIfLocked;
-
-import dagger.hilt.android.AndroidEntryPoint;
+import android.os.Bundle
+import android.view.View
+import androidx.appcompat.widget.Toolbar
+import androidx.preference.Preference
+import com.automattic.simplenote.utils.DisplayUtils.disableScreenshotsIfLocked
+import com.automattic.simplenote.utils.SystemBarUtils
+import dagger.hilt.android.AndroidEntryPoint
+import org.wordpress.passcodelock.PasscodePreferenceFragment
+import org.wordpress.passcodelock.PasscodePreferenceFragmentCompat
 
 @AndroidEntryPoint
-public class PreferencesActivity extends ThemedAppCompatActivity {
-    private PasscodePreferenceFragmentCompat mPasscodePreferenceFragment;
-    private PreferencesFragment mPreferencesFragment;
+class PreferencesActivity : ThemedAppCompatActivity() {
+    private lateinit var passcodePreferenceFragment: PasscodePreferenceFragmentCompat
+    private lateinit var preferencesFragment: PreferencesFragment
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
 
-        setContentView(R.layout.activity_preferences);
+        setContentView(R.layout.activity_preferences)
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
 
-        setTitle(R.string.settings);
+        setTitle(R.string.settings)
 
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
-        String preferencesTag = "tag_preferences";
-        String passcodeTag = "tag_passcode";
+        val preferencesTag = "tag_preferences"
+        val passcodeTag = "tag_passcode"
         if (savedInstanceState == null) {
-            Bundle passcodeArgs = new Bundle();
-            passcodeArgs.putBoolean(PasscodePreferenceFragment.KEY_SHOULD_INFLATE, false);
-            mPasscodePreferenceFragment = new PasscodePreferenceFragmentCompat();
-            mPasscodePreferenceFragment.setArguments(passcodeArgs);
+            val passcodeArgs = Bundle()
+            passcodeArgs.putBoolean(PasscodePreferenceFragment.KEY_SHOULD_INFLATE, false)
+            passcodePreferenceFragment = PasscodePreferenceFragmentCompat()
+            passcodePreferenceFragment.arguments = passcodeArgs
 
-            mPreferencesFragment = new PreferencesFragment();
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.preferences_container, mPreferencesFragment, preferencesTag)
-                    .add(R.id.preferences_container, mPasscodePreferenceFragment, passcodeTag)
-                    .commit();
+            preferencesFragment = PreferencesFragment()
+            supportFragmentManager.beginTransaction()
+                .add(R.id.preferences_container, preferencesFragment, preferencesTag)
+                .add(R.id.preferences_container, passcodePreferenceFragment, passcodeTag)
+                .commit()
         } else {
-            FragmentManager fragmentManager = getSupportFragmentManager();
-            mPreferencesFragment = (PreferencesFragment) fragmentManager.findFragmentByTag(preferencesTag);
-            mPasscodePreferenceFragment = (PasscodePreferenceFragmentCompat) fragmentManager.findFragmentByTag(passcodeTag);
+            val fragmentManager = supportFragmentManager
+            preferencesFragment = fragmentManager.findFragmentByTag(preferencesTag) as PreferencesFragment
+            passcodePreferenceFragment =
+                fragmentManager.findFragmentByTag(passcodeTag) as PasscodePreferenceFragmentCompat
         }
 
         // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets.
         SystemBarUtils.applyInsets(
-            findViewById(R.id.main_parent_view),
+            findViewById<View>(R.id.main_parent_view),
             toolbar,
-            findViewById(R.id.preferences_container)
-        );
+            findViewById<View>(R.id.preferences_container)
+        )
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
+    public override fun onStart() {
+        super.onStart()
 
-        Preference togglePref =
-                mPreferencesFragment.findPreference(getString(R.string.pref_key_passcode_toggle));
-        Preference changePref =
-                mPreferencesFragment.findPreference(getString(R.string.pref_key_change_passcode));
+        val togglePref: Preference? =
+            preferencesFragment.findPreference(getString(R.string.pref_key_passcode_toggle))
+        val changePref: Preference? =
+            preferencesFragment.findPreference(getString(R.string.pref_key_change_passcode))
 
         if (togglePref != null && changePref != null) {
-            mPasscodePreferenceFragment.setPreferences(togglePref, changePref);
+            passcodePreferenceFragment.setPreferences(togglePref, changePref)
         }
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        disableScreenshotsIfLocked(this);
+    override fun onResume() {
+        super.onResume()
+        disableScreenshotsIfLocked(this)
     }
 }

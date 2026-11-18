@@ -12,7 +12,7 @@
         layout="@layout/toolbar">
     </include>
 
-    <com.automattic.simplenote.widgets.EmptyViewRecyclerView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list"
         android:background="@android:color/transparent"
         android:clipToPadding="false"
@@ -23,6 +23,6 @@
         android:scrollbarStyle="outsideOverlay"
         android:scrollbars="vertical"
         tools:listitem="@layout/style_list_row_default">
-    </com.automattic.simplenote.widgets.EmptyViewRecyclerView>
+    </androidx.recyclerview.widget.RecyclerView>
 
 </LinearLayout>

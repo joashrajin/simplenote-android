@@ -1,6 +1,6 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-public interface DeleteAccountRequestHandler {
-    void onSuccess();
-    void onFailure();
+interface DeleteAccountRequestHandler {
+    fun onSuccess()
+    fun onFailure()
 }

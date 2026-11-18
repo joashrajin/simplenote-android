@@ -1,7 +1,6 @@
 package com.automattic.simplenote
 
 import android.app.Application
-import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
@@ -15,7 +14,6 @@ import dagger.hilt.android.testing.HiltTestApplication
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -86,17 +84,14 @@ class AboutFragmentTest {
         assertEquals(flags, intent!!.flags and flags)
     }
 
-    // The fallback retries the same market:// URI through the browser path rather than the https
-    // listing, so without a store app the second ActivityNotFoundException escapes the click.
     @Test
-    fun storeWithoutPlayStoreRetriesMarketUriAndThrows() {
+    fun storeWithoutPlayStoreFallsBackToTheHttpsListing() {
         installHandler(BROWSER, "http", "https")
-        val activity = Robolectric.buildActivity(AboutActivity::class.java).setup().get()
 
-        assertThrows(ActivityNotFoundException::class.java) {
-            activity.findViewById<View>(R.id.about_store).performClick()
-        }
-        assertNull(shadowOf(application).nextStartedActivity)
+        assertViewIntent(
+            "https://play.google.com/store/apps/details?id=${application.packageName}",
+            clickAndCaptureIntent(R.id.about_store),
+        )
     }
 
     @Test
@@ -142,9 +137,15 @@ class AboutFragmentTest {
     }
 
     @Test
-    fun storeWithoutBrowserShowsBrowserErrorDialog() {
+    fun storeWithoutBrowserStillOpensPlayStore() {
         installHandler(STORE, "market")
 
+        assertViewIntent("market://details?id=${application.packageName}", clickAndCaptureIntent(R.id.about_store))
+        assertNull(ShadowDialog.getLatestDialog())
+    }
+
+    @Test
+    fun storeWithNeitherPlayStoreNorBrowserShowsBrowserErrorDialog() {
         assertNull(clickAndCaptureIntent(R.id.about_store))
         assertTrue(ShadowDialog.getLatestDialog().isShowing)
     }

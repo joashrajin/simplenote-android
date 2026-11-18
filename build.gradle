@@ -2,6 +2,8 @@
 buildscript {
     ext.kotlin_version = '2.2.21'
     ext.google_dagger = '2.57'
+    // KSP2 releases are versioned independently of Kotlin since 2.3.0. 2.3.12+ needs AGP 8.12.
+    ext.ksp_version = '2.3.11'
 
     repositories {
         maven {
@@ -20,6 +22,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // The Compose compiler ships with Kotlin since 2.0, so this MUST stay equal to kotlin_version.
         classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin_version"
+        classpath "com.google.devtools.ksp:symbol-processing-gradle-plugin:$ksp_version"
         classpath "com.google.dagger:hilt-android-gradle-plugin:$google_dagger"
         classpath 'com.automattic.android:configure:0.6.5'
     }

@@ -75,6 +75,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
+import kotlinx.coroutines.Job;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -88,6 +89,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     private Bucket<Preferences> mPreferencesBucket;
     private SwitchPreferenceCompat mAnalyticsSwitch;
     private SimplenoteProgressDialogFragment mProgressDialogFragment;
+    private Job mUnsyncedNotesCheck;
 
     @Inject NotesRepository notesRepository;
     @Inject TagsRepository tagsRepository;
@@ -131,9 +133,10 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                     Intent loginIntent = new Intent(getActivity(), SimplenoteAuthenticationActivity.class);
                     startActivityForResult(loginIntent, Simperium.SIGNUP_SIGNIN_REQUEST);
                 } else {
-                    PreferencesStreams.hasUnsyncedNotes(
-                            LifecycleOwnerKt.getLifecycleScope(PreferencesFragment.this),
+                    mUnsyncedNotesCheck = PreferencesStreams.hasUnsyncedNotes(
+                            LifecycleOwnerKt.getLifecycleScope(getViewLifecycleOwner()),
                             notesRepository,
+                            mUnsyncedNotesCheck,
                             PreferencesFragment.this::onUnsyncedNotesChecked
                     );
                 }
@@ -534,7 +537,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         }
     }
 
-    // LogOutTask's onPostExecute: the lifecycle scope cancels this delivery when the fragment
+    // LogOutTask's onPostExecute: the view lifecycle scope cancels this delivery when the view
     // dies, which is when the legacy WeakReference guard returned early.
     private void onUnsyncedNotesChecked(Boolean hasUnsyncedNotes) {
         // Safety first! Check if any notes are unsynced and warn the user if so.

@@ -8,6 +8,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -24,9 +25,18 @@ import kotlinx.coroutines.withContext
  */
 object PreferencesStreams {
 
+    /** Returns [inFlight] untouched while it is still active, so a repeated logout tap runs one check. */
     @JvmStatic
-    fun hasUnsyncedNotes(scope: CoroutineScope, repository: NotesRepository, onResult: Consumer<Boolean>) {
-        scope.launch {
+    fun hasUnsyncedNotes(
+        scope: CoroutineScope,
+        repository: NotesRepository,
+        inFlight: Job?,
+        onResult: Consumer<Boolean>,
+    ): Job {
+        if (inFlight?.isActive == true) {
+            return inFlight
+        }
+        return scope.launch {
             val hasUnsyncedNotes = try {
                 repository.hasUnsyncedNotes()
             } catch (e: CancellationException) {

@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.doReturn
@@ -36,7 +37,7 @@ class PreferencesStreamsTest {
         }
         val received = mutableListOf<Boolean>()
 
-        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository) { received.add(it) }
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, null) { received.add(it) }
         runCurrent()
 
         assertEquals(listOf(true), received)
@@ -49,7 +50,7 @@ class PreferencesStreamsTest {
         }
         val received = mutableListOf<Boolean>()
 
-        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository) { received.add(it) }
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, null) { received.add(it) }
         backgroundScope.cancel()
         runCurrent()
 
@@ -63,7 +64,7 @@ class PreferencesStreamsTest {
         }
         val received = mutableListOf<Boolean>()
 
-        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository) { received.add(it) }
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, null) { received.add(it) }
         runCurrent()
 
         assertEquals(listOf(true), received)
@@ -76,10 +77,73 @@ class PreferencesStreamsTest {
         }
         val received = mutableListOf<Boolean>()
 
-        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository) { received.add(it) }
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, null) { received.add(it) }
         runCurrent()
 
         assertTrue(received.isEmpty())
+    }
+
+    @Test
+    fun aSecondCheckWhileOneIsInFlightIsIgnored() = runTest {
+        val gate = CompletableDeferred<Unit>()
+        var queries = 0
+        val repository = mock<NotesRepository> {
+            onBlocking { hasUnsyncedNotes() } doSuspendableAnswer {
+                queries++
+                gate.await()
+                true
+            }
+        }
+        val received = mutableListOf<Boolean>()
+
+        val first = PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, null) { received.add(it) }
+        runCurrent()
+        val second = PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, first) { received.add(it) }
+        gate.complete(Unit)
+        runCurrent()
+
+        assertSame(first, second)
+        assertEquals(1, queries)
+        assertEquals(listOf(true), received)
+    }
+
+    @Test
+    fun aCheckRunsAgainOnceThePreviousOneFinishedOrFailed() = runTest {
+        var queries = 0
+        val repository = mock<NotesRepository> {
+            onBlocking { hasUnsyncedNotes() } doSuspendableAnswer {
+                if (queries++ == 0) throw IllegalStateException("cursor closed") else false
+            }
+        }
+        val received = mutableListOf<Boolean>()
+
+        val failed = PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, null) { received.add(it) }
+        runCurrent()
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, failed) { received.add(it) }
+        runCurrent()
+
+        assertEquals(listOf(true, false), received)
+    }
+
+    @Test
+    fun aCheckRunsAgainOnceTheViewScopeOfThePreviousOneDied() = runTest {
+        val viewScope = CoroutineScope(SupervisorJob() + UnconfinedTestDispatcher(testScheduler))
+        val gate = CompletableDeferred<Unit>()
+        val repository = mock<NotesRepository> {
+            onBlocking { hasUnsyncedNotes() } doSuspendableAnswer {
+                gate.await()
+                true
+            }
+        }
+        val received = mutableListOf<String>()
+
+        val stale = PreferencesStreams.hasUnsyncedNotes(viewScope, repository, null) { received.add("stale") }
+        viewScope.cancel()
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository, stale) { received.add("fresh") }
+        gate.complete(Unit)
+        runCurrent()
+
+        assertEquals(listOf("fresh"), received)
     }
 
     @Test

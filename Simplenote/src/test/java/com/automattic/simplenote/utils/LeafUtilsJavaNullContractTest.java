@@ -8,8 +8,11 @@ import android.app.Application;
 import android.content.Context;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.text.SpannableString;
+import android.view.MotionEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.test.core.app.ApplicationProvider;
@@ -93,5 +96,22 @@ public class LeafUtilsJavaNullContractTest {
         assertThrows(NullPointerException.class, () -> tokenizer.findTokenStart(null, 1));
         assertThrows(NullPointerException.class, () -> tokenizer.findTokenEnd(null, 0));
         assertThrows(NullPointerException.class, () -> tokenizer.terminateToken(null));
+    }
+
+    @Test
+    public void htmlCompatThrowsOnNullSource() {
+        assertThrows(NullPointerException.class, () -> HtmlCompat.fromHtml(null));
+    }
+
+    @Test
+    public void simplenoteMovementMethodThrowsOnNullArguments() {
+        SimplenoteMovementMethod method = SimplenoteMovementMethod.getInstance();
+        TextView textView = new TextView(mContext);
+        SpannableString buffer = new SpannableString("");
+        MotionEvent event = MotionEvent.obtain(0L, 0L, MotionEvent.ACTION_UP, 0f, 0f, 0);
+
+        assertThrows(NullPointerException.class, () -> method.onTouchEvent(null, buffer, event));
+        assertThrows(NullPointerException.class, () -> method.onTouchEvent(textView, buffer, null));
+        event.recycle();
     }
 }

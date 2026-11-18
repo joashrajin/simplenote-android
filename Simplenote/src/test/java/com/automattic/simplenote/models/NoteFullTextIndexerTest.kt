@@ -1,82 +1,77 @@
-package com.automattic.simplenote.models;
+package com.automattic.simplenote.models
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import com.simperium.client.FullTextIndex
+import org.junit.Assert.assertArrayEquals
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Test
 
-import com.simperium.client.FullTextIndex;
-
-import org.junit.Test;
-
-import java.util.HashMap;
-import java.util.Map;
-
-public class NoteFullTextIndexerTest {
-    private final FullTextIndex.Indexer<Note> mIndexer = new NoteFullTextIndexer();
+class NoteFullTextIndexerTest {
+    private val mIndexer: FullTextIndex.Indexer<Note> = NoteFullTextIndexer()
 
     @Test
-    public void indexesAreTheNoteFullTextIndexes() {
-        assertSame(Note.FULL_TEXT_INDEXES, NoteFullTextIndexer.INDEXES);
-        assertArrayEquals(new String[]{"title", "content"}, NoteFullTextIndexer.INDEXES);
+    fun indexesAreTheNoteFullTextIndexes() {
+        assertSame(Note.FULL_TEXT_INDEXES, NoteFullTextIndexer.INDEXES)
+        assertArrayEquals(arrayOf("title", "content"), NoteFullTextIndexer.INDEXES)
     }
 
     @Test
-    public void indexesTitleAndContent() {
-        Note note = new Note("key");
-        note.setContent("Groceries\nmilk\neggs");
+    fun indexesTitleAndContent() {
+        val note = Note("key")
+        note.content = "Groceries\nmilk\neggs"
 
-        Map<String, String> expected = new HashMap<>();
-        expected.put("title", "Groceries");
-        expected.put("content", "Groceries\nmilk\neggs");
-        assertEquals(expected, mIndexer.index(NoteFullTextIndexer.INDEXES, note));
+        val expected = HashMap<String, String>()
+        expected["title"] = "Groceries"
+        expected["content"] = "Groceries\nmilk\neggs"
+        assertEquals(expected, mIndexer.index(NoteFullTextIndexer.INDEXES, note))
     }
 
     @Test
-    public void indexesASingleLineNoteAsBothTitleAndContent() {
-        Note note = new Note("key");
-        note.setContent("  only line  ");
+    fun indexesASingleLineNoteAsBothTitleAndContent() {
+        val note = Note("key")
+        note.content = "  only line  "
 
-        Map<String, String> index = mIndexer.index(NoteFullTextIndexer.INDEXES, note);
+        val index = mIndexer.index(NoteFullTextIndexer.INDEXES, note)
 
-        assertEquals("only line", index.get("title"));
-        assertEquals("  only line  ", index.get("content"));
+        assertEquals("only line", index["title"])
+        assertEquals("  only line  ", index["content"])
     }
 
     @Test
-    public void indexesTheMarkdownStrippedTitle() {
-        Note note = new Note("key");
-        note.setMarkdownEnabled(true);
-        note.setContent("# Heading\nbody");
+    fun indexesTheMarkdownStrippedTitle() {
+        val note = Note("key")
+        note.isMarkdownEnabled = true
+        note.content = "# Heading\nbody"
 
-        Map<String, String> index = mIndexer.index(NoteFullTextIndexer.INDEXES, note);
+        val index = mIndexer.index(NoteFullTextIndexer.INDEXES, note)
 
-        assertEquals("Heading", index.get("title"));
-        assertEquals("# Heading\nbody", index.get("content"));
+        assertEquals("Heading", index["title"])
+        assertEquals("# Heading\nbody", index["content"])
     }
 
     @Test
-    public void indexesAnEmptyNoteAsEmptyStrings() {
-        Map<String, String> index = mIndexer.index(NoteFullTextIndexer.INDEXES, new Note("key"));
+    fun indexesAnEmptyNoteAsEmptyStrings() {
+        val index = mIndexer.index(NoteFullTextIndexer.INDEXES, Note("key"))
 
-        assertEquals(2, index.size());
-        assertEquals("", index.get("title"));
-        assertEquals("", index.get("content"));
+        assertEquals(2, index.size)
+        assertEquals("", index["title"])
+        assertEquals("", index["content"])
     }
 
     @Test
-    public void alwaysIndexesBothFieldsWhateverKeysArePassed() {
-        Note note = new Note("key");
-        note.setContent("Title\nBody");
+    fun alwaysIndexesBothFieldsWhateverKeysArePassed() {
+        val note = Note("key")
+        note.content = "Title\nBody"
 
-        Map<String, String> index = mIndexer.index(new String[0], note);
+        val index = mIndexer.index(arrayOf(), note)
 
-        assertEquals(2, index.size());
-        assertEquals("Title", index.get("title"));
-        assertEquals("Title\nBody", index.get("content"));
+        assertEquals(2, index.size)
+        assertEquals("Title", index["title"])
+        assertEquals("Title\nBody", index["content"])
     }
 
-    @Test(expected = NullPointerException.class)
-    public void nullNoteThrows() {
-        mIndexer.index(NoteFullTextIndexer.INDEXES, null);
+    @Test(expected = NullPointerException::class)
+    fun nullNoteThrows() {
+        mIndexer.index(NoteFullTextIndexer.INDEXES, null)
     }
 }

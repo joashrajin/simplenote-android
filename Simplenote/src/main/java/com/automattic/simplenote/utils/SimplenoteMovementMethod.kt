@@ -1,65 +1,58 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import android.text.Layout;
-import android.text.Spannable;
-import android.text.method.ArrowKeyMovementMethod;
-import android.view.MotionEvent;
-import android.widget.TextView;
-
-import com.automattic.simplenote.widgets.CheckableSpan;
+import android.text.Spannable
+import android.text.method.ArrowKeyMovementMethod
+import android.view.MotionEvent
+import android.widget.TextView
+import com.automattic.simplenote.widgets.CheckableSpan
 
 // Only allows onClick events for CheckableSpans
-public class SimplenoteMovementMethod extends ArrowKeyMovementMethod {
-    private static SimplenoteMovementMethod mInstance;
+class SimplenoteMovementMethod : ArrowKeyMovementMethod() {
+    override fun onTouchEvent(textView: TextView, buffer: Spannable, event: MotionEvent): Boolean {
+        var x = event.x.toInt()
+        var y = event.y.toInt()
 
-    public static SimplenoteMovementMethod getInstance() {
-        if (mInstance == null) {
-            mInstance = new SimplenoteMovementMethod();
-        }
+        x -= textView.totalPaddingLeft
+        y -= textView.totalPaddingTop
 
-        return mInstance;
-    }
+        x += textView.scrollX
+        y += textView.scrollY
 
-    @Override
-    public boolean onTouchEvent(TextView textView, Spannable buffer, MotionEvent event) {
-        int x = (int) event.getX();
-        int y = (int) event.getY();
-
-        x -= textView.getTotalPaddingLeft();
-        y -= textView.getTotalPaddingTop();
-
-        x += textView.getScrollX();
-        y += textView.getScrollY();
-
-        Layout layout = textView.getLayout();
-        int line = layout.getLineForVertical(y);
-        int off = layout.getOffsetForHorizontal(line, x);
-        int lineStart = layout.getLineStart(line);
+        val layout = textView.layout
+        val line = layout.getLineForVertical(y)
+        var off = layout.getOffsetForHorizontal(line, x.toFloat())
+        val lineStart = layout.getLineStart(line)
 
         // Also toggle the checkbox if the user tapped the space next to the checkbox
         if (off == lineStart + 1) {
-            off = lineStart;
+            off = lineStart
         }
 
-        CheckableSpan[] checkableSpans = buffer.getSpans(off, off, CheckableSpan.class);
+        val checkableSpans = buffer.getSpans(off, off, CheckableSpan::class.java)
 
-        if (checkableSpans.length != 0) {
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    if (!textView.hasFocus()) {
-                        textView.setFocusableInTouchMode(false);
-                    }
-
-                    break;
-                case MotionEvent.ACTION_UP:
-                    checkableSpans[0].onClick(textView);
-                    textView.setFocusableInTouchMode(true);
-                    break;
+        if (checkableSpans.isNotEmpty()) {
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> if (!textView.hasFocus()) {
+                    textView.isFocusableInTouchMode = false
+                }
+                MotionEvent.ACTION_UP -> {
+                    checkableSpans[0].onClick(textView)
+                    textView.isFocusableInTouchMode = true
+                }
             }
 
-            return true;
+            return true
         }
 
-        return false;
+        return false
+    }
+
+    companion object {
+        private var instance: SimplenoteMovementMethod? = null
+
+        @JvmStatic
+        fun getInstance(): SimplenoteMovementMethod {
+            return instance ?: SimplenoteMovementMethod().also { instance = it }
+        }
     }
 }

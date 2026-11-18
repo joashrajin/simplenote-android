@@ -1,126 +1,113 @@
-package com.automattic.simplenote;
+package com.automattic.simplenote
 
-import android.util.Log;
+import android.util.Log
+import com.simperium.client.Bucket
+import com.simperium.client.Syncable
+import java.util.Calendar
 
-import com.simperium.client.Bucket;
-import com.simperium.client.Syncable;
+class SyncTimes<T : Syncable>(syncTimes: Map<String, Calendar>) {
+    private val lastSyncTimes = HashMap<String?, Calendar>()
+    private val unsyncedKeys = HashSet<String?>()
+    private val listeners = HashSet<SyncTimeListener>()
 
-import java.util.Calendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-public class SyncTimes<T extends Syncable> {
-    private static final String TAG = SyncTimes.class.getSimpleName();
-
-    private final HashMap<String, Calendar> mSyncTimes = new HashMap<>();
-    private final HashSet<String> mUnsyncedKeys = new HashSet<>();
-    private final Set<SyncTimeListener> mListeners = new HashSet<>();
-
-    public SyncTimes(Map<String, Calendar> syncTimes) {
-        mSyncTimes.putAll(syncTimes);
+    init {
+        lastSyncTimes.putAll(syncTimes)
     }
 
-    public Calendar getLastSyncTime(String key) {
-        return mSyncTimes.get(key);
+    fun getLastSyncTime(key: String?): Calendar? = lastSyncTimes[key]
+
+    fun isSynced(key: String?): Boolean = !unsyncedKeys.contains(key)
+
+    fun addListener(listener: SyncTimeListener) {
+        listeners.add(listener)
     }
 
-    public boolean isSynced(String key) {
-        return !mUnsyncedKeys.contains(key);
+    fun removeListener(listener: SyncTimeListener) {
+        listeners.remove(listener)
     }
 
-    public void addListener(SyncTimeListener listener) {
-        mListeners.add(listener);
-    }
-
-    public void removeListener(SyncTimeListener listener) {
-        mListeners.remove(listener);
-    }
-
-    private void notifyUpdate(String entityId) {
-        for (SyncTimeListener listener : mListeners) {
-            listener.onUpdate(entityId, getLastSyncTime(entityId), isSynced(entityId));
+    private fun notifyUpdate(entityId: String?) {
+        for (listener in listeners) {
+            listener.onUpdate(entityId, getLastSyncTime(entityId), isSynced(entityId))
         }
     }
 
-    private void notifyRemove(String entityId) {
-        for (SyncTimeListener listener : mListeners) {
-            listener.onRemove(entityId);
+    private fun notifyRemove(entityId: String?) {
+        for (listener in listeners) {
+            listener.onRemove(entityId)
         }
     }
 
-    private void updateSyncTime(String entityId) {
-        Calendar now = Calendar.getInstance();
-        mSyncTimes.put(entityId, now);
+    private fun updateSyncTime(entityId: String?) {
+        val now = Calendar.getInstance()
+        lastSyncTimes[entityId] = now
 
-        Log.d(TAG, "updateSyncTime: " + entityId + " (" + now.getTime() + ")");
+        Log.d(TAG, "updateSyncTime: $entityId (${now.time})")
     }
 
-    public Bucket.Listener<T> bucketListener = new Bucket.Listener<T>() {
-        @Override
-        public void onBeforeUpdateObject(Bucket<T> bucket, T object) {
+    @JvmField
+    var bucketListener: Bucket.Listener<T> = object : Bucket.Listener<T> {
+        override fun onBeforeUpdateObject(bucket: Bucket<T>?, syncable: T?) {
         }
 
-        @Override
-        public void onDeleteObject(Bucket<T> bucket, T object) {
-            mSyncTimes.remove(object.getSimperiumKey());
-            notifyRemove(object.getSimperiumKey());
+        override fun onDeleteObject(bucket: Bucket<T>?, syncable: T) {
+            lastSyncTimes.remove(syncable.simperiumKey)
+            notifyRemove(syncable.simperiumKey)
         }
 
-        @Override
-        public void onLocalQueueChange(Bucket<T> bucket, Set<String> entityIds) {
-            Set<String> changed = new HashSet<>();
+        override fun onLocalQueueChange(bucket: Bucket<T>?, entityIds: Set<String?>) {
+            val changed = HashSet<String?>()
 
-            for (String entityId : mUnsyncedKeys) {
+            for (entityId in unsyncedKeys) {
                 if (!entityIds.contains(entityId)) {
-                    changed.add(entityId);
+                    changed.add(entityId)
                 }
             }
 
-            for (String entityId : entityIds) {
-                if (!mUnsyncedKeys.contains(entityId)) {
-                    changed.add(entityId);
+            for (entityId in entityIds) {
+                if (!unsyncedKeys.contains(entityId)) {
+                    changed.add(entityId)
                 }
             }
 
-            mUnsyncedKeys.clear();
-            mUnsyncedKeys.addAll(entityIds);
+            unsyncedKeys.clear()
+            unsyncedKeys.addAll(entityIds)
 
-            for (String entityId : changed) {
-                Log.d(TAG, "updateIsSynced: " + entityId + " (" + isSynced(entityId) + ")");
-                notifyUpdate(entityId);
+            for (entityId in changed) {
+                Log.d(TAG, "updateIsSynced: $entityId (${isSynced(entityId)})")
+                notifyUpdate(entityId)
             }
         }
 
-        @Override
-        public void onNetworkChange(Bucket<T> bucket, Bucket.ChangeType type, String entityId) {
+        override fun onNetworkChange(bucket: Bucket<T>?, type: Bucket.ChangeType?, entityId: String?) {
             if (entityId == null) {
-                return;
+                return
             }
 
             if (type == Bucket.ChangeType.REMOVE) {
-                mSyncTimes.remove(entityId);
-                notifyRemove(entityId);
+                lastSyncTimes.remove(entityId)
+                notifyRemove(entityId)
             } else {
-                updateSyncTime(entityId);
-                notifyUpdate(entityId);
+                updateSyncTime(entityId)
+                notifyUpdate(entityId)
             }
         }
 
-        @Override
-        public void onSaveObject(Bucket<T> bucket, T object) {
+        override fun onSaveObject(bucket: Bucket<T>?, syncable: T?) {
         }
 
-        @Override
-        public void onSyncObject(Bucket<T> bucket, String noteId) {
-            updateSyncTime(noteId);
-            notifyUpdate(noteId);
+        override fun onSyncObject(bucket: Bucket<T>?, noteId: String?) {
+            updateSyncTime(noteId)
+            notifyUpdate(noteId)
         }
-    };
+    }
 
     interface SyncTimeListener {
-        void onRemove(String entityId);
-        void onUpdate(String entityId, Calendar lastSyncTime, boolean isSynced);
+        fun onRemove(entityId: String?)
+        fun onUpdate(entityId: String?, lastSyncTime: Calendar?, isSynced: Boolean)
+    }
+
+    companion object {
+        private val TAG: String = SyncTimes::class.java.simpleName
     }
 }

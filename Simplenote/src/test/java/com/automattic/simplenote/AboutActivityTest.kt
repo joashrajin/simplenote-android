@@ -5,10 +5,11 @@ import android.content.ComponentName
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
 import androidx.annotation.StringRes
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -29,17 +30,19 @@ import org.robolectric.shadows.ShadowDialog
 import org.robolectric.shadows.ShadowToast
 
 /**
- * Pins the Intent each About row fires. Rows are found by their visible text, so the same
- * assertions hold for the View and the Compose screen. Activity resolution is checked
- * (checkActivities), so an unhandled scheme throws ActivityNotFoundException as it does on a
- * device and the fallback paths run.
+ * Pins the Intent each About row and legal link fires, found by its visible text. Activity
+ * resolution is checked (checkActivities), so an unhandled scheme throws ActivityNotFoundException
+ * as it does on a device and the fallback paths run.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
 @Config(application = HiltTestApplication::class, sdk = [35])
 class AboutActivityTest {
-    @get:Rule
+    @get:Rule(order = 0)
     val hiltRule = HiltAndroidRule(this)
+
+    @get:Rule(order = 1)
+    val composeRule = createEmptyComposeRule()
 
     private val application = ApplicationProvider.getApplicationContext<Application>()
 
@@ -168,8 +171,8 @@ class AboutActivityTest {
     }
 
     private fun clickAndCaptureIntent(label: String): Intent? {
-        val activity = Robolectric.buildActivity(AboutActivity::class.java).setup().get()
-        clickableAncestor(findText(activity.window.decorView, label)).performClick()
+        Robolectric.buildActivity(AboutActivity::class.java).setup()
+        composeRule.onNodeWithText(label).performScrollTo().performClick()
         return shadowOf(application).nextStartedActivity
     }
 
@@ -177,21 +180,6 @@ class AboutActivityTest {
 
     // The legal link strings wrap their text in four markup placeholders.
     private fun link(@StringRes label: Int): String = application.getString(label, "", "", "", "")
-
-    private fun findText(view: View, label: String): View {
-        if (view is TextView && view.text.toString() == label) {
-            return view
-        }
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                runCatching { return findText(view.getChildAt(i), label) }
-            }
-        }
-        throw AssertionError("No view shows \"$label\"")
-    }
-
-    private fun clickableAncestor(view: View): View =
-        if (view.isClickable) view else clickableAncestor(view.parent as View)
 
     private fun assertViewIntent(expectedUri: String, intent: Intent?) {
         assertNotNull(intent)

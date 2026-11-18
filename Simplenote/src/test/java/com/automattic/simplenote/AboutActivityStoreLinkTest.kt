@@ -8,10 +8,12 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.ResolveInfo
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
-import android.view.ViewGroup
-import android.widget.TextView
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Assert.assertEquals
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
@@ -22,6 +24,9 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [35])
 class AboutActivityStoreLinkTest {
+    @get:Rule
+    val composeRule = createEmptyComposeRule()
+
     @Test
     fun storeLinkAttemptsMarketWithoutBrowser() {
         val activity = Robolectric.buildActivity(StoreTestActivity::class.java).setup().get()
@@ -49,23 +54,7 @@ class AboutActivityStoreLinkTest {
     }
 
     private fun clickStore(activity: StoreTestActivity) {
-        var row: View = findText(activity.window.decorView, activity.getString(R.string.rate_us))
-        while (!row.isClickable) {
-            row = row.parent as View
-        }
-        row.performClick()
-    }
-
-    private fun findText(view: View, label: String): View {
-        if (view is TextView && view.text.toString() == label) {
-            return view
-        }
-        if (view is ViewGroup) {
-            for (i in 0 until view.childCount) {
-                runCatching { return findText(view.getChildAt(i), label) }
-            }
-        }
-        throw AssertionError("No view shows \"$label\"")
+        composeRule.onNodeWithText(activity.getString(R.string.rate_us)).performScrollTo().performClick()
     }
 
     private fun registerBrowser(activity: StoreTestActivity) {

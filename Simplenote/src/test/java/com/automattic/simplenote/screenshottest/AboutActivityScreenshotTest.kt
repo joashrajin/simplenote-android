@@ -1,8 +1,6 @@
 package com.automattic.simplenote.screenshottest
 
-import android.widget.TextView
 import com.automattic.simplenote.AboutActivity
-import com.automattic.simplenote.R
 import com.github.takahirom.roborazzi.captureRoboImage
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -15,7 +13,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Goldens for the About screen, the baseline for its Compose rewrite. The activity's manifest theme
+ * Goldens for the Compose About screen. The activity's manifest theme
  * is fixed to Theme.Simplestyle.About (blue in both modes) regardless of the premium style
  * preference, so the matrix is {light, dark} only; both are recorded so the rewrite is pinned in
  * each mode.
@@ -46,13 +44,9 @@ class AboutActivityScreenshotTest {
 
     private fun capture(darkMode: Boolean, goldenName: String) {
         ScreenshotHarness.launchSettled(AboutActivity::class.java, AppStyle.DEFAULT, darkMode).use { scenario ->
-            // The fragment renders BuildConfig's version name/code and git hash, and the current
-            // year, all of which drift between commits; pin them to fixed values in the same formats.
-            scenario.onActivity { activity ->
-                activity.findViewById<TextView>(R.id.about_version).text = FIXED_VERSION
-                activity.findViewById<TextView>(R.id.about_copyright).text =
-                    activity.getString(R.string.about_copyright, FIXED_YEAR)
-            }
+            // The screen renders BuildConfig's version name/code and git hash, and the current year,
+            // all of which drift between commits; pin them to fixed values in the same formats.
+            scenario.onActivity { activity -> activity.setScreenContent(FIXED_VERSION, FIXED_YEAR) }
             ScreenshotHarness.settle()
             scenario.onActivity { activity ->
                 activity.window.decorView.captureRoboImage(ScreenshotHarness.goldenFilePath(goldenName))

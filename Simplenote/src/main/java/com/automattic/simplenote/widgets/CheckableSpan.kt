@@ -1,30 +1,18 @@
-package com.automattic.simplenote.widgets;
+package com.automattic.simplenote.widgets
 
-import android.text.style.ClickableSpan;
-import android.view.View;
+import android.text.style.ClickableSpan
+import android.view.View
 
-import androidx.annotation.NonNull;
+class CheckableSpan : ClickableSpan() {
+    var isChecked = false
 
-public class CheckableSpan extends ClickableSpan {
-
-    private boolean isChecked;
-
-    public boolean isChecked() {
-        return isChecked;
-    }
-
-    public void setChecked(boolean checked) {
-        isChecked = checked;
-    }
-
-    @Override
-    public void onClick(@NonNull View view) {
-        setChecked(!isChecked);
-        if (view instanceof SimplenoteEditText) {
+    override fun onClick(view: View) {
+        isChecked = !isChecked
+        if (view is SimplenoteEditText) {
             try {
-                ((SimplenoteEditText)view).toggleCheckbox(this);
-            } catch (Exception e) {
-                e.printStackTrace();
+                view.toggleCheckbox(this)
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }

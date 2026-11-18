@@ -247,4 +247,23 @@ class PreferencesStreamsTest {
 
         assertEquals(listOf(false), toasts)
     }
+
+    @Test
+    fun exportNotesEndsWithoutAToastWhenTheWriteIsCancelled() = runTest {
+        val repository = mock<NotesRepository> {
+            onBlocking { allNotesForExport() } doReturn listOf(Note("a"))
+        }
+        val toasts = mutableListOf<Boolean>()
+
+        PreferencesStreams.exportNotes(
+            backgroundScope,
+            repository,
+            { throw CancellationException("write cancelled") },
+            { toasts.add(it) },
+            StandardTestDispatcher(testScheduler),
+        )
+        runCurrent()
+
+        assertEquals(emptyList<Boolean>(), toasts)
+    }
 }

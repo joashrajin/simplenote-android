@@ -30,6 +30,7 @@ import android.os.ParcelFileDescriptor;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ShareCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -66,6 +67,7 @@ import com.simperium.client.User;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -681,18 +683,27 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             account.put("activeNotes", activeNotes);
             account.put("trashedNotes", trashedNotes);
 
-            ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(uri, "wt");
+            try (ParcelFileDescriptor parcelFileDescriptor = openForOverwrite(resolver, uri)) {
+                if (parcelFileDescriptor == null) {
+                    return false;
+                }
 
-            if (parcelFileDescriptor != null) {
                 FileOutputStream fileOutputStream = new FileOutputStream(parcelFileDescriptor.getFileDescriptor());
                 fileOutputStream.write(account.toString(2).replace("\\/","/").getBytes());
-                parcelFileDescriptor.close();
                 return true;
-            } else {
-                return false;
             }
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // "wt" truncates a larger existing file; some providers reject it, and "w" is still better than failing.
+    @VisibleForTesting
+    static ParcelFileDescriptor openForOverwrite(ContentResolver resolver, Uri uri) throws FileNotFoundException {
+        try {
+            return resolver.openFileDescriptor(uri, "wt");
+        } catch (FileNotFoundException | IllegalArgumentException | UnsupportedOperationException e) {
+            return resolver.openFileDescriptor(uri, "w");
         }
     }
 

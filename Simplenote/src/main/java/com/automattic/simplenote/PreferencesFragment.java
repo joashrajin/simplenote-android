@@ -678,7 +678,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             account.put("activeNotes", activeNotes);
             account.put("trashedNotes", trashedNotes);
 
-            ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(uri, "w");
+            ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(uri, "wt");
 
             if (parcelFileDescriptor != null) {
                 FileOutputStream fileOutputStream = new FileOutputStream(parcelFileDescriptor.getFileDescriptor());

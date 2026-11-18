@@ -7,6 +7,7 @@ import androidx.compose.animation.core.Easing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.LocalOverscrollFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -40,6 +41,7 @@ import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.LocalRippleConfiguration
 import androidx.compose.material3.RippleConfiguration
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.material.ripple.RippleAlpha
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -99,12 +101,14 @@ fun AboutScreen(
     val colors = aboutColors()
     val fonts = aboutFonts()
     // Theme.Simplestyle.About's colorControlHighlight; a platform ripple draws it at half alpha.
-    val ripple = remember(colors.highlight) {
+    val rippleConfiguration = remember(colors.highlight) {
         RippleConfiguration(color = colors.highlight, rippleAlpha = RippleAlpha(0.5f, 0.5f, 0.5f, 0.5f))
     }
     CompositionLocalProvider(
         LocalContentColor provides Color.White,
-        LocalRippleConfiguration provides ripple,
+        LocalRippleConfiguration provides rippleConfiguration,
+        // No MaterialTheme here, so without this the plain clickables fall back to the debug indication.
+        LocalIndication provides ripple(),
         // Theme.Simplestyle.About's colorEdgeEffect, for the pre-stretch (API < 31) glow.
         LocalOverscrollFactory provides rememberPlatformOverscrollFactory(glowColor = Color.White),
     ) {

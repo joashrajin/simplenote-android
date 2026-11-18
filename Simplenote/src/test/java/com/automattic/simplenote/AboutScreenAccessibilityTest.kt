@@ -1,6 +1,8 @@
 package com.automattic.simplenote
 
 import android.app.Application
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import androidx.annotation.StringRes
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
@@ -50,8 +52,8 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 
 /**
- * Semantics of the Compose About screen (labels, roles, touch targets, large-font reflow) and the
- * touch-only logo Easter egg.
+ * Semantics of the Compose About screen (labels, roles, touch targets, large-font reflow), its press
+ * feedback, and the touch-only logo Easter egg.
  */
 @HiltAndroidTest
 @RunWith(RobolectricTestRunner::class)
@@ -168,12 +170,45 @@ class AboutScreenAccessibilityTest {
         assertTrue(terms.textLayout().lineCount > 1)
     }
 
+    // Without a MaterialTheme or LocalIndication, plain clickables get Compose's debug indication: a
+    // 30% black overlay while pressed. Robolectric does not paint the platform RippleDrawable that the
+    // M3 ripple uses, so this can only pin that the overlay is gone.
+    @Test
+    fun pressingARowOrLegalLinkDrawsNoDebugOverlay() {
+        val activity = launch()
+
+        listOf(
+            composeRule.onNode(hasText(application.getString(R.string.blog)) and hasClickAction()),
+            composeRule.onNodeWithText(link(R.string.link_california)),
+        ).forEach { node ->
+            node.performScrollTo()
+            val resting = activity.pixelNearLeftEdgeOf(node)
+            node.performTouchInput { down(Offset(PRESS_INSET.toPx(), centerY)) }
+            composeRule.mainClock.advanceTimeBy(PRESS_SETTLE_MS)
+            val pressed = activity.pixelNearLeftEdgeOf(node)
+            node.performTouchInput { up() }
+
+            assertEquals(Integer.toHexString(resting), Integer.toHexString(pressed))
+        }
+    }
+
     private fun launch(): AboutActivity =
         Robolectric.buildActivity(AboutActivity::class.java).setup().also { controller = it }.get()
 
     private fun link(@StringRes label: Int): String = application.getString(label, "", "", "", "")
 
     private fun SemanticsNodeInteraction.bounds(): Rect = fetchSemanticsNode().boundsInRoot
+
+    // captureToImage() times out waiting for a redraw under Robolectric, so draw the window directly.
+    private fun AboutActivity.pixelNearLeftEdgeOf(node: SemanticsNodeInteraction): Int {
+        composeRule.waitForIdle()
+        val decor = window.decorView
+        val bitmap = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
+        decor.draw(Canvas(bitmap))
+        val bounds = node.fetchSemanticsNode().boundsInWindow
+        val inset = with(composeRule.density) { PRESS_INSET.toPx() }
+        return bitmap.getPixel((bounds.left + inset).toInt(), bounds.center.y.toInt())
+    }
 
     private fun SemanticsNodeInteraction.textLayout(): TextLayoutResult {
         val results = mutableListOf<TextLayoutResult>()
@@ -186,6 +221,10 @@ class AboutScreenAccessibilityTest {
         val LOGO_CENTER_Y = 100.dp
         const val LOGO_HOLD_MS = 1_000L
         const val LOGO_SPIN_UP_MS = 850L
+
+        // Inside the links' 4dp padding and the rows' 16dp text inset, so the sample is never a glyph.
+        val PRESS_INSET = 2.dp
+        const val PRESS_SETTLE_MS = 1_000L
 
         val ROWS = listOf(
             R.string.blog to R.string.simplenote_blog_url,

@@ -2,6 +2,7 @@ package com.automattic.simplenote
 
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.repositories.NotesRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -17,6 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.doSuspendableAnswer
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.mock
 
 /**
@@ -49,6 +51,32 @@ class PreferencesStreamsTest {
 
         PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository) { received.add(it) }
         backgroundScope.cancel()
+        runCurrent()
+
+        assertTrue(received.isEmpty())
+    }
+
+    @Test
+    fun hasUnsyncedNotesFailsClosedWhenTheRepositoryThrows() = runTest {
+        val repository = mock<NotesRepository> {
+            onBlocking { hasUnsyncedNotes() } doThrow IllegalStateException("cursor closed")
+        }
+        val received = mutableListOf<Boolean>()
+
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository) { received.add(it) }
+        runCurrent()
+
+        assertEquals(listOf(true), received)
+    }
+
+    @Test
+    fun hasUnsyncedNotesDeliversNothingWhenTheCheckIsCancelled() = runTest {
+        val repository = mock<NotesRepository> {
+            onBlocking { hasUnsyncedNotes() } doThrow CancellationException("scope cancelled")
+        }
+        val received = mutableListOf<Boolean>()
+
+        PreferencesStreams.hasUnsyncedNotes(backgroundScope, repository) { received.add(it) }
         runCurrent()
 
         assertTrue(received.isEmpty())
@@ -111,5 +139,48 @@ class PreferencesStreamsTest {
 
         assertTrue(wrote)
         assertFalse(toasted)
+    }
+
+    @Test
+    fun exportNotesToastsFailureWhenTheRepositoryThrows() = runTest {
+        val repository = mock<NotesRepository> {
+            onBlocking { allNotesForExport() } doThrow IllegalStateException("cursor closed")
+        }
+        var wrote = false
+        val toasts = mutableListOf<Boolean>()
+
+        PreferencesStreams.exportNotes(
+            backgroundScope,
+            repository,
+            {
+                wrote = true
+                true
+            },
+            { toasts.add(it) },
+            StandardTestDispatcher(testScheduler),
+        )
+        runCurrent()
+
+        assertFalse(wrote)
+        assertEquals(listOf(false), toasts)
+    }
+
+    @Test
+    fun exportNotesToastsFailureWhenTheWriteThrows() = runTest {
+        val repository = mock<NotesRepository> {
+            onBlocking { allNotesForExport() } doReturn listOf(Note("a"))
+        }
+        val toasts = mutableListOf<Boolean>()
+
+        PreferencesStreams.exportNotes(
+            backgroundScope,
+            repository,
+            { throw IllegalStateException("provider gone") },
+            { toasts.add(it) },
+            StandardTestDispatcher(testScheduler),
+        )
+        runCurrent()
+
+        assertEquals(listOf(false), toasts)
     }
 }

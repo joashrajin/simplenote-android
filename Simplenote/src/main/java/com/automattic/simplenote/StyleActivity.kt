@@ -1,233 +1,152 @@
-package com.automattic.simplenote;
+package com.automattic.simplenote
 
-import android.content.Intent;
-import android.os.Bundle;
-import android.text.Html;
-import android.text.SpannableString;
-import android.view.ContextThemeWrapper;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
+import android.content.Intent
+import android.os.Bundle
+import android.text.Html
+import android.text.SpannableString
+import android.view.ContextThemeWrapper
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.annotation.ColorRes
+import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.automattic.simplenote.utils.PrefUtils
+import com.automattic.simplenote.utils.SystemBarUtils
+import com.automattic.simplenote.utils.ThemeUtils
+import com.automattic.simplenote.utils.ThemeUtils.STYLE_ARRAY
+import com.automattic.simplenote.utils.ThemeUtils.STYLE_BLACK
+import com.automattic.simplenote.utils.ThemeUtils.STYLE_CLASSIC
+import com.automattic.simplenote.utils.ThemeUtils.STYLE_MATRIX
+import com.automattic.simplenote.utils.ThemeUtils.STYLE_MONO
+import com.automattic.simplenote.utils.ThemeUtils.STYLE_PUBLICATION
+import com.automattic.simplenote.utils.ThemeUtils.STYLE_SEPIA
 
-import androidx.annotation.ColorRes;
-import androidx.annotation.NonNull;
-import androidx.appcompat.widget.Toolbar;
-import androidx.core.content.ContextCompat;
-import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
+class StyleActivity : ThemedAppCompatActivity() {
+    private lateinit var layoutManager: LinearLayoutManager
 
-import com.automattic.simplenote.utils.PrefUtils;
-import com.automattic.simplenote.utils.SystemBarUtils;
-import com.automattic.simplenote.utils.ThemeUtils;
-import com.automattic.simplenote.widgets.EmptyViewRecyclerView;
+    @Suppress("DEPRECATION")
+    public override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_style)
 
-import java.util.ArrayList;
-import java.util.List;
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        val title = SpannableString(getString(R.string.style))
 
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_ARRAY;
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_BLACK;
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_CLASSIC;
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_DEFAULT;
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_MATRIX;
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_MONO;
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_PUBLICATION;
-import static com.automattic.simplenote.utils.ThemeUtils.STYLE_SEPIA;
-
-public class StyleActivity extends ThemedAppCompatActivity {
-    private static final String EXTRA_SCROLL = "EXTRA_SCROLL";
-
-    private LinearLayoutManager mLayoutManager;
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_style);
-
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        SpannableString title = new SpannableString(getString(R.string.style));
-
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(title);
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        supportActionBar?.let { actionBar ->
+            actionBar.title = title
+            actionBar.setDisplayHomeAsUpEnabled(true)
         }
 
-        List<String> styles = new ArrayList<>(STYLE_ARRAY.length);
+        val styles = STYLE_ARRAY.indices.map { PrefUtils.getStyleNameFromIndex(this, it) }
 
-        for (int i = 0; i < STYLE_ARRAY.length; i++) {
-            styles.add(PrefUtils.getStyleNameFromIndex(StyleActivity.this, i));
-        }
-
-        EmptyViewRecyclerView list = findViewById(R.id.list);
-        list.setAdapter(new StyleAdapter(styles));
-        mLayoutManager = new LinearLayoutManager(StyleActivity.this);
-        list.setLayoutManager(mLayoutManager);
+        val list = findViewById<RecyclerView>(R.id.list)
+        list.adapter = StyleAdapter(styles)
+        layoutManager = LinearLayoutManager(this)
+        list.layoutManager = layoutManager
 
         // Edge-to-edge comes from ThemedAppCompatActivity; wire this screen's insets. The list
         // keeps its own bottom padding as a floor so the layout is untouched without insets.
         SystemBarUtils.applyInsets(
             findViewById(R.id.main_parent_view),
-            (Toolbar) findViewById(R.id.toolbar),
+            toolbar,
             list,
             true
-        );
+        )
 
-        if (getIntent().hasExtra(EXTRA_SCROLL)) {
-            mLayoutManager.onRestoreInstanceState(getIntent().getParcelableExtra(EXTRA_SCROLL));
+        if (intent.hasExtra(EXTRA_SCROLL)) {
+            layoutManager.onRestoreInstanceState(intent.getParcelableExtra(EXTRA_SCROLL))
         }
     }
 
     /**
      *  Overrides recreate to allow restoring the scroll position
      */
-    @Override
-    public void recreate() {
-        Intent intent = new Intent(StyleActivity.this, StyleActivity.class);
-        intent.putExtra(EXTRA_SCROLL, mLayoutManager.onSaveInstanceState());
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        startActivity(intent);
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
-        finish();
+    @Suppress("DEPRECATION")
+    override fun recreate() {
+        val intent = Intent(this, StyleActivity::class.java)
+        intent.putExtra(EXTRA_SCROLL, layoutManager.onSaveInstanceState())
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        startActivity(intent)
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+        finish()
     }
 
-    private class StyleAdapter extends RecyclerView.Adapter<StyleAdapter.StyleHolder> {
-        private ArrayList<String> mStyles;
-        private int mSelectedPosition;
+    private inner class StyleAdapter(styles: List<String>) : RecyclerView.Adapter<StyleAdapter.StyleHolder>() {
+        private val styles = ArrayList(styles)
+        private var selectedPosition = PrefUtils.getStyleIndexSelected(this@StyleActivity)
 
-        public StyleAdapter(List<String> styles) {
-            this.mStyles = new ArrayList<>(styles);
-            mSelectedPosition = PrefUtils.getStyleIndexSelected(StyleActivity.this);
-        }
+        override fun getItemCount(): Int = styles.size
 
-        @Override
-        public int getItemCount() {
-            return mStyles.size();
-        }
+        override fun getItemViewType(position: Int): Int = position
 
-        @Override
-        public int getItemViewType(int position) {
-            return position;
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull final StyleHolder holder, final int position) {
-            String style = mStyles.get(position);
-            holder.mTitle.setText(style);
-            holder.mContent.setText(Html.fromHtml(String.format(
-                getResources().getString(R.string.style_preview),
-                "<u><span style=\"color:#",
-                Integer.toHexString(
-                    ContextCompat.getColor(
-                        holder.mView.getContext(),
-                        getLinkColorFromStyle(position)
-                    ) & 0xffffff
-                ),
-                "\">",
-                "</span></u>"
-            )));
-            holder.mView.setActivated(mSelectedPosition == position);
-            holder.mView.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        notifyItemChanged(mSelectedPosition);
-                        mSelectedPosition = holder.getAdapterPosition();
-                        notifyItemChanged(mSelectedPosition);
-                        PrefUtils.setStyleIndex(StyleActivity.this, holder.getAdapterPosition());
-                    }
-                }
-            );
-        }
-
-        @NonNull
-        @Override
-        public StyleHolder onCreateViewHolder(@NonNull ViewGroup parent, int type) {
-            switch (type) {
-                case STYLE_BLACK:
-                    return new StyleHolder(LayoutInflater.from(
-                        new ContextThemeWrapper(
-                            parent.getContext(),
-                            R.style.Style_Black)
-                        ).inflate(R.layout.style_list_row_black, parent, false)
-                    );
-                case STYLE_CLASSIC:
-                    return new StyleHolder(LayoutInflater.from(
-                        new ContextThemeWrapper(
-                            parent.getContext(),
-                            R.style.Style_Classic)
-                        ).inflate(R.layout.style_list_row_default, parent, false)
-                    );
-                case STYLE_MATRIX:
-                    return new StyleHolder(LayoutInflater.from(
-                        new ContextThemeWrapper(
-                            parent.getContext(),
-                            R.style.Style_Matrix)
-                        ).inflate(R.layout.style_list_row_matrix, parent, false)
-                    );
-                case STYLE_MONO:
-                    return new StyleHolder(LayoutInflater.from(
-                        new ContextThemeWrapper(
-                            parent.getContext(),
-                            R.style.Style_Mono)
-                        ).inflate(R.layout.style_list_row_mono, parent, false)
-                    );
-                case STYLE_PUBLICATION:
-                    return new StyleHolder(LayoutInflater.from(
-                        new ContextThemeWrapper(
-                            parent.getContext(),
-                            R.style.Style_Publication)
-                        ).inflate(R.layout.style_list_row_publication, parent, false)
-                    );
-                case STYLE_SEPIA:
-                    return new StyleHolder(LayoutInflater.from(
-                        new ContextThemeWrapper(
-                            parent.getContext(),
-                            R.style.Style_Sepia)
-                        ).inflate(R.layout.style_list_row_sepia, parent, false)
-                    );
-                case STYLE_DEFAULT:
-                default:
-                    return new StyleHolder(LayoutInflater.from(
-                        new ContextThemeWrapper(
-                            parent.getContext(),
-                            R.style.Style_Default)
-                        ).inflate(R.layout.style_list_row_default, parent, false)
-                    );
+        @Suppress("DEPRECATION")
+        override fun onBindViewHolder(holder: StyleHolder, position: Int) {
+            val style = styles[position]
+            holder.title.text = style
+            holder.content.text = Html.fromHtml(
+                String.format(
+                    resources.getString(R.string.style_preview),
+                    "<u><span style=\"color:#",
+                    Integer.toHexString(
+                        ContextCompat.getColor(
+                            holder.view.context,
+                            getLinkColorFromStyle(position)
+                        ) and 0xffffff
+                    ),
+                    "\">",
+                    "</span></u>"
+                )
+            )
+            holder.view.isActivated = selectedPosition == position
+            holder.view.setOnClickListener {
+                notifyItemChanged(selectedPosition)
+                selectedPosition = holder.adapterPosition
+                notifyItemChanged(selectedPosition)
+                PrefUtils.setStyleIndex(this@StyleActivity, holder.adapterPosition)
             }
         }
 
-        private @ColorRes int getLinkColorFromStyle(int position) {
-            switch (position) {
-                case STYLE_BLACK:
-                    return ThemeUtils.isLightTheme(StyleActivity.this) ? android.R.color.black : android.R.color.white;
-                case STYLE_CLASSIC:
-                    return ThemeUtils.isLightTheme(StyleActivity.this) ? R.color.blue_50 : R.color.blue_20;
-                case STYLE_MATRIX:
-                    return ThemeUtils.isLightTheme(StyleActivity.this) ? R.color.green_50 : R.color.green_20;
-                case STYLE_MONO:
-                    return ThemeUtils.isLightTheme(StyleActivity.this) ? R.color.gray_50 : R.color.gray_20;
-                case STYLE_PUBLICATION:
-                    return ThemeUtils.isLightTheme(StyleActivity.this) ? R.color.red_50 : R.color.red_20;
-                case STYLE_SEPIA:
-                    return ThemeUtils.isLightTheme(StyleActivity.this) ? R.color.orange_50 : R.color.orange_20;
-                case STYLE_DEFAULT:
-                default:
-                    return ThemeUtils.isLightTheme(StyleActivity.this) ? R.color.simplenote_blue_50 : R.color.simplenote_blue_20;
+        override fun onCreateViewHolder(parent: ViewGroup, type: Int): StyleHolder {
+            val (theme, layout) = when (type) {
+                STYLE_BLACK -> R.style.Style_Black to R.layout.style_list_row_black
+                STYLE_CLASSIC -> R.style.Style_Classic to R.layout.style_list_row_default
+                STYLE_MATRIX -> R.style.Style_Matrix to R.layout.style_list_row_matrix
+                STYLE_MONO -> R.style.Style_Mono to R.layout.style_list_row_mono
+                STYLE_PUBLICATION -> R.style.Style_Publication to R.layout.style_list_row_publication
+                STYLE_SEPIA -> R.style.Style_Sepia to R.layout.style_list_row_sepia
+                else -> R.style.Style_Default to R.layout.style_list_row_default
+            }
+            return StyleHolder(
+                LayoutInflater.from(ContextThemeWrapper(parent.context, theme)).inflate(layout, parent, false)
+            )
+        }
+
+        @ColorRes
+        private fun getLinkColorFromStyle(position: Int): Int {
+            val isLight = ThemeUtils.isLightTheme(this@StyleActivity)
+            return when (position) {
+                STYLE_BLACK -> if (isLight) android.R.color.black else android.R.color.white
+                STYLE_CLASSIC -> if (isLight) R.color.blue_50 else R.color.blue_20
+                STYLE_MATRIX -> if (isLight) R.color.green_50 else R.color.green_20
+                STYLE_MONO -> if (isLight) R.color.gray_50 else R.color.gray_20
+                STYLE_PUBLICATION -> if (isLight) R.color.red_50 else R.color.red_20
+                STYLE_SEPIA -> if (isLight) R.color.orange_50 else R.color.orange_20
+                else -> if (isLight) R.color.simplenote_blue_50 else R.color.simplenote_blue_20
             }
         }
 
-        class StyleHolder extends RecyclerView.ViewHolder {
-            private TextView mContent;
-            private TextView mTitle;
-            private View mView;
-
-            StyleHolder(View view) {
-                super(view);
-                mView = view;
-                mTitle = view.findViewById(R.id.preview_title);
-                mContent = view.findViewById(R.id.preview_content);
-            }
+        inner class StyleHolder(val view: View) : RecyclerView.ViewHolder(view) {
+            val title: TextView = view.findViewById(R.id.preview_title)
+            val content: TextView = view.findViewById(R.id.preview_content)
         }
+    }
+
+    companion object {
+        private const val EXTRA_SCROLL = "EXTRA_SCROLL"
     }
 }

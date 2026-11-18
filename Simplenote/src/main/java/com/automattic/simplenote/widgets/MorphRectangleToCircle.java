@@ -25,12 +25,22 @@ public class MorphRectangleToCircle extends ChangeBounds {
     private @ColorInt int mColorEnd = Color.TRANSPARENT;
     private @ColorInt int mColorStart = Color.TRANSPARENT;
     private int mRadiusEnd = -1;
+    private int mRadiusStart = -1;
 
     public MorphRectangleToCircle(@ColorInt int colorEnd, @ColorInt int colorStart, int radiusEnd) {
+        this(colorEnd, colorStart, radiusEnd, radiusEnd);
+    }
+
+    public MorphRectangleToCircle(
+            @ColorInt int colorEnd,
+            @ColorInt int colorStart,
+            int radiusEnd,
+            int radiusStart) {
         super();
         setColorEnd(colorEnd);
         setColorStart(colorStart);
         setRadiusEnd(radiusEnd);
+        setRadiusStart(radiusStart);
     }
 
     @Override
@@ -55,8 +65,13 @@ public class MorphRectangleToCircle extends ChangeBounds {
             return;
         }
 
+        int radiusStart = mRadiusStart;
+        if (view.getBackground() instanceof MorphDrawable) {
+            radiusStart = Math.round(((MorphDrawable) view.getBackground()).getRadius());
+        }
+
         transitionValues.values.put(PROPERTY_COLOR, mColorStart);
-        transitionValues.values.put(PROPERTY_RADIUS, mRadiusEnd);
+        transitionValues.values.put(PROPERTY_RADIUS, radiusStart);
     }
 
     @Override
@@ -120,5 +135,9 @@ public class MorphRectangleToCircle extends ChangeBounds {
 
     public void setRadiusEnd(int radiusEnd) {
         mRadiusEnd = radiusEnd;
+    }
+
+    public void setRadiusStart(int radiusStart) {
+        mRadiusStart = radiusStart;
     }
 }

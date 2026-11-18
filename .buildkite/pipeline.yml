@@ -52,7 +52,16 @@ steps:
       - input: "Deploy Prototype Build?"
         prompt: "Share a Prototype Build via Firebase App Distribution?"
         key: prototype_triggered
-      - label: ":hammer_and_pick: Prototype Build"
+      - label: ":camera_with_flash: Screenshot Verification"
+    command: ./gradlew --stacktrace :Simplenote:verifyRoborazziDebug
+    plugins: [$CI_TOOLKIT_PLUGIN]
+    artifact_paths:
+      - "Simplenote/build/outputs/roborazzi/**/*"
+    notify:
+      - github_commit_status:
+          context: Screenshot Verification
+
+  - label: ":hammer_and_pick: Prototype Build"
         depends_on: prototype_triggered
         command: .buildkite/commands/build-prototype.sh
         plugins: [$CI_TOOLKIT_PLUGIN]

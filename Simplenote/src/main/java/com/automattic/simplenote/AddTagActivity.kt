@@ -16,8 +16,6 @@ import com.automattic.simplenote.utils.DisplayUtils
 import com.automattic.simplenote.utils.HtmlCompat
 import com.automattic.simplenote.utils.ThemeUtils
 import com.automattic.simplenote.viewmodels.AddTagViewModel
-import com.automattic.simplenote.widgets.MorphCircleToRectangle
-import com.automattic.simplenote.widgets.MorphSetup
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -65,11 +63,6 @@ class AddTagActivity : AppCompatActivity() {
         layout.requestLayout()
         (layout.parent as View).setOnClickListener { viewModel.close() }
         layout.setOnClickListener(null)
-        MorphSetup.setSharedElementTransitions(
-            this@AddTagActivity,
-            layout,
-            resources.getDimensionPixelSize(R.dimen.corner_radius_dialog)
-        )
     }
 
     private fun ActivityTagAddBinding.setObservers() {
@@ -95,7 +88,7 @@ class AddTagActivity : AppCompatActivity() {
                             tagInput.requestFocus()
                             DisplayUtils.showKeyboard(tagInput)
                         },
-                        MorphCircleToRectangle.DURATION.toLong()
+                        KEYBOARD_DELAY_MS
                     )
                 }
                 AddTagViewModel.Event.CLOSE -> finishAfterTransition()
@@ -137,5 +130,9 @@ class AddTagActivity : AppCompatActivity() {
             .show()
 
         dialog.findViewById<TextView>(android.R.id.message)?.movementMethod = LinkMovementMethod.getInstance()
+    }
+
+    companion object {
+        private const val KEYBOARD_DELAY_MS = 300L
     }
 }

@@ -49,7 +49,6 @@
     <dimen name="cell_widget_double">80dp</dimen>
     <dimen name="content_width">-1px</dimen>  <!-- -1px fakes match_parent -->
     <dimen name="corner_radius">4dp</dimen>
-    <dimen name="corner_radius_dialog">2dp</dimen>
     <dimen name="divider_height">1dp</dimen>
     <dimen name="elevation_bar">8dp</dimen>
     <dimen name="elevation_toolbar">4dp</dimen>

@@ -1,136 +1,100 @@
-package com.automattic.simplenote;
+package com.automattic.simplenote
 
-import android.content.DialogInterface;
-import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.FrameLayout;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.FragmentManager
+import com.automattic.simplenote.models.Note
+import com.automattic.simplenote.utils.NetworkUtils
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.fragment.app.FragmentManager;
+class ShareBottomSheetDialog(
+    private val fragment: Fragment,
+    private val listener: ShareSheetListener
+) : BottomSheetDialogBase() {
+    private lateinit var publishButton: TextView
+    private lateinit var unpublishButton: TextView
+    private lateinit var wordPressButton: TextView
 
-import com.automattic.simplenote.models.Note;
-import com.automattic.simplenote.utils.NetworkUtils;
-import com.google.android.material.bottomsheet.BottomSheetBehavior;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
-
-public class ShareBottomSheetDialog extends BottomSheetDialogBase {
-    public static final String TAG = ShareBottomSheetDialog.class.getSimpleName();
-
-    private Fragment mFragment;
-    private ShareSheetListener mListener;
-    private TextView mPublishButton;
-    private TextView mUnpublishButton;
-    private TextView mWordPressButton;
-
-    public ShareBottomSheetDialog(@NonNull final Fragment fragment, @NonNull final ShareSheetListener shareSheetListener) {
-        mFragment = fragment;
-        mListener = shareSheetListener;
-    }
-
-    @Nullable
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        if (getDialog() != null) {
-            getDialog().setOnDismissListener(new DialogInterface.OnDismissListener() {
-                @Override
-                public void onDismiss(DialogInterface dialog) {
-                    mListener.onShareDismissed();
-                }
-            });
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        dialog?.let { dialog ->
+            dialog.setOnDismissListener { listener.onShareDismissed() }
 
             // Expand fully so the default peek height does not clip the action labels in landscape.
-            getDialog().setOnShowListener(new DialogInterface.OnShowListener() {
-                @Override
-                public void onShow(DialogInterface dialogInterface) {
-                    BottomSheetBehavior<FrameLayout> behavior = ((BottomSheetDialog) dialogInterface).getBehavior();
-                    behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
-                    behavior.setSkipCollapsed(true);
+            dialog.setOnShowListener { dialogInterface ->
+                val behavior = (dialogInterface as BottomSheetDialog).behavior
+                behavior.state = BottomSheetBehavior.STATE_EXPANDED
+                behavior.skipCollapsed = true
+            }
+
+            dialog.setContentView(R.layout.bottom_sheet_share)
+            val collaborateButton = dialog.findViewById<TextView>(R.id.share_collaborate_button)!!
+            val shareOtherButton = dialog.findViewById<TextView>(R.id.share_other_button)!!
+            publishButton = dialog.findViewById(R.id.share_publish_button)!!
+            unpublishButton = dialog.findViewById(R.id.share_unpublish_button)!!
+            wordPressButton = dialog.findViewById(R.id.share_wp_post)!!
+
+            collaborateButton.setOnClickListener { listener.onShareCollaborateClicked() }
+
+            publishButton.setOnClickListener {
+                if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                    Toast.makeText(requireContext(), R.string.error_network_required, Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
                 }
-            });
 
-            getDialog().setContentView(R.layout.bottom_sheet_share);
-            TextView mCollaborateButton = getDialog().findViewById(R.id.share_collaborate_button);
-            TextView mShareOtherButton = getDialog().findViewById(R.id.share_other_button);
-            mPublishButton = getDialog().findViewById(R.id.share_publish_button);
-            mUnpublishButton = getDialog().findViewById(R.id.share_unpublish_button);
-            mWordPressButton = getDialog().findViewById(R.id.share_wp_post);
+                listener.onSharePublishClicked()
+            }
 
-            mCollaborateButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mListener.onShareCollaborateClicked();
+            unpublishButton.setOnClickListener {
+                if (!NetworkUtils.isNetworkAvailable(requireContext())) {
+                    Toast.makeText(requireContext(), R.string.error_network_required, Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
                 }
-            });
 
-            mPublishButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (!NetworkUtils.isNetworkAvailable(requireContext())) {
-                        Toast.makeText(requireContext(), R.string.error_network_required, Toast.LENGTH_LONG).show();
-                        return;
-                    }
+                listener.onShareUnpublishClicked()
+            }
 
-                    mListener.onSharePublishClicked();
-                }
-            });
+            wordPressButton.setOnClickListener { listener.onWordPressPostClicked() }
 
-            mUnpublishButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    if (!NetworkUtils.isNetworkAvailable(requireContext())) {
-                        Toast.makeText(requireContext(), R.string.error_network_required, Toast.LENGTH_LONG).show();
-                        return;
-                    }
-
-                    mListener.onShareUnpublishClicked();
-                }
-            });
-
-            mWordPressButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mListener.onWordPressPostClicked();
-                }
-            });
-
-            mShareOtherButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    mListener.onShareOtherClicked();
-                    dismiss();
-                }
-            });
+            shareOtherButton.setOnClickListener {
+                listener.onShareOtherClicked()
+                dismiss()
+            }
         }
 
-        return super.onCreateView(inflater, container, savedInstanceState);
+        return super.onCreateView(inflater, container, savedInstanceState)
     }
 
-    public void show(FragmentManager manager, Note note) {
-        if (mFragment.isAdded()) {
-            showNow(manager, TAG);
+    fun show(manager: FragmentManager, note: Note?) {
+        if (fragment.isAdded) {
+            showNow(manager, TAG)
 
-            if (note.isPublished()) {
-                mPublishButton.setVisibility(View.GONE);
-                mUnpublishButton.setVisibility(View.VISIBLE);
+            if (note!!.isPublished) {
+                publishButton.visibility = View.GONE
+                unpublishButton.visibility = View.VISIBLE
             } else {
-                mPublishButton.setVisibility(View.VISIBLE);
-                mUnpublishButton.setVisibility(View.GONE);
+                publishButton.visibility = View.VISIBLE
+                unpublishButton.visibility = View.GONE
             }
         }
     }
 
-    public interface ShareSheetListener {
-        void onShareCollaborateClicked();
-        void onShareDismissed();
-        void onShareOtherClicked();
-        void onSharePublishClicked();
-        void onShareUnpublishClicked();
-        void onWordPressPostClicked();
+    interface ShareSheetListener {
+        fun onShareCollaborateClicked()
+        fun onShareDismissed()
+        fun onShareOtherClicked()
+        fun onSharePublishClicked()
+        fun onShareUnpublishClicked()
+        fun onWordPressPostClicked()
+    }
+
+    companion object {
+        @JvmField
+        val TAG: String = ShareBottomSheetDialog::class.java.simpleName
     }
 }

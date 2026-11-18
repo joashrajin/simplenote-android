@@ -1,333 +1,331 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import android.app.Application;
-import android.text.Editable;
+import android.app.Application
+import android.text.Editable
+import org.hamcrest.CoreMatchers.`is`
+import org.hamcrest.MatcherAssert.assertThat
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.annotation.Config;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-
-@RunWith(RobolectricTestRunner.class)
-@Config(application = Application.class, sdk = 35)
-public class AutoBulletTest {
-    private Editable buildEditable(CharSequence source) {
-        return Editable.Factory.getInstance().newEditable(source);
+@RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class, sdk = [35])
+class AutoBulletTest {
+    private fun buildEditable(source: CharSequence): Editable {
+        return Editable.Factory.getInstance().newEditable(source)
     }
 
     @Test
-    public void testLineBreakOnly() {
-        String source = "\n";
-        String target = "\n";
-        int oldPos = 0;
-        int newPos = 1;
+    fun testLineBreakOnly() {
+        val source = "\n"
+        val target = "\n"
+        val oldPos = 0
+        val newPos = 1
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(target, is(editable.toString()));
+        assertThat(target, `is`(editable.toString()))
     }
 
     @Test
-    public void testMultipleLineBreakOnly() {
-        String source = "\n\n\n";
-        String target = "\n\n\n";
-        int oldPos = 1;
-        int newPos = 2;
+    fun testMultipleLineBreakOnly() {
+        val source = "\n\n\n"
+        val target = "\n\n\n"
+        val oldPos = 1
+        val newPos = 2
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testBlankString() {
-        String source = " ";
-        String target = " ";
-        int oldPos = 0;
-        int newPos = 1;
+    fun testBlankString() {
+        val source = " "
+        val target = " "
+        val oldPos = 0
+        val newPos = 1
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testEmptyStringNoIncrement() {
-        String source = "";
-        String target = "";
-        int oldPos = 0;
-        int newPos = 0;
+    fun testEmptyStringNoIncrement() {
+        val source = ""
+        val target = ""
+        val oldPos = 0
+        val newPos = 0
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testNoIncrement() {
-        String source = "Test";
-        String target = "Test";
-        int oldPos = 0;
-        int newPos = 0;
+    fun testNoIncrement() {
+        val source = "Test"
+        val target = "Test"
+        val oldPos = 0
+        val newPos = 0
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testLineBreakWithoutPreceedingList() {
-        String source = "Hello\nWorld\n";
-        String target = "Hello\nWorld\n";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testLineBreakWithoutPreceedingList() {
+        val source = "Hello\nWorld\n"
+        val target = "Hello\nWorld\n"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testNonLineBreakPosition() {
-        String source = "Hello\nWorld\n- list";
-        String target = "Hello\nWorld\n- list";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testNonLineBreakPosition() {
+        val source = "Hello\nWorld\n- list"
+        val target = "Hello\nWorld\n- list"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testTopLevelBullet() {
-        String source = "- Hello\n";
-        String target = "- Hello\n- ";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testTopLevelBullet() {
+        val source = "- Hello\n"
+        val target = "- Hello\n- "
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testStarBullet() {
-        String source = "* Hello\n";
-        String target = "* Hello\n* ";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testStarBullet() {
+        val source = "* Hello\n"
+        val target = "* Hello\n* "
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testPlusBullet() {
-        String source = "+ Hello\n";
-        String target = "+ Hello\n+ ";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testPlusBullet() {
+        val source = "+ Hello\n"
+        val target = "+ Hello\n+ "
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testInvalidBulletChar() {
-        String source = "# Hello\n";
-        String target = source;
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testInvalidBulletChar() {
+        val source = "# Hello\n"
+        val target = source
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testSecondLevelBullet() {
-        String source = "- Hello\n - World\n";
-        String target = "- Hello\n - World\n - ";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testSecondLevelBullet() {
+        val source = "- Hello\n - World\n"
+        val target = "- Hello\n - World\n - "
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testMultiLevelBullet() {
-        String source = "- Hello\n - World\n  - Again\n";
-        String target = "- Hello\n - World\n  - Again\n  - ";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testMultiLevelBullet() {
+        val source = "- Hello\n - World\n  - Again\n"
+        val target = "- Hello\n - World\n  - Again\n  - "
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testBulletBreak() {
-        String source = "- Hello\n- \n";
-        String target = "- Hello\n";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testBulletBreak() {
+        val source = "- Hello\n- \n"
+        val target = "- Hello\n"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testCursorMovedBackwardsToList() {
-        String source = "- Hello\n";
-        String target = "- Hello\n";
-        int oldPos = source.length();
-        int newPos = source.length() - 1;
+    fun testCursorMovedBackwardsToList() {
+        val source = "- Hello\n"
+        val target = "- Hello\n"
+        val oldPos = source.length
+        val newPos = source.length - 1
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testCursorMovedBackwardsToNonList() {
-        String source = "Hello\n";
-        String target = "Hello\n";
-        int oldPos = source.length();
-        int newPos = source.length() - 1;
+    fun testCursorMovedBackwardsToNonList() {
+        val source = "Hello\n"
+        val target = "Hello\n"
+        val oldPos = source.length
+        val newPos = source.length - 1
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testCursorMovedForwardMultipleToList() {
-        String source = "Hello\n- list\n";
-        String target = "Hello\n- list\n- ";
-        int oldPos = 6;
-        int newPos = 13;
+    fun testCursorMovedForwardMultipleToList() {
+        val source = "Hello\n- list\n"
+        val target = "Hello\n- list\n- "
+        val oldPos = 6
+        val newPos = 13
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testCursorMovedForwardMultipleToNonList() {
-        String source = "Hello\nWorld";
-        String target = "Hello\nWorld";
-        int oldPos = 6;
-        int newPos = 11;
+    fun testCursorMovedForwardMultipleToNonList() {
+        val source = "Hello\nWorld"
+        val target = "Hello\nWorld"
+        val oldPos = 6
+        val newPos = 11
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testBulletMiddleOfString() {
-        String source = "Hello World\n- list\n\nHula Mundo";
-        String target = "Hello World\n- list\n- \nHula Mundo";
-        int oldPos = 18;
-        int newPos = 19; // index of the line break after "list"
+    fun testBulletMiddleOfString() {
+        val source = "Hello World\n- list\n\nHula Mundo"
+        val target = "Hello World\n- list\n- \nHula Mundo"
+        val oldPos = 18
+        val newPos = 19 // index of the line break after "list"
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testEmptyTopLevelBullet() {
-        String source = "- first\n- \n";
-        String target = "- first\n";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testEmptyTopLevelBullet() {
+        val source = "- first\n- \n"
+        val target = "- first\n"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     // An empty nested bullet is removed, not outdented, the same as in the iOS and macOS apps.
     @Test
-    public void testEmptySecondLevelBullet() {
-        String source = "- first\n - second\n - \n";
-        String target = "- first\n - second\n";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testEmptySecondLevelBullet() {
+        val source = "- first\n - second\n - \n"
+        val target = "- first\n - second\n"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testEmptyTabIndentedBulletIsRemoved() {
-        String source = "- first\n\t- second\n\t- \n";
-        String target = "- first\n\t- second\n";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testEmptyTabIndentedBulletIsRemoved() {
+        val source = "- first\n\t- second\n\t- \n"
+        val target = "- first\n\t- second\n"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testEmptyMultiSpaceIndentedBulletIsRemoved() {
-        String source = "- first\n  - second\n  - \n";
-        String target = "- first\n  - second\n";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testEmptyMultiSpaceIndentedBulletIsRemoved() {
+        val source = "- first\n  - second\n  - \n"
+        val target = "- first\n  - second\n"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 
     @Test
-    public void testBulletNoSpace() {
-        String source = "-first\n";
-        String target = "-first\n";
-        int oldPos = source.length() - 1;
-        int newPos = source.length();
+    fun testBulletNoSpace() {
+        val source = "-first\n"
+        val target = "-first\n"
+        val oldPos = source.length - 1
+        val newPos = source.length
 
-        Editable editable = buildEditable(source);
-        AutoBullet.apply(editable, oldPos, newPos);
+        val editable = buildEditable(source)
+        AutoBullet.apply(editable, oldPos, newPos)
 
-        assertThat(editable.toString(), is(target));
+        assertThat(editable.toString(), `is`(target))
     }
 }

@@ -30,6 +30,7 @@ import android.os.ParcelFileDescriptor;
 import android.widget.Switch;
 import android.widget.Toast;
 
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AlertDialog;
 import androidx.core.app.ShareCompat;
 import androidx.fragment.app.FragmentActivity;
@@ -66,6 +67,7 @@ import com.simperium.client.User;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -75,6 +77,7 @@ import java.util.List;
 import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
+import kotlinx.coroutines.Job;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -88,6 +91,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     private Bucket<Preferences> mPreferencesBucket;
     private SwitchPreferenceCompat mAnalyticsSwitch;
     private SimplenoteProgressDialogFragment mProgressDialogFragment;
+    private Job mUnsyncedNotesCheck;
 
     @Inject NotesRepository notesRepository;
     @Inject TagsRepository tagsRepository;
@@ -131,9 +135,10 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                     Intent loginIntent = new Intent(getActivity(), SimplenoteAuthenticationActivity.class);
                     startActivityForResult(loginIntent, Simperium.SIGNUP_SIGNIN_REQUEST);
                 } else {
-                    PreferencesStreams.hasUnsyncedNotes(
-                            LifecycleOwnerKt.getLifecycleScope(PreferencesFragment.this),
+                    mUnsyncedNotesCheck = PreferencesStreams.hasUnsyncedNotes(
+                            LifecycleOwnerKt.getLifecycleScope(getViewLifecycleOwner()),
                             notesRepository,
+                            mUnsyncedNotesCheck,
                             PreferencesFragment.this::onUnsyncedNotesChecked
                     );
                 }
@@ -534,7 +539,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         }
     }
 
-    // LogOutTask's onPostExecute: the lifecycle scope cancels this delivery when the fragment
+    // LogOutTask's onPostExecute: the view lifecycle scope cancels this delivery when the view
     // dies, which is when the legacy WeakReference guard returned early.
     private void onUnsyncedNotesChecked(Boolean hasUnsyncedNotes) {
         // Safety first! Check if any notes are unsynced and warn the user if so.
@@ -678,18 +683,27 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             account.put("activeNotes", activeNotes);
             account.put("trashedNotes", trashedNotes);
 
-            ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(uri, "w");
+            try (ParcelFileDescriptor parcelFileDescriptor = openForOverwrite(resolver, uri)) {
+                if (parcelFileDescriptor == null) {
+                    return false;
+                }
 
-            if (parcelFileDescriptor != null) {
                 FileOutputStream fileOutputStream = new FileOutputStream(parcelFileDescriptor.getFileDescriptor());
                 fileOutputStream.write(account.toString(2).replace("\\/","/").getBytes());
-                parcelFileDescriptor.close();
                 return true;
-            } else {
-                return false;
             }
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    // "wt" truncates a larger existing file; some providers reject it, and "w" is still better than failing.
+    @VisibleForTesting
+    static ParcelFileDescriptor openForOverwrite(ContentResolver resolver, Uri uri) throws FileNotFoundException {
+        try {
+            return resolver.openFileDescriptor(uri, "wt");
+        } catch (FileNotFoundException | IllegalArgumentException | UnsupportedOperationException e) {
+            return resolver.openFileDescriptor(uri, "w");
         }
     }
 

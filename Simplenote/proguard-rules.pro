@@ -34,3 +34,8 @@
 
 # AndroidAsync lib compiles these classes
 -dontwarn org.bouncycastle.**
+
+# Widget PendingIntents carry Stat values as Serializable extras, and the launcher keeps those
+# intents across app updates. Serialization records the class name, so an obfuscated name that
+# changes between releases would make a pre-update widget tap fail to deserialize the extra.
+-keepnames class com.automattic.simplenote.analytics.AnalyticsTracker$Stat

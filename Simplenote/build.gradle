@@ -97,6 +97,10 @@ android {
     }
 }
 
+// Known issue: AGP 9.5 registers generate<Variant>ComposePreviewRunfiles for every Compose variant, and creating it
+// throws on variants without unit tests (all but debug, including the variants this plugin adds). So
+// `./gradlew tasks` fails; building, testing and linting do not realize those tasks. Re-enabling unit tests on
+// every variant fixes the listing but breaks `./gradlew test`: the screenshot tests import debug-only sources.
 baselineProfile {
     // R8 moves the classes in startup-prof.txt into their own leading DEX file. R8 rejects wildcard rules
     // there, unlike in baseline-prof.txt.

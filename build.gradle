@@ -66,6 +66,7 @@ def gitVersion() {
 }
 
 ext {
+    // 5.x (5.8.0 and 5.12.2 tried) fails to apply on AGP 9: it looks up the removed AppExtension.
     sentryVersion = '6.27.0'
 
     automatticTracksVersion = '6.0.4'

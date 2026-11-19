@@ -6,8 +6,8 @@ import org.junit.Test
 import java.io.File
 
 class BaselineProfileRulesTest {
-    private val baselineRules = readRules("baseline-prof.txt")
-    private val startupRules = readRules("startup-prof.txt")
+    private val baselineRules = readRules("$GENERATED/baseline-prof.txt") + readRules(NOTE_LIST_ROWS)
+    private val startupRules = readRules("$GENERATED/startup-prof.txt")
 
     // A package-wide rule AOT-compiles every method under it, which bloats install-time dexopt and the odex.
     // Generated profiles never contain one; a class-scoped `Foo;->**(**)**` hand-seed rule is allowed.
@@ -40,8 +40,8 @@ class BaselineProfileRulesTest {
         assertEquals("Profile rules for classes that do not exist", emptyList<String>(), missing)
     }
 
-    // Rows are only bound when the account has notes, so a profile generated on a signed-out device loses these
-    // and with them the cold start of every signed-in user. See BaselineProfileGenerator in :baselineprofile.
+    // Rows are only bound when the account has notes, and the generator runs signed out, so these come from the
+    // hand-maintained file AGP merges with the generated profile.
     @Test
     fun noteListRowsAreProfiled() {
         val adapter = "Lcom/automattic/simplenote/NoteListFragment\$NotesCursorAdapter;->"
@@ -50,10 +50,10 @@ class BaselineProfileRulesTest {
             method.startsWith("getView(") || method.startsWith("**(")
         }
 
-        assertTrue("baseline-prof.txt has no NotesCursorAdapter.getView rule; was it generated signed out?", hasRowRule)
+        assertTrue("No NotesCursorAdapter.getView rule in the generated or hand-maintained profile", hasRowRule)
     }
 
-    private fun readRules(name: String) = File("src/release/generated/baselineProfiles/$name")
+    private fun readRules(path: String) = File(path)
         .readLines()
         .map { it.trim() }
         .filter { it.isNotEmpty() && !it.startsWith("#") }
@@ -63,4 +63,9 @@ class BaselineProfileRulesTest {
     private fun classExists(name: String) = runCatching {
         Class.forName(name, false, javaClass.classLoader)
     }.isSuccess
+
+    private companion object {
+        const val GENERATED = "src/release/generated/baselineProfiles"
+        const val NOTE_LIST_ROWS = "src/main/baselineProfiles/note-list-rows.txt"
+    }
 }

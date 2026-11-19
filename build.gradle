@@ -74,8 +74,9 @@ ext {
     screengrabVersion = '2.1.1'
 
     // Screenshot-test harness (JVM screenshot tests under Simplenote/src/test)
-    robolectricVersion = '4.16.1'
-    roborazziVersion = '1.72.0'
+    // 4.18 drops SDK 23, which HtmlCompatTest runs on to cover minSdk's pre-N Html.fromHtml path.
+    robolectricVersion = '4.17'
+    roborazziVersion = '1.79.0'
 }
 
 def uploadKeystore = new File(gradle.ext.decryptedSecretsDir, "upload.jks")

@@ -7,6 +7,7 @@ apply plugin: 'dagger.hilt.android.plugin'
 // Adds recordRoborazzi<Variant> / verifyRoborazzi<Variant> / compareRoborazzi<Variant> tasks for
 // the screenshot tests under src/test/java/com/automattic/simplenote/screenshottest.
 apply plugin: 'io.github.takahirom.roborazzi'
+apply plugin: 'androidx.baselineprofile'
 
 def versionProperties = loadPropertiesFromFile(file("${rootDir}/version.properties"))
 
@@ -97,6 +98,12 @@ android {
     lint {
         checkReleaseBuilds false
     }
+}
+
+baselineProfile {
+    // R8 moves the classes in startup-prof.txt into their own leading DEX file. R8 rejects wildcard rules
+    // there, unlike in baseline-prof.txt.
+    dexLayoutOptimization = true
 }
 
 sentry {
@@ -205,6 +212,11 @@ dependencies {
     ksp "com.google.dagger:hilt-compiler:$google_dagger"
 
     implementation project(':PasscodeLock')
+
+    // Compose already pulls this in; declared so baseline.prof keeps installing on sideloads and
+    // non-Play stores if that transitive edge goes away.
+    implementation 'androidx.profileinstaller:profileinstaller:1.4.1'
+    baselineProfile project(':baselineprofile')
 }
 
 repositories {

@@ -1,0 +1,6 @@
+# Hand-maintained: the generator runs signed out, where the note list binds no rows. AGP merges this with the
+# generated profile so signed-in cold starts keep the row adapter compiled.
+HSPLcom/automattic/simplenote/NoteListFragment$NotesCursorAdapter;->**(**)**
+HSPLcom/automattic/simplenote/NoteListFragment$NoteViewHolder;->**(**)**
+Lcom/automattic/simplenote/NoteListFragment$NotesCursorAdapter;
+Lcom/automattic/simplenote/NoteListFragment$NoteViewHolder;

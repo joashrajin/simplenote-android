@@ -1,0 +1,44 @@
+apply plugin: 'com.android.test'
+apply plugin: 'kotlin-android'
+apply plugin: 'androidx.baselineprofile'
+
+android {
+    namespace 'com.automattic.simplenote.baselineprofile'
+    compileSdk 36
+
+    defaultConfig {
+        // Profile collection needs API 28+, and API 33+ unless the device is rooted.
+        minSdkVersion 28
+        targetSdkVersion 36
+
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    targetProjectPath = ':Simplenote'
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_11.toString()
+    }
+}
+
+dependencies {
+    implementation 'androidx.test.ext:junit:1.3.0'
+    implementation 'androidx.test.uiautomator:uiautomator:2.4.0'
+    implementation "androidx.benchmark:benchmark-macro-junit4:$androidx_benchmark"
+}
+
+// The tested-APK configuration resolves :Simplenote's runtime classpath in this project, so it needs the
+// repository that Simplenote/build.gradle declares for Simperium and Tracks.
+repositories {
+    maven {
+        url "https://a8c-libs.s3.amazonaws.com/android"
+        content {
+            includeGroup "com.automattic"
+            includeGroup "com.automattic.tracks"
+        }
+    }
+}

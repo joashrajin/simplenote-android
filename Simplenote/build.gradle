@@ -94,9 +94,6 @@ android {
         // block on Kotlin 2.x.
         compose true
     }
-    androidResources {
-        generateLocaleConfig = true
-    }
     lint {
         checkReleaseBuilds false
     }

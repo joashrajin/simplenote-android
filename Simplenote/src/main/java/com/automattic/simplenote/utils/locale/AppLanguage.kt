@@ -57,10 +57,10 @@ object AppLanguage {
         return if (current == null) context.getString(R.string.app_language_system_default) else displayName(current)
     }
 
-    /** The locales AGP's `generateLocaleConfig` derived from the `values-*` folders, in the file's order. */
+    /** The locales in `res/xml/locales_config.xml`, the same list Android 13+ shows, in the file's order. */
     internal fun supportedLocales(context: Context): List<Locale> {
         val tags = mutableListOf<String>()
-        context.resources.getXml(R.xml._generated_res_locale_config).use { parser ->
+        context.resources.getXml(R.xml.locales_config).use { parser ->
             while (parser.next() != XmlPullParser.END_DOCUMENT) {
                 if (parser.eventType == XmlPullParser.START_TAG && parser.name == "locale") {
                     parser.getAttributeValue(ANDROID_NAMESPACE, "name")?.let(tags::add)

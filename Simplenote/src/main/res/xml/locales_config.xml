@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The languages "App language" offers, maintained by hand rather than generated from the values-* folders:
+    values-zh only mirrors values-zh-rCN so Android 6.0 users in zh-HK/SG/MO keep Chinese, and values-pl and
+    values-cy are stale partial translations kept for system-language users but not offered as a choice.
+    LocaleFoldersTest fails when a values-* folder is neither listed here nor explicitly left out.
+-->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android"
+    android:defaultLocale="en-US">
+    <locale android:name="en-US" />
+    <locale android:name="ar" />
+    <locale android:name="de" />
+    <locale android:name="es" />
+    <locale android:name="fr" />
+    <locale android:name="he" />
+    <locale android:name="id" />
+    <locale android:name="it" />
+    <locale android:name="ja" />
+    <locale android:name="ko" />
+    <locale android:name="nl" />
+    <locale android:name="pt-BR" />
+    <locale android:name="ru" />
+    <locale android:name="sv" />
+    <locale android:name="tr" />
+    <locale android:name="zh-CN" />
+    <locale android:name="zh-TW" />
+</locale-config>

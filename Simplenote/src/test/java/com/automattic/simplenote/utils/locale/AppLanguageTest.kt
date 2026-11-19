@@ -36,12 +36,24 @@ class AppLanguageTest {
     }
 
     @Test
-    fun supportedLocalesMatchTheGeneratedLocaleConfig() {
+    fun supportedLocalesAreTheLocaleConfigInItsOrder() {
         val tags = AppLanguage.supportedLocales(activity).map(Locale::toLanguageTag)
 
-        // toLanguageTag reports the modern codes for the iw and in folders.
-        val folderTags = LocaleFoldersTest.EXPECTED_FOLDER_TAGS.map { mapOf("iw" to "he", "in" to "id")[it] ?: it }
-        assertEquals(listOf("en-US") + folderTags.sorted(), listOf(tags.first()) + tags.drop(1).sorted())
+        assertEquals(
+            listOf(
+                "en-US", "ar", "de", "es", "fr", "he", "id", "it", "ja", "ko", "nl", "pt-BR", "ru", "sv", "tr", "zh-CN",
+                "zh-TW",
+            ),
+            tags,
+        )
+    }
+
+    @Test
+    fun pickerLeavesOutThePartialTranslationsAndOffersEachChineseOnce() {
+        val names = itemNames(openPicker())
+
+        assertFalse(names.toString(), names.any { it.startsWith("Polski") || it.startsWith("Cymraeg") })
+        assertEquals(names.toString(), listOf("中文 (中国)", "中文 (台灣)"), names.filter { it.startsWith("中文") }.sorted())
     }
 
     @Test

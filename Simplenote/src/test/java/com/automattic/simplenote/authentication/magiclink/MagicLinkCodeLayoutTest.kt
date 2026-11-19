@@ -7,6 +7,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.EditText
 import androidx.appcompat.view.ContextThemeWrapper
 import com.automattic.simplenote.R
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Test
@@ -39,5 +40,14 @@ class MagicLinkCodeLayoutTest {
             InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS,
             codeField.inputType and InputType.TYPE_MASK_VARIATION,
         )
+    }
+
+    @Test
+    fun codeFieldOffersOneTimeCodeAutofill() {
+        val context = ContextThemeWrapper(RuntimeEnvironment.getApplication(), R.style.Style_Default)
+        val layout = LayoutInflater.from(context).inflate(R.layout.fragment_magic_link_code, null)
+        val codeField = layout.findViewById<EditText>(R.id.confirmation_code_textfield)
+
+        assertArrayEquals(arrayOf("smsOTPCode"), codeField.autofillHints)
     }
 }

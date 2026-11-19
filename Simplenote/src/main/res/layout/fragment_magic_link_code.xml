@@ -31,6 +31,7 @@
             android:id="@+id/confirmation_code_textfield"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:autofillHints="smsOTPCode"
             android:digits="0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
             android:inputType="textNoSuggestions"
             android:maxLength="6" />

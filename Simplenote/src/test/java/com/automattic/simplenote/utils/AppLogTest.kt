@@ -10,6 +10,8 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 class AppLogTest {
     @Before
@@ -60,6 +62,93 @@ class AppLogTest {
         assertEquals("device-info", entries[0])
         assertEquals("account-info-updated", entries[1])
         assertFalse(entries.contains("account-info"))
+    }
+
+    @Test
+    fun dynamicHeadersUseTheLatestValueWhenLogsAreRead() {
+        val account = AtomicReference("account-a")
+        AppLog.addHeader(Type.ACCOUNT) { account.get() }
+
+        assertTrue(getEntries().contains("account-a"))
+
+        account.set("account-b")
+        val entries = getEntries()
+
+        assertTrue(entries.contains("account-b"))
+        assertFalse(entries.contains("account-a"))
+    }
+
+    @Test
+    fun dynamicHeadersAreEvaluatedLazilyForEverySnapshot() {
+        val evaluations = AtomicInteger()
+        AppLog.addHeader(Type.ACCOUNT) { "account-${evaluations.incrementAndGet()}" }
+
+        assertEquals(0, evaluations.get())
+        assertTrue(getEntries().contains("account-1"))
+        assertTrue(getEntries().contains("account-2"))
+        assertEquals(2, evaluations.get())
+    }
+
+    @Test
+    fun dynamicAndFixedHeadersReplaceEachOtherWithoutChangingOrder() {
+        val account = AtomicReference("account-a")
+        AppLog.addHeader(Type.DEVICE, "device-info")
+        AppLog.addHeader(Type.ACCOUNT) { account.get() }
+        AppLog.addHeader(Type.ACCOUNT, "account-fixed")
+
+        account.set("account-b")
+        val fixedEntries = getEntries()
+        assertEquals("device-info", fixedEntries[0])
+        assertEquals("account-fixed", fixedEntries[1])
+
+        AppLog.addHeader(Type.ACCOUNT) { account.get() }
+        val dynamicEntries = getEntries()
+        assertEquals("device-info", dynamicEntries[0])
+        assertEquals("account-b", dynamicEntries[1])
+    }
+
+    @Test
+    fun failingDynamicHeaderDoesNotHideQueuedDiagnostics() {
+        AppLog.addHeader(Type.ACCOUNT) { throw IllegalStateException("account unavailable") }
+        AppLog.add(Type.SYNC, "queued-diagnostic")
+
+        val entries = getEntries()
+
+        assertEquals(1, entries.size)
+        assertTrue(entries[0].endsWith("SYNC: queued-diagnostic"))
+    }
+
+    @Test(timeout = 10_000)
+    fun dynamicHeadersAreEvaluatedOutsideTheQueueLock() {
+        val providerStarted = CountDownLatch(1)
+        val releaseProvider = CountDownLatch(1)
+        val executor = Executors.newFixedThreadPool(2)
+        AppLog.addHeader(Type.ACCOUNT) {
+            providerStarted.countDown()
+            try {
+                releaseProvider.await()
+            } catch (exception: InterruptedException) {
+                Thread.currentThread().interrupt()
+            }
+            "account-info"
+        }
+
+        val snapshot = executor.submit<String> { AppLog.get() }
+
+        try {
+            assertTrue(providerStarted.await(5, TimeUnit.SECONDS))
+            val writer = executor.submit { AppLog.add(Type.SYNC, "concurrent-write") }
+            writer.get(5, TimeUnit.SECONDS)
+            releaseProvider.countDown()
+            val firstSnapshot = snapshot.get(5, TimeUnit.SECONDS)
+            assertTrue(firstSnapshot.contains("account-info"))
+            assertFalse(firstSnapshot.contains("concurrent-write"))
+            assertTrue(AppLog.get().contains("concurrent-write"))
+        } finally {
+            releaseProvider.countDown()
+            executor.shutdownNow()
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
+        }
     }
 
     @Test(timeout = 10_000)

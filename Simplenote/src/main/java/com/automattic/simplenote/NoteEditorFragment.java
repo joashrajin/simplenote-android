@@ -51,7 +51,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ActionMode;
 import androidx.core.app.ShareCompat;
@@ -129,6 +128,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
     // overflow binder for large notes), so we persist just the cursor position ourselves.
     private static final String STATE_CURSOR_POSITION = "state_cursor_position";
     private static final String STATE_CONTENT_HAS_FOCUS = "state_content_has_focus";
+    private static final String STATE_KEYBOARD_DISMISSED = "state_keyboard_dismissed";
     private static final int AUTOSAVE_DELAY_MILLIS = 2000;
     private static final int MAX_REVISIONS = 30;
     private static final int PUBLISH_TIMEOUT = 20000;
@@ -181,6 +181,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
     private WebView mMarkdown;
     private boolean mIsPaused;
     private boolean mIsKeyboardVisible;
+    private NoteEditorKeyboardState mKeyboardState = new NoteEditorKeyboardState(false);
     private boolean mIsFromWidget;
 
     private NoteEditorViewModel viewModel;
@@ -457,6 +458,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         if (savedInstanceState != null) {
             mRestoreCursorPosition = savedInstanceState.getInt(STATE_CURSOR_POSITION, -1);
             mRestoreContentFocus = savedInstanceState.getBoolean(STATE_CONTENT_HAS_FOCUS, false);
+            mKeyboardState = new NoteEditorKeyboardState(
+                    savedInstanceState.getBoolean(STATE_KEYBOARD_DISMISSED, false));
         }
         mContentEditText.addOnSelectionChangedListener(this);
         mContentEditText.setOnCheckboxToggledListener(this);
@@ -678,7 +681,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         if (mContentEditText != null) {
             mContentEditText.setTextSize(TypedValue.COMPLEX_UNIT_SP, PrefUtils.getFontSize(requireContext()));
 
-            if (mContentEditText.hasFocus()) {
+            if (mKeyboardState.shouldShowKeyboardOnResume(mContentEditText.hasFocus())) {
                 showSoftKeyboard();
             }
         }
@@ -756,6 +759,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         if (mContentEditText != null) {
             outState.putInt(STATE_CURSOR_POSITION, mContentEditText.getSelectionStart());
             outState.putBoolean(STATE_CONTENT_HAS_FOCUS, mContentEditText.hasFocus());
+            outState.putBoolean(STATE_KEYBOARD_DISMISSED, mKeyboardState.isDismissed());
         }
     }
 
@@ -1324,15 +1328,14 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
     }
 
     /**
-     * Keeps the landscape editing chrome and the content focus in step with the keyboard.
+     * Keeps the landscape editing chrome and the keyboard re-show on resume in step with the keyboard.
      *
      * The toolbar and the markdown tabs are hidden to make room for the keyboard, so keyboard
      * visibility is what they should follow. Focus alone is not enough: a predictive back gesture
      * hides the keyboard at the system level without sending a key event to the view hierarchy, so
      * SimplenoteEditText.onKeyPreIme() never runs, the content field keeps focus, and the chrome
-     * would stay hidden with no way to bring it back. The stale focus would also make onResume()
-     * show the keyboard again every time the editor comes back to the foreground, so the content
-     * field drops it here, as onKeyPreIme() does on the versions that still deliver KEYCODE_BACK.
+     * would stay hidden with no way to bring it back. For the same reason onResume() asks
+     * mKeyboardState rather than the focus whether to show the keyboard again.
      */
     private void trackKeyboardVisibility() {
         mIsKeyboardVisible = false;
@@ -1341,32 +1344,14 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
             boolean isKeyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
 
             if (isKeyboardVisible != mIsKeyboardVisible) {
-                boolean wasKeyboardVisible = mIsKeyboardVisible;
                 mIsKeyboardVisible = isKeyboardVisible;
-
-                if (shouldDropContentFocus(wasKeyboardVisible, isKeyboardVisible, isResumed(),
-                        mContentEditText.hasFocus(), mContentEditText.hasWindowFocus())) {
-                    mContentEditText.clearFocus();
-                }
-
+                mKeyboardState.onKeyboardVisibilityChanged(isKeyboardVisible, isResumed(),
+                        mContentEditText.hasWindowFocus());
                 hideToolbarForLandscapeEditing();
             }
 
             return windowInsets;
         });
-    }
-
-    /**
-     * Whether the content field should give up focus after a keyboard visibility change.
-     *
-     * Only a keyboard the user dismissed counts: while the fragment is paused (the keyboard hides
-     * because the app went to the background) or the window lost focus (a dialog or popup took
-     * over), the focus is kept so onResume() can bring the keyboard back.
-     */
-    @VisibleForTesting
-    static boolean shouldDropContentFocus(boolean wasKeyboardVisible, boolean isKeyboardVisible,
-                                          boolean isResumed, boolean hasFocus, boolean hasWindowFocus) {
-        return wasKeyboardVisible && !isKeyboardVisible && isResumed && hasFocus && hasWindowFocus;
     }
 
     void hideToolbarForLandscapeEditing() {

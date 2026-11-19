@@ -11,7 +11,9 @@ package com.automattic.simplenote
  * A hide counts as a dismissal only while the editor is resumed and its window has focus: the
  * editor hides the keyboard itself in onPause(), and a dialog or popup taking the window focus
  * hides it too. Rotation and input method switches hide the keyboard briefly while resumed and
- * focused, then show it again, and showing it clears the dismissal.
+ * focused, then show it again, and showing it clears the dismissal. Until it shows again (about
+ * 800 ms after a rotation on API 37) the hide reads as a dismissal, so leaving the editor inside
+ * that window keeps the keyboard down on return, which is what the old behaviour did anyway.
  */
 class NoteEditorKeyboardState(isDismissed: Boolean = false) {
     var isDismissed: Boolean = isDismissed

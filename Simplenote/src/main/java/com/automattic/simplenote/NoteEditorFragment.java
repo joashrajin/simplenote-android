@@ -51,6 +51,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ActionMode;
 import androidx.core.app.ShareCompat;
@@ -1323,13 +1324,15 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
     }
 
     /**
-     * Keeps the landscape editing chrome in step with the keyboard.
+     * Keeps the landscape editing chrome and the content focus in step with the keyboard.
      *
      * The toolbar and the markdown tabs are hidden to make room for the keyboard, so keyboard
      * visibility is what they should follow. Focus alone is not enough: a predictive back gesture
      * hides the keyboard at the system level without sending a key event to the view hierarchy, so
      * SimplenoteEditText.onKeyPreIme() never runs, the content field keeps focus, and the chrome
-     * would stay hidden with no way to bring it back.
+     * would stay hidden with no way to bring it back. The stale focus would also make onResume()
+     * show the keyboard again every time the editor comes back to the foreground, so the content
+     * field drops it here, as onKeyPreIme() does on the versions that still deliver KEYCODE_BACK.
      */
     private void trackKeyboardVisibility() {
         mIsKeyboardVisible = false;
@@ -1338,12 +1341,32 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
             boolean isKeyboardVisible = windowInsets.isVisible(WindowInsetsCompat.Type.ime());
 
             if (isKeyboardVisible != mIsKeyboardVisible) {
+                boolean wasKeyboardVisible = mIsKeyboardVisible;
                 mIsKeyboardVisible = isKeyboardVisible;
+
+                if (shouldDropContentFocus(wasKeyboardVisible, isKeyboardVisible, isResumed(),
+                        mContentEditText.hasFocus(), mContentEditText.hasWindowFocus())) {
+                    mContentEditText.clearFocus();
+                }
+
                 hideToolbarForLandscapeEditing();
             }
 
             return windowInsets;
         });
+    }
+
+    /**
+     * Whether the content field should give up focus after a keyboard visibility change.
+     *
+     * Only a keyboard the user dismissed counts: while the fragment is paused (the keyboard hides
+     * because the app went to the background) or the window lost focus (a dialog or popup took
+     * over), the focus is kept so onResume() can bring the keyboard back.
+     */
+    @VisibleForTesting
+    static boolean shouldDropContentFocus(boolean wasKeyboardVisible, boolean isKeyboardVisible,
+                                          boolean isResumed, boolean hasFocus, boolean hasWindowFocus) {
+        return wasKeyboardVisible && !isKeyboardVisible && isResumed && hasFocus && hasWindowFocus;
     }
 
     void hideToolbarForLandscapeEditing() {

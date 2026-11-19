@@ -29,7 +29,7 @@ _Note: Simplenote API features such as sharing and publishing will not work with
 To run the test suite, execute the following `gradle` command:
 
 ```bash
-./gradlew testRelease
+./gradlew testDebugUnitTest
 ```
 
 ## Setup Credentials

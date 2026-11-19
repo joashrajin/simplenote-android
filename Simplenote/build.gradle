@@ -1,6 +1,5 @@
 apply plugin: 'com.android.application'
 apply plugin: 'io.sentry.android.gradle'
-apply plugin: 'kotlin-android'
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 apply plugin: 'com.google.devtools.ksp'
 apply plugin: 'dagger.hilt.android.plugin'
@@ -78,19 +77,17 @@ android {
         animationsDisabled = true
     }
 
-    // Target Java8 to avoid use certain Kotlin's features
+    // Built-in Kotlin derives the Kotlin jvmTarget from targetCompatibility.
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
     }
 
     viewBinding {
         enabled = true
     }
     buildFeatures {
+        buildConfig true
         // The Compose compiler version comes from the Kotlin-bundled plugin; no composeOptions
         // block on Kotlin 2.x.
         compose true
@@ -100,6 +97,10 @@ android {
     }
 }
 
+// Known issue: AGP 9.5 registers generate<Variant>ComposePreviewRunfiles for every Compose variant, and creating it
+// throws on variants without unit tests (all but debug, including the variants this plugin adds). So
+// `./gradlew tasks` fails; building, testing and linting do not realize those tasks. Re-enabling unit tests on
+// every variant fixes the listing but breaks `./gradlew test`: the screenshot tests import debug-only sources.
 baselineProfile {
     // R8 moves the classes in startup-prof.txt into their own leading DEX file. R8 rejects wildcard rules
     // there, unlike in baseline-prof.txt.
@@ -129,6 +130,10 @@ dependencies {
     testImplementation 'junit:junit:4.13.2'
     testImplementation 'org.mockito:mockito-core:5.18.0'
     testImplementation 'org.mockito:mockito-inline:5.2.0'
+    // AGP 9 adds a resources-only copy of each dependency jar to the unit test classpath. Mockito's
+    // objenesis 3.3 ships a META-INF/INDEX.LIST that its copy keeps, so JDK 17 throws InvalidJarIndexError
+    // when Robolectric looks up org/**/robolectric.properties. objenesis 3.5+ no longer ships the index.
+    testImplementation 'org.objenesis:objenesis:3.6'
     androidTestImplementation 'androidx.test:core:1.7.0'
     androidTestImplementation 'androidx.annotation:annotation:1.9.1'
     androidTestImplementation 'androidx.test:runner:1.7.0'
@@ -250,20 +255,29 @@ static String toSnakeCase( String text ) {
     text.replaceAll( /([A-Z])/, /_$1/ ).replaceAll( /^_/, '' )
 }
 
-android.applicationVariants.all { variant ->
-    gradle.ext.secretProperties.any { property ->
-        def key = toSnakeCase(property.key).toUpperCase()
-        if (key == "SIMPERIUM_APP_ID" ||
-            key == "SIMPERIUM_APP_KEY" ||
-            key == "GOOGLE_ANALYTICS_ID" ||
-            key == "LOGIN_EMAIL" ||
-            key == "LOGIN_PASSWORD" ||
-            key == "WPCOM_CLIENT_ID" ||
-            key == "SCREENSHOT_EMAIL" ||
-            key == "SCREENSHOT_PASSWORD") {
-            buildConfigField "String", key, "\"${property.value}\""
+def secretBuildConfigKeys = [
+    "SIMPERIUM_APP_ID",
+    "SIMPERIUM_APP_KEY",
+    "GOOGLE_ANALYTICS_ID",
+    "LOGIN_EMAIL",
+    "LOGIN_PASSWORD",
+    "WPCOM_CLIENT_ID",
+    "SCREENSHOT_EMAIL",
+    "SCREENSHOT_PASSWORD",
+]
+def buildDescription = gitDescribe()
+def buildHash = gitHash()
+def stringField = { value -> new com.android.build.api.variant.BuildConfigField("String", "\"${value}\"", null) }
+
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        gradle.ext.secretProperties.each { property ->
+            def key = toSnakeCase(property.key).toUpperCase()
+            if (key in secretBuildConfigKeys) {
+                variant.buildConfigFields.put(key, stringField(property.value))
+            }
         }
+        variant.buildConfigFields.put("BUILD", stringField(buildDescription))
+        variant.buildConfigFields.put("BUILD_HASH", stringField(buildHash))
     }
-    buildConfigField "String", "BUILD", "\"${gitDescribe()}\""
-    buildConfigField "String", "BUILD_HASH", "\"${gitHash()}\""
 }

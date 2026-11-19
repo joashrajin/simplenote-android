@@ -14,7 +14,7 @@ This file provides guidance to coding agents when working with code in this repo
 
 **Simplenote for Android** is a note-taking app using Simperium for real-time sync. Built with Kotlin/Java, Dagger Hilt for DI, and Android Architecture Components (ViewModel, LiveData, Coroutines).
 
-**Stack**: Kotlin + Java, Android SDK (min 23 / target 35 / compile 36), Dagger Hilt 2.57, Simperium sync, Sentry crash reporting
+**Stack**: Kotlin + Java, Android SDK (min 23 / target 36 / compile 36), AGP 9.5, Kotlin 2.4, Dagger Hilt 2.60 (KSP), Simperium sync, Sentry crash reporting
 
 ### Module Structure
 
@@ -101,7 +101,7 @@ Based on recent merged PRs:
 ### Build Configuration
 
 - Versions defined in root `build.gradle` (Kotlin, AGP, Hilt, Sentry versions) and `version.properties` (app version)
-- Java 11 target (`kotlinOptions.jvmTarget = 11`)
+- Java 11 target (`compileOptions` 11; AGP 9 built-in Kotlin derives `jvmTarget` from it)
 - ViewBinding enabled
 - Max line length: 120 characters (`.editorconfig`)
 - No ktlint or detekt Gradle plugins — lint checking via Android Lint only

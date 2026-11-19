@@ -1,0 +1,152 @@
+name: Android CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - trunk
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+# No secrets are needed: settings.gradle falls back to Simplenote/secrets.properties-example
+# when ~/.configure/simplenote-android/secrets/secrets.properties is absent.
+
+jobs:
+  build-test-lint:
+    name: Unit tests, lint, screenshots, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Unit tests
+        run: ./gradlew --stacktrace :Simplenote:testDebugUnitTest
+
+      - name: Screenshot verification
+        run: ./gradlew --stacktrace :Simplenote:verifyRoborazziDebug
+
+      - name: Lint
+        run: ./gradlew --stacktrace lintDebug
+
+      - name: Assemble
+        run: ./gradlew --stacktrace assembleDebug
+
+      - name: Upload test and lint reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: unit-test-and-lint-reports
+          path: |
+            */build/reports/tests/
+            */build/test-results/
+            */build/reports/lint-results-*.html
+          if-no-files-found: ignore
+
+      - name: Upload Roborazzi diffs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: roborazzi-diffs
+          path: |
+            Simplenote/build/outputs/roborazzi/
+            Simplenote/build/test-results/roborazzi/
+          if-no-files-found: ignore
+
+  instrumented:
+    name: Instrumented tests (API 34 emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      API_LEVEL: 34
+      TARGET: google_apis
+      ARCH: x86_64
+      EMULATOR_OPTIONS: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: Build test APKs
+        run: ./gradlew --stacktrace :Simplenote:assembleDebug :Simplenote:assembleDebugAndroidTest
+
+      - name: AVD cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ env.API_LEVEL }}-${{ env.TARGET }}-${{ env.ARCH }}-v1
+
+      - name: Create AVD and generate snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.TARGET }}
+          arch: ${{ env.ARCH }}
+          force-avd-creation: false
+          emulator-options: ${{ env.EMULATOR_OPTIONS }}
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Instrumented tests
+        uses: reactivecircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ env.API_LEVEL }}
+          target: ${{ env.TARGET }}
+          arch: ${{ env.ARCH }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save ${{ env.EMULATOR_OPTIONS }}
+          disable-animations: true
+          disable-spellchecker: true
+          script: ./gradlew --stacktrace :Simplenote:connectedDebugAndroidTest
+
+      - name: Fail if no instrumented tests ran
+        run: |
+          shopt -s globstar nullglob
+          files=(Simplenote/build/outputs/androidTest-results/connected/**/TEST-*.xml)
+          total=0
+          for f in "${files[@]}"; do
+            n=$(grep -o -m1 '<testsuite [^>]*tests="[0-9]*"' "$f" | grep -o 'tests="[0-9]*"' | grep -o '[0-9]*')
+            total=$((total + ${n:-0}))
+          done
+          echo "Instrumented tests run: $total (from ${#files[@]} result files)"
+          if [ "$total" -eq 0 ]; then
+            echo "::error::connectedDebugAndroidTest ran 0 tests"
+            exit 1
+          fi
+
+      - name: Upload instrumented test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-test-results
+          path: |
+            Simplenote/build/outputs/androidTest-results
+            Simplenote/build/reports/androidTests
+          if-no-files-found: ignore

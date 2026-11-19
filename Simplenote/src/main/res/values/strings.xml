@@ -187,6 +187,10 @@
     <string name="theme_system">System default</string>
     <string name="theme">Theme</string>
 
+    <!-- App language -->
+    <string name="app_language">App language</string>
+    <string name="app_language_system_default">System default</string>
+
     <!-- About screen -->
     <string name="about">About</string>
     <string name="about_copyright">&#169; Automattic %1$d</string>

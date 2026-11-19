@@ -2,7 +2,10 @@ package org.wordpress.passcodelock;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputFilter;
 import android.text.Spanned;
@@ -15,11 +18,14 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.ColorUtils;
 import androidx.core.graphics.Insets;
 import androidx.core.hardware.fingerprint.FingerprintManagerCompat;
 import androidx.core.os.CancellationSignal;
+import androidx.core.os.ConfigurationCompat;
+import androidx.core.os.LocaleListCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -70,6 +76,27 @@ public abstract class AbstractPasscodeKeyboardActivity extends Activity {
             view.setPadding(left + bars.left, top + bars.top, right + bars.right, bottom + bars.bottom);
             return windowInsets;
         });
+    }
+
+    /**
+     * Below Android 13 the app language set through AppCompatDelegate only reaches AppCompat activities, and these
+     * extend the platform Activity, so the override is applied here.
+     */
+    @Override
+    protected void attachBaseContext(Context newBase) {
+        super.attachBaseContext(newBase);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+
+        LocaleListCompat appLocales = AppCompatDelegate.getApplicationLocales();
+        if (!appLocales.isEmpty()) {
+            Configuration override = new Configuration();
+            // Older releases construct it with fontScale 1, which would pin the font scale.
+            override.fontScale = 0;
+            ConfigurationCompat.setLocales(override, appLocales);
+            applyOverrideConfiguration(override);
+        }
     }
 
 	@SuppressLint("RestrictedApi")

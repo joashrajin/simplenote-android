@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.widget.doAfterTextChanged
@@ -63,6 +64,7 @@ class TagDialogFragment() : AppCompatDialogFragment(), OnShowListener {
             .setPositiveButton(R.string.save, null)
             .create()
 
+        dialogEditTag.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
         dialogEditTag.setOnShowListener(this)
         binding.inputTagName.editText?.doAfterTextChanged { s -> viewModel.updateUiState(s.toString()) }
 

@@ -19,8 +19,11 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
+import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDescendantOfA
@@ -122,6 +125,13 @@ class TagsActivityTest : BaseUITest() {
         val filteredTags = testData.tags.filter { it.tag.name.startsWith(firstSearchPhrase) }
         composeRule.waitUntilDoesNotExist(hasText("other"), TIMEOUT)
         waitForTagRows(filteredTags)
+
+        // Hide the IME first. Left up, the window manager restores it after RESUMED, and under
+        // instrumentation that insets change can leave Compose on a pending layout no frame services
+        // until the IME is hidden again (a 26 s idling timeout). The filter is what's under test here.
+        closeSoftKeyboard()
+        composeRule.waitUntil(TIMEOUT) { !isImeVisible() }
+        composeRule.waitForIdle()
 
         // Change the state of the activity to CREATED which calls onPause and onStop
         activityScenario.moveToState(Lifecycle.State.CREATED)
@@ -286,6 +296,15 @@ class TagsActivityTest : BaseUITest() {
     }
 
     /** Polls an Espresso assertion: window transitions out of the Compose world settle async. */
+    private fun isImeVisible(): Boolean {
+        var visible = false
+        activityScenario.onActivity { activity ->
+            visible = ViewCompat.getRootWindowInsets(activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
+        return visible
+    }
+
     private fun waitForView(assertion: () -> Unit) {
         val deadline = SystemClock.uptimeMillis() + TIMEOUT
         while (true) {

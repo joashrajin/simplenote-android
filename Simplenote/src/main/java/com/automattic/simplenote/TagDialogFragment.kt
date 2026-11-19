@@ -8,6 +8,7 @@ import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.WindowManager
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDialogFragment
 import androidx.core.widget.doAfterTextChanged
@@ -19,10 +20,22 @@ import com.automattic.simplenote.viewmodels.TagDialogEvent
 import com.automattic.simplenote.viewmodels.TagDialogEvent.*
 import com.automattic.simplenote.viewmodels.TagDialogViewModel
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.simperium.client.Bucket
+import com.simperium.client.BucketObjectMissingException
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
 @AndroidEntryPoint
-class TagDialogFragment(private val tag: Tag) : AppCompatDialogFragment(), OnShowListener {
+class TagDialogFragment() : AppCompatDialogFragment(), OnShowListener {
+    @Inject
+    lateinit var tagsBucket: Bucket<Tag>
+
+    constructor(tag: Tag) : this() {
+        arguments = Bundle().apply {
+            putString(TAG_KEY_ARG, tag.simperiumKey)
+        }
+    }
+
     private val viewModel: TagDialogViewModel by viewModels()
 
     private var _dialogEditTag: AlertDialog? = null
@@ -51,6 +64,7 @@ class TagDialogFragment(private val tag: Tag) : AppCompatDialogFragment(), OnSho
             .setPositiveButton(R.string.save, null)
             .create()
 
+        dialogEditTag.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE)
         dialogEditTag.setOnShowListener(this)
         binding.inputTagName.editText?.doAfterTextChanged { s -> viewModel.updateUiState(s.toString()) }
 
@@ -84,14 +98,27 @@ class TagDialogFragment(private val tag: Tag) : AppCompatDialogFragment(), OnSho
     }
 
     override fun onShow(dialog: DialogInterface) {
+        val tag = resolveTag() ?: run {
+            dismiss()
+            return
+        }
         setObservers()
-        startUiState()
+        startUiState(tag)
         showDialogRenameTag()
     }
 
-    private fun startUiState() {
+    private fun startUiState(tag: Tag) {
         viewModel.start(tag)
         binding.inputTagName.editText?.setText(tag.name)
+    }
+
+    private fun resolveTag(): Tag? {
+        val tagKey = arguments?.getString(TAG_KEY_ARG) ?: return null
+        return try {
+            tagsBucket.getObject(tagKey)
+        } catch (_: BucketObjectMissingException) {
+            null
+        }
     }
 
     /**
@@ -142,6 +169,8 @@ class TagDialogFragment(private val tag: Tag) : AppCompatDialogFragment(), OnSho
     }
 
     companion object {
+        private const val TAG_KEY_ARG = "tag_key"
+
         @JvmField
         var DIALOG_TAG = "dialog_tag"
     }

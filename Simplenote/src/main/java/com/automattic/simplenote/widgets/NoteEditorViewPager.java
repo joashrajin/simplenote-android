@@ -42,6 +42,10 @@ public class NoteEditorViewPager extends ViewPager {
         return this.mIsEnabled && super.arrowScroll(direction);
     }
 
+    public boolean isPagingEnabled() {
+        return this.mIsEnabled;
+    }
+
     public void setPagingEnabled(boolean enabled) {
         this.mIsEnabled = enabled;
     }

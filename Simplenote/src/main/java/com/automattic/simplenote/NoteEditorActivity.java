@@ -424,6 +424,16 @@ public class NoteEditorActivity extends ThemedAppCompatActivity {
         mViewPager.setPagingEnabled(true);
     }
 
+    // Keeps the saved flag in step with the tabs, so a restored editor shows the tabs the note has now.
+    void setMarkdownEnabled(boolean enabled) {
+        isMarkdownEnabled = enabled;
+        if (enabled) {
+            showTabs();
+        } else {
+            hideTabs();
+        }
+    }
+
     public void setSearchMatchBarVisible(boolean isVisible) {
         if (mSearchMatchBar != null) {
             mSearchMatchBar.setVisibility(isVisible ? View.VISIBLE : View.GONE);

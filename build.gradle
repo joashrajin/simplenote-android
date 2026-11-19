@@ -4,6 +4,7 @@ buildscript {
     ext.google_dagger = '2.57'
     // KSP2 releases are versioned independently of Kotlin since 2.3.0. 2.3.12+ needs AGP 8.12.
     ext.ksp_version = '2.3.11'
+    ext.androidx_benchmark = '1.5.0'
 
     repositories {
         maven {
@@ -24,6 +25,7 @@ buildscript {
         classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin_version"
         classpath "com.google.devtools.ksp:symbol-processing-gradle-plugin:$ksp_version"
         classpath "com.google.dagger:hilt-android-gradle-plugin:$google_dagger"
+        classpath "androidx.benchmark:benchmark-baseline-profile-gradle-plugin:$androidx_benchmark"
         classpath 'com.automattic.android:configure:0.6.5'
     }
 }

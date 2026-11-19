@@ -1,5 +1,6 @@
 include ':Simplenote'
 include ':PasscodeLock'
+include ':baselineprofile'
 
 gradle.ext {
     decryptedSecretsDir = file("${System.getProperty("user.home")}/.configure/simplenote-android/secrets")

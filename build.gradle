@@ -1,9 +1,9 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-    ext.kotlin_version = '2.2.21'
-    ext.google_dagger = '2.57'
-    // KSP2 releases are versioned independently of Kotlin since 2.3.0. 2.3.12+ needs AGP 8.12.
-    ext.ksp_version = '2.3.11'
+    ext.kotlin_version = '2.4.21'
+    ext.google_dagger = '2.60.1'
+    // KSP2 releases are versioned independently of Kotlin since 2.3.0. 2.3.13 is a defective release.
+    ext.ksp_version = '2.3.14'
     ext.androidx_benchmark = '1.5.0'
 
     repositories {
@@ -19,7 +19,9 @@ buildscript {
         maven { url 'https://maven.google.com' }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.11.1'
+        classpath 'com.android.tools.build:gradle:9.5.1'
+        // AGP 9 compiles Kotlin itself (built-in Kotlin) and only needs KGP on the classpath; this pins
+        // KGP above the 2.2.10 that AGP would otherwise resolve.
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         // The Compose compiler ships with Kotlin since 2.0, so this MUST stay equal to kotlin_version.
         classpath "org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlin_version"
@@ -39,32 +41,24 @@ allprojects {
 
 apply plugin: 'com.automattic.android.configure'
 
-def gitHash() {
+// Gradle 9 removed Project.exec; providers.exec also keeps the configuration cache aware of the command.
+def gitOutput(String... args) {
     try {
-        def code = new ByteArrayOutputStream()
-        exec {
-            commandLine 'git', 'rev-parse', '--verify', '--short', 'HEAD'
-            standardOutput = code
-        }
-        return code.toString().trim()
+        return providers.exec {
+            commandLine(['git'] + args.toList())
+        }.standardOutput.asText.get().trim()
     }
     catch (ignored) {
         return "<unknown>"
     }
 }
 
-def gitDescribe(){
-    try {
-        def code = new ByteArrayOutputStream()
-        exec {
-            commandLine 'git', 'describe', '--always', '--dirty=-dirty'
-            standardOutput = code
-        }
-        return code.toString().trim()
-    }
-    catch (ignored) {
-        return "<unknown>"
-    }
+def gitHash() {
+    gitOutput('rev-parse', '--verify', '--short', 'HEAD')
+}
+
+def gitDescribe() {
+    gitOutput('describe', '--always', '--dirty=-dirty')
 }
 
 def gitVersion() {
@@ -72,7 +66,7 @@ def gitVersion() {
 }
 
 ext {
-    sentryVersion = '5.8.0'
+    sentryVersion = '6.27.0'
 
     automatticTracksVersion = '6.0.4'
     androidxLifecycleVersion = '2.9.2'
@@ -117,7 +111,7 @@ subprojects {
     }
 }
 
-// Matches requested tasks, not the task graph: `lintRelease` and `testReleaseUnitTest` must keep
+// Matches requested tasks, not the task graph: `lintRelease` and `minifyReleaseWithR8` must keep
 // working without secrets.
 def requestsReleaseArtifact = gradle.startParameter.taskNames.any {
     it.tokenize(":").last() ==~ /(assemble|bundle).*Release/

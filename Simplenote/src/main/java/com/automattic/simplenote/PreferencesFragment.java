@@ -57,6 +57,7 @@ import com.automattic.simplenote.utils.HtmlCompat;
 import com.automattic.simplenote.utils.NetworkUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.automattic.simplenote.utils.SimplenoteProgressDialogFragment;
+import com.automattic.simplenote.utils.locale.AppLanguage;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.simperium.Simperium;
 import com.simperium.client.Bucket;
@@ -249,6 +250,8 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 return true;
             }
         });
+
+        AppLanguage.bind(findPreference("pref_key_app_language"), requireActivity());
 
         final SwitchPreferenceCompat sustainerIconPreference = findPreference("pref_key_sustainer_icon");
         try {

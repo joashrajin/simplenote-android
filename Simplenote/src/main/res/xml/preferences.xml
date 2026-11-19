@@ -57,6 +57,13 @@
             tools:summary="@string/style_classic">
         </Preference>
 
+        <Preference
+            android:key="pref_key_app_language"
+            android:persistent="false"
+            android:title="@string/app_language"
+            tools:summary="@string/app_language_system_default">
+        </Preference>
+
         <SwitchPreferenceCompat
             android:key="pref_key_sustainer_icon"
             android:defaultValue="false"

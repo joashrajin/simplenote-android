@@ -5,8 +5,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The sequences below are the inset changes NoteEditorFragment sees on device (API 35 and 37,
- * gesture navigation). Each case ends with the question onResume() asks.
+ * The sequences below are the inset changes NoteEditorFragment forwards on device (API 35 and 37,
+ * gesture navigation). The fragment forwards only changes, so shows and hides alternate. Each case
+ * ends with the question onResume() asks. NoteEditorKeyboardDismissalTest covers the fragment wiring.
  */
 class NoteEditorKeyboardStateTest {
     private val state = NoteEditorKeyboardState()
@@ -59,19 +60,9 @@ class NoteEditorKeyboardStateTest {
     fun `tapping the content after a dismissal shows the keyboard again on resume`() {
         state.shown()
         state.hidden()
-        state.hidden(isResumed = false)
         state.shown()
 
         assertTrue(state.shouldShowKeyboardOnResume(contentHasFocus = true))
-    }
-
-    @Test
-    fun `a dismissal survives the hide that pausing causes`() {
-        state.shown()
-        state.hidden()
-        state.hidden(isResumed = false)
-
-        assertFalse(state.shouldShowKeyboardOnResume(contentHasFocus = true))
     }
 
     @Test

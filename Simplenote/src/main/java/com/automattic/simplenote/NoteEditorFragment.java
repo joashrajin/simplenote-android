@@ -51,6 +51,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.VisibleForTesting;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.view.ActionMode;
 import androidx.core.app.ShareCompat;
@@ -1352,6 +1353,11 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
 
             return windowInsets;
         });
+    }
+
+    @VisibleForTesting
+    boolean isKeyboardDismissed() {
+        return mKeyboardState.isDismissed();
     }
 
     void hideToolbarForLandscapeEditing() {

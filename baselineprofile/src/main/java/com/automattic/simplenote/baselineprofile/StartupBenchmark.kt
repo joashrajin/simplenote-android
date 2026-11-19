@@ -13,7 +13,8 @@ import org.junit.runner.RunWith
 /**
  * Compares cold start without AOT compilation against the packaged Baseline Profile. Run with
  * `./gradlew :baselineprofile:connectedBenchmarkReleaseAndroidTest`; emulator numbers are only
- * indicative, so compare on a physical device before quoting them.
+ * indicative, so compare on a physical device before quoting them. On a signed-out device this times the
+ * NotesActivity -> landing screen hand-off, not the note list; sign in as BaselineProfileGenerator describes.
  */
 @RunWith(AndroidJUnit4::class)
 class StartupBenchmark {

@@ -30,3 +30,15 @@ dependencies {
     implementation 'androidx.test.uiautomator:uiautomator:2.4.0'
     implementation "androidx.benchmark:benchmark-macro-junit4:$androidx_benchmark"
 }
+
+// The tested-APK configuration resolves :Simplenote's runtime classpath in this project, so it needs the
+// repository that Simplenote/build.gradle declares for Simperium and Tracks.
+repositories {
+    maven {
+        url "https://a8c-libs.s3.amazonaws.com/android"
+        content {
+            includeGroup "com.automattic"
+            includeGroup "com.automattic.tracks"
+        }
+    }
+}

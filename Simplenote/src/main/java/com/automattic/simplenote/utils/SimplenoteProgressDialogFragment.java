@@ -31,6 +31,13 @@ public class SimplenoteProgressDialogFragment extends DialogFragment {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         setCancelable(false);
+
+        // Retained instances skip onCreate on config changes, so a saved state here means the host
+        // was rebuilt after process death: the request that would dismiss this dialog is gone.
+        if (savedInstanceState != null) {
+            setShowsDialog(false);
+            dismissAllowingStateLoss();
+        }
     }
 
     @NonNull

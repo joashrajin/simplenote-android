@@ -4,7 +4,9 @@ import android.app.Application
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import com.automattic.simplenote.R
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -46,9 +48,43 @@ class SimplenoteProgressDialogFragmentTest {
         dialog.dismiss()
     }
 
-    private fun launchHost(): ActivityController<AppCompatActivity> {
+    @Test
+    fun restoreAfterDismissWhileStateSavedDoesNotBringDialogBack() {
+        val controller = launchHost()
+        val fragmentManager = controller.get().supportFragmentManager
+        val dialog = SimplenoteProgressDialogFragment.newInstance("Loading")
+        dialog.showNow(fragmentManager, SimplenoteProgressDialogFragment.TAG)
+
+        val savedState = Bundle()
+        controller.pause().stop().saveInstanceState(savedState)
+        dialog.dismiss()
+        fragmentManager.executePendingTransactions()
+        controller.destroy()
+
+        val restored = launchHost(savedState)
+        restored.get().supportFragmentManager.executePendingTransactions()
+        assertNull(restored.get().supportFragmentManager.findFragmentByTag(SimplenoteProgressDialogFragment.TAG))
+    }
+
+    @Test
+    fun configChangeKeepsRetainedDialog() {
+        val controller = launchHost()
+        val dialog = SimplenoteProgressDialogFragment.newInstance("Loading")
+        dialog.showNow(controller.get().supportFragmentManager, SimplenoteProgressDialogFragment.TAG)
+
+        controller.recreate()
+
+        val fragmentManager = controller.get().supportFragmentManager
+        fragmentManager.executePendingTransactions()
+        val retained = fragmentManager.findFragmentByTag(SimplenoteProgressDialogFragment.TAG)
+        assertSame(dialog, retained)
+        assertNotNull(dialog.dialog)
+        assertTrue(dialog.dialog!!.isShowing)
+    }
+
+    private fun launchHost(savedState: Bundle? = null): ActivityController<AppCompatActivity> {
         val controller = Robolectric.buildActivity(AppCompatActivity::class.java)
         controller.get().setTheme(R.style.Theme_Simplestyle)
-        return controller.setup()
+        return if (savedState == null) controller.setup() else controller.setup(savedState)
     }
 }

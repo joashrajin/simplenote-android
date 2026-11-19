@@ -11,7 +11,7 @@ public class NoteEditorViewPager extends ViewPager {
 
     public NoteEditorViewPager(Context context, AttributeSet attrs) {
         super(context, attrs);
-        this.mIsEnabled = true;
+        this.mIsEnabled = false;
     }
 
     @Override
@@ -40,6 +40,10 @@ public class NoteEditorViewPager extends ViewPager {
     @Override
     public boolean arrowScroll(int direction) {
         return this.mIsEnabled && super.arrowScroll(direction);
+    }
+
+    public boolean isPagingEnabled() {
+        return this.mIsEnabled;
     }
 
     public void setPagingEnabled(boolean enabled) {

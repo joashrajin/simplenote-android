@@ -1055,16 +1055,12 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         if (activity instanceof NoteEditorActivity) {
             NoteEditorActivity editorActivity = (NoteEditorActivity) activity;
 
-            if (mIsMarkdownEnabled) {
-                editorActivity.showTabs();
+            editorActivity.setMarkdownEnabled(mIsMarkdownEnabled);
 
-                if (mNoteMarkdownFragment == null) {
-                    // Get markdown fragment and update content
-                    mNoteMarkdownFragment = editorActivity.getNoteMarkdownFragment();
-                    mNoteMarkdownFragment.updateMarkdown(mContentEditText.getPreviewTextContent());
-                }
-            } else {
-                editorActivity.hideTabs();
+            if (mIsMarkdownEnabled && mNoteMarkdownFragment == null) {
+                // Get markdown fragment and update content
+                mNoteMarkdownFragment = editorActivity.getNoteMarkdownFragment();
+                mNoteMarkdownFragment.updateMarkdown(mContentEditText.getPreviewTextContent());
             }
         } else if (activity instanceof NotesActivity) {
             setMarkdownEnabled(mIsMarkdownEnabled);

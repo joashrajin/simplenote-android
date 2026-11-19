@@ -1,176 +1,169 @@
-package com.automattic.simplenote.utils;
+package com.automattic.simplenote.utils
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import com.automattic.simplenote.utils.AppLog.Type
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
-import com.automattic.simplenote.utils.AppLog.Type;
-
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-
-public class AppLogTest {
-    private static final int LOG_MAX = 100;
-
+class AppLogTest {
     @Before
-    public void clearLog() {
-        AppLog.clearForTesting();
+    fun clearLog() {
+        AppLog.clearForTesting()
     }
 
     @Test
-    public void retainsLatestEntriesAfterRepeatedRotation() {
-        for (int index = 0; index < 150; index++) {
-            AppLog.add(Type.ACCOUNT, "rotation-" + index);
+    fun retainsLatestEntriesAfterRepeatedRotation() {
+        for (index in 0 until 150) {
+            AppLog.add(Type.ACCOUNT, "rotation-$index")
         }
 
-        List<String> entries = getEntries();
+        val entries = getEntries()
 
-        assertEquals(LOG_MAX, entries.size());
-        for (int index = 0; index < LOG_MAX; index++) {
-            assertEquals("rotation-" + (index + 50), entries.get(index));
+        assertEquals(LOG_MAX, entries.size)
+        for (index in 0 until LOG_MAX) {
+            assertEquals("rotation-${index + 50}", entries[index])
         }
     }
 
     @Test
-    public void headersSurviveRotationAndAreEmittedFirst() {
-        AppLog.addHeader(Type.DEVICE, "device-info");
-        AppLog.addHeader(Type.ACCOUNT, "account-info");
+    fun headersSurviveRotationAndAreEmittedFirst() {
+        AppLog.addHeader(Type.DEVICE, "device-info")
+        AppLog.addHeader(Type.ACCOUNT, "account-info")
 
-        for (int index = 0; index < LOG_MAX + 50; index++) {
-            AppLog.add(Type.ACCOUNT, "rotation-" + index);
+        for (index in 0 until LOG_MAX + 50) {
+            AppLog.add(Type.ACCOUNT, "rotation-$index")
         }
 
-        List<String> entries = getEntries();
+        val entries = getEntries()
 
-        assertEquals(LOG_MAX + 2, entries.size());
-        assertEquals("device-info", entries.get(0));
-        assertEquals("account-info", entries.get(1));
-        assertEquals("rotation-50", entries.get(2));
+        assertEquals(LOG_MAX + 2, entries.size)
+        assertEquals("device-info", entries[0])
+        assertEquals("account-info", entries[1])
+        assertEquals("rotation-50", entries[2])
     }
 
     @Test
-    public void headerUpdatesReplacePriorHeaderOfSameType() {
-        AppLog.addHeader(Type.DEVICE, "device-info");
-        AppLog.addHeader(Type.ACCOUNT, "account-info");
-        AppLog.addHeader(Type.ACCOUNT, "account-info-updated");
+    fun headerUpdatesReplacePriorHeaderOfSameType() {
+        AppLog.addHeader(Type.DEVICE, "device-info")
+        AppLog.addHeader(Type.ACCOUNT, "account-info")
+        AppLog.addHeader(Type.ACCOUNT, "account-info-updated")
 
-        List<String> entries = getEntries();
+        val entries = getEntries()
 
-        assertEquals(2, entries.size());
-        assertEquals("device-info", entries.get(0));
-        assertEquals("account-info-updated", entries.get(1));
-        assertFalse(entries.contains("account-info"));
+        assertEquals(2, entries.size)
+        assertEquals("device-info", entries[0])
+        assertEquals("account-info-updated", entries[1])
+        assertFalse(entries.contains("account-info"))
     }
 
     @Test(timeout = 10_000)
-    public void retainsCompleteUniqueEntriesFromConcurrentWriters() throws Exception {
-        for (int index = 0; index < LOG_MAX; index++) {
-            AppLog.add(Type.ACCOUNT, "seed-" + index);
+    fun retainsCompleteUniqueEntriesFromConcurrentWriters() {
+        for (index in 0 until LOG_MAX) {
+            AppLog.add(Type.ACCOUNT, "seed-$index")
         }
 
-        int writerCount = 4;
-        int entriesPerWriter = 25;
-        CountDownLatch readyLatch = new CountDownLatch(writerCount + 1);
-        CountDownLatch startLatch = new CountDownLatch(1);
-        CountDownLatch firstWritesDoneLatch = new CountDownLatch(writerCount);
-        CountDownLatch readerObservedWritesLatch = new CountDownLatch(1);
-        CountDownLatch writersDoneLatch = new CountDownLatch(writerCount);
-        ExecutorService executor = Executors.newFixedThreadPool(writerCount + 1);
-        Set<String> expectedEntries = new HashSet<>();
-        Future<?>[] futures = new Future<?>[writerCount];
-        Future<?> readerFuture = executor.submit(() -> {
-            readyLatch.countDown();
-            startLatch.await();
-            firstWritesDoneLatch.await();
+        val writerCount = 4
+        val entriesPerWriter = 25
+        val readyLatch = CountDownLatch(writerCount + 1)
+        val startLatch = CountDownLatch(1)
+        val firstWritesDoneLatch = CountDownLatch(writerCount)
+        val readerObservedWritesLatch = CountDownLatch(1)
+        val writersDoneLatch = CountDownLatch(writerCount)
+        val executor = Executors.newFixedThreadPool(writerCount + 1)
+        val expectedEntries = HashSet<String>()
+        val futures = arrayOfNulls<Future<*>>(writerCount)
+        val readerFuture = executor.submit<Void?> {
+            readyLatch.countDown()
+            startLatch.await()
+            firstWritesDoneLatch.await()
             try {
-                assertCompleteSnapshot();
+                assertCompleteSnapshot()
             } finally {
-                readerObservedWritesLatch.countDown();
+                readerObservedWritesLatch.countDown()
             }
             do {
-                assertCompleteSnapshot();
-            } while (writersDoneLatch.getCount() > 0 && !Thread.currentThread().isInterrupted());
-            return null;
-        });
+                assertCompleteSnapshot()
+            } while (writersDoneLatch.count > 0 && !Thread.currentThread().isInterrupted)
+            null
+        }
 
-        for (int writer = 0; writer < writerCount; writer++) {
-            int writerIndex = writer;
-            for (int entry = 0; entry < entriesPerWriter; entry++) {
-                expectedEntries.add("concurrent-" + writerIndex + "-" + entry);
+        for (writerIndex in 0 until writerCount) {
+            for (entry in 0 until entriesPerWriter) {
+                expectedEntries.add("concurrent-$writerIndex-$entry")
             }
-            futures[writer] = executor.submit(() -> {
-                readyLatch.countDown();
-                startLatch.await();
+            futures[writerIndex] = executor.submit<Void?> {
+                readyLatch.countDown()
+                startLatch.await()
                 try {
-                    for (int entry = 0;
-                            entry < entriesPerWriter && !Thread.currentThread().isInterrupted();
-                            entry++) {
-                        AppLog.add(Type.ACCOUNT, "concurrent-" + writerIndex + "-" + entry);
+                    var entry = 0
+                    while (entry < entriesPerWriter && !Thread.currentThread().isInterrupted) {
+                        AppLog.add(Type.ACCOUNT, "concurrent-$writerIndex-$entry")
                         if (entry == 0) {
-                            firstWritesDoneLatch.countDown();
-                            readerObservedWritesLatch.await();
+                            firstWritesDoneLatch.countDown()
+                            readerObservedWritesLatch.await()
                         }
+                        entry++
                     }
                 } finally {
-                    writersDoneLatch.countDown();
+                    writersDoneLatch.countDown()
                 }
-                return null;
-            });
+                null
+            }
         }
 
         try {
-            assertTrue(readyLatch.await(5, TimeUnit.SECONDS));
-            startLatch.countDown();
-            for (Future<?> future : futures) {
-                future.get(5, TimeUnit.SECONDS);
+            assertTrue(readyLatch.await(5, TimeUnit.SECONDS))
+            startLatch.countDown()
+            for (future in futures) {
+                future!!.get(5, TimeUnit.SECONDS)
             }
-            readerFuture.get(5, TimeUnit.SECONDS);
+            readerFuture.get(5, TimeUnit.SECONDS)
         } finally {
-            executor.shutdownNow();
-            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));
+            executor.shutdownNow()
+            assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS))
         }
 
-        List<String> entries = getEntries();
+        val entries = getEntries()
 
-        assertEquals(LOG_MAX, entries.size());
-        assertEquals(entries.size(), new HashSet<>(entries).size());
-        assertEquals(expectedEntries, new HashSet<>(entries));
+        assertEquals(LOG_MAX, entries.size)
+        assertEquals(entries.size, HashSet(entries).size)
+        assertEquals(expectedEntries, HashSet(entries))
     }
 
     @Test
-    public void preservesFormattingForTimestampedAndUntimestampedTypes() {
-        AppLog.add(Type.ACCOUNT, "account");
-        AppLog.add(Type.DEVICE, "device");
-        AppLog.add(Type.SYNC, "sync");
+    fun preservesFormattingForTimestampedAndUntimestampedTypes() {
+        AppLog.add(Type.ACCOUNT, "account")
+        AppLog.add(Type.DEVICE, "device")
+        AppLog.add(Type.SYNC, "sync")
 
-        List<String> entries = getEntries();
+        val entries = getEntries()
 
-        assertEquals(3, entries.size());
-        assertEquals("account", entries.get(0));
-        assertEquals("device", entries.get(1));
-        assertTrue(entries.get(2).matches(
-                "\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} - SYNC: sync"
-        ));
-        assertTrue(AppLog.get().endsWith("\n"));
+        assertEquals(3, entries.size)
+        assertEquals("account", entries[0])
+        assertEquals("device", entries[1])
+        assertTrue(
+            entries[2].matches(
+                Regex("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}\\.\\d{3} - SYNC: sync")
+            )
+        )
+        assertTrue(AppLog.get().endsWith("\n"))
     }
 
-    private List<String> getEntries() {
-        return Arrays.asList(AppLog.get().split("\n"));
+    private fun getEntries(): List<String> = AppLog.get().split("\n").dropLastWhile { it.isEmpty() }
+
+    private fun assertCompleteSnapshot() {
+        val entries = getEntries()
+        assertEquals(LOG_MAX, entries.size)
+        assertEquals(entries.size, HashSet(entries).size)
     }
 
-    private void assertCompleteSnapshot() {
-        List<String> entries = getEntries();
-        assertEquals(LOG_MAX, entries.size());
-        assertEquals(entries.size(), new HashSet<>(entries).size());
+    private companion object {
+        const val LOG_MAX = 100
     }
 }

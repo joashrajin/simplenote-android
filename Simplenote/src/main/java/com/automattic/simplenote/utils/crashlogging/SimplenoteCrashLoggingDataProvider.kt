@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.map
+import java.security.MessageDigest
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Provider
@@ -114,8 +115,15 @@ class SimplenoteCrashLoggingDataProvider @Inject constructor(
         val email = snapshot[USER_EMAIL_PREFERENCE] as? String
         if (accessToken.isNullOrBlank() || email.isNullOrBlank()) return null
 
-        return CrashLoggingUser(email = email)
+        // Simperium never persists its user id, so a restored session's only identity is the email;
+        // Sentry gets a stable hash of it rather than the address itself.
+        return CrashLoggingUser(userID = pseudonymousId(email))
     }
+
+    private fun pseudonymousId(email: String): String =
+        MessageDigest.getInstance("SHA-256")
+            .digest(email.trim().lowercase(Locale.ROOT).toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
 
     companion object {
         private const val DEBUG_RELEASE_NAME = "debug"

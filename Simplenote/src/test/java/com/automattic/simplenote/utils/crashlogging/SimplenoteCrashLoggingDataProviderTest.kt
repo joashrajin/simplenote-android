@@ -63,10 +63,10 @@ class SimplenoteCrashLoggingDataProviderTest {
     fun userRestoresThePersistedAuthenticatedSession() = runTest {
         val app = mock<Simplenote>()
         val sharedPreferences = mock<SharedPreferences>()
-        val email = "person@example.com"
+        val email = " Person@Example.com"
         val provider = userProvider(app, sharedPreferences, { "token" }, { email })
 
-        assertEquals(CrashLoggingUser(email = "person@example.com"), provider.user.first())
+        assertEquals(EXPECTED_USER, provider.user.first())
 
         verify(sharedPreferences).registerOnSharedPreferenceChangeListener(any())
         verify(sharedPreferences).unregisterOnSharedPreferenceChangeListener(any())
@@ -96,7 +96,7 @@ class SimplenoteCrashLoggingDataProviderTest {
         listener.onSharedPreferenceChanged(sharedPreferences, USER_ACCESS_TOKEN_PREFERENCE)
         listener.onSharedPreferenceChanged(sharedPreferences, USER_EMAIL_PREFERENCE)
         runCurrent()
-        assertEquals(listOf(null, CrashLoggingUser(email = "person@example.com")), users)
+        assertEquals(listOf(null, EXPECTED_USER), users)
 
         accessToken = null
         email = null
@@ -105,7 +105,7 @@ class SimplenoteCrashLoggingDataProviderTest {
         collection.join()
 
         assertEquals(
-            listOf(null, CrashLoggingUser(email = "person@example.com"), null),
+            listOf(null, EXPECTED_USER, null),
             users
         )
         verify(sharedPreferences).unregisterOnSharedPreferenceChangeListener(listener)
@@ -155,7 +155,7 @@ class SimplenoteCrashLoggingDataProviderTest {
 
         runCurrent()
 
-        assertEquals(listOf(CrashLoggingUser(email = "person@example.com")), users)
+        assertEquals(listOf(EXPECTED_USER), users)
         collection.cancelAndJoin()
         verify(sharedPreferences).unregisterOnSharedPreferenceChangeListener(listener)
     }
@@ -197,4 +197,11 @@ class SimplenoteCrashLoggingDataProviderTest {
             accessToken?.let { put(USER_ACCESS_TOKEN_PREFERENCE, it) }
             email?.let { put(USER_EMAIL_PREFERENCE, it) }
         }
+
+    private companion object {
+        // SHA-256 of "person@example.com": the raw address must never reach Sentry.
+        val EXPECTED_USER = CrashLoggingUser(
+            userID = "542d240129883c019e106e3b1b2d3f3cb3537c43c425364de8e951d5a3083345"
+        )
+    }
 }

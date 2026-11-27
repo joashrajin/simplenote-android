@@ -2,6 +2,7 @@ package com.automattic.simplenote
 
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.text.method.LinkMovementMethod
 import android.util.TypedValue
 import android.view.View
@@ -11,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
+import androidx.lifecycle.Lifecycle
 import com.automattic.simplenote.databinding.ActivityTagAddBinding
 import com.automattic.simplenote.utils.DisplayUtils
 import com.automattic.simplenote.utils.HtmlCompat
@@ -21,6 +23,7 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class AddTagActivity : AppCompatActivity() {
+    private val keyboardHandler = Handler(Looper.getMainLooper())
     private val viewModel: AddTagViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,6 +47,11 @@ class AddTagActivity : AppCompatActivity() {
             }
         }
 
+    }
+
+    override fun onPause() {
+        keyboardHandler.removeCallbacksAndMessages(null)
+        super.onPause()
     }
 
     private fun ActivityTagAddBinding.setupViews() {
@@ -80,16 +88,21 @@ class AddTagActivity : AppCompatActivity() {
         })
 
         viewModel.event.observe(this@AddTagActivity, { event: AddTagViewModel.Event? ->
+            keyboardHandler.removeCallbacksAndMessages(null)
             when (event) {
                 AddTagViewModel.Event.START -> {
                     buttonPositive.isEnabled = false
-                    Handler().postDelayed(
-                        {
-                            tagInput.requestFocus()
-                            DisplayUtils.showKeyboard(tagInput)
-                        },
-                        KEYBOARD_DELAY_MS
-                    )
+                    if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                        keyboardHandler.postDelayed(
+                            {
+                                if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                                    tagInput.requestFocus()
+                                    DisplayUtils.showKeyboard(tagInput)
+                                }
+                            },
+                            KEYBOARD_DELAY_MS
+                        )
+                    }
                 }
                 AddTagViewModel.Event.CLOSE -> finishAfterTransition()
                 AddTagViewModel.Event.FINISH -> {
@@ -133,6 +146,6 @@ class AddTagActivity : AppCompatActivity() {
     }
 
     companion object {
-        private const val KEYBOARD_DELAY_MS = 300L
+        internal const val KEYBOARD_DELAY_MS = 300L
     }
 }

@@ -42,6 +42,19 @@ class ValidateTagUseCaseTest {
     }
 
     @Test
+    fun tagsWithOtherWhitespaceShouldReturnTagWithSpaces() {
+        val results = listOf(
+            "tag\tname",
+            "tag\nname",
+            "tag\u00A0name",
+            "tag\u2003name"
+        ).map(validateTagUseCase::isTagValid)
+
+        assertEquals(List(4) { TagValidationResult.TagWithSpaces }, results)
+        Mockito.verifyNoInteractions(tagsRepository)
+    }
+
+    @Test
     fun tagWithLongNameShouldReturnTagTooLong() {
         whenever(tagsRepository.isTagValid(any())).thenReturn(false)
 

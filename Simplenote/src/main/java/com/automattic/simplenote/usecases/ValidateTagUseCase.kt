@@ -2,7 +2,6 @@ package com.automattic.simplenote.usecases
 
 import com.automattic.simplenote.repositories.CollaboratorsRepository
 import com.automattic.simplenote.repositories.TagsRepository
-import com.automattic.simplenote.utils.StrUtils.SPACE_STRING
 import javax.inject.Inject
 
 class ValidateTagUseCase @Inject constructor(
@@ -11,7 +10,7 @@ class ValidateTagUseCase @Inject constructor(
 
     fun isTagValid(tagName: String) = when {
         tagName.isEmpty() -> TagValidationResult.TagEmpty
-        tagName.contains(SPACE_STRING) -> TagValidationResult.TagWithSpaces
+        tagName.any { it.isWhitespace() } -> TagValidationResult.TagWithSpaces
         collaboratorsRepository.isValidCollaborator(tagName) -> TagValidationResult.TagIsCollaborator
         !tagsRepository.isTagValid(tagName) -> TagValidationResult.TagTooLong
         !tagsRepository.isTagMissing(tagName) -> TagValidationResult.TagExists

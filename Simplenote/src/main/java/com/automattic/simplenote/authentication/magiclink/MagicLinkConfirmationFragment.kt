@@ -52,29 +52,31 @@ class MagicLinkConfirmationFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         val view = inflater.inflate(R.layout.fragment_magic_link_code, container, false)
         initUi(view)
-        completeMagicLinkViewModel.magicLinkUiState.observe(this.viewLifecycleOwner) { state ->
-            when (state) {
-                is MagicLinkUiState.Loading -> {
-                    showProgressDialog(getString(state.messageRes))
-                }
-                is MagicLinkUiState.Success -> {
-                    completeMagicLinkViewModel.resetState()
-                    hideDialogProgress()
-                    AccountStreams.logInWithToken(accountRepository, state.email, state.token)
-                    activity?.finish()
-                }
-                is MagicLinkUiState.Error -> {
-                    completeMagicLinkViewModel.resetState()
-                    hideDialogProgress()
-                    Toast.makeText(context, getString(state.messageRes), Toast.LENGTH_LONG).show()
-                    if (state.authError == MagicLinkAuthError.INVALID_CODE && !isRemoving) {
-                        parentFragmentManager.popBackStack()
-                    }
-                }
-                else -> {} // Do nothing
-            }
-        }
+        completeMagicLinkViewModel.magicLinkUiState.observe(viewLifecycleOwner, ::handleState)
         return view
+    }
+
+    private fun handleState(state: MagicLinkUiState) {
+        when (state) {
+            is MagicLinkUiState.Loading -> {
+                showProgressDialog(getString(state.messageRes))
+            }
+            is MagicLinkUiState.Success -> {
+                completeMagicLinkViewModel.resetState()
+                hideDialogProgress()
+                AccountStreams.logInWithToken(accountRepository, state.email, state.token)
+                activity?.finish()
+            }
+            is MagicLinkUiState.Error -> {
+                completeMagicLinkViewModel.resetState()
+                hideDialogProgress()
+                Toast.makeText(context, getString(state.messageRes), Toast.LENGTH_LONG).show()
+                if (state.authError == MagicLinkAuthError.INVALID_CODE && !isRemoving) {
+                    parentFragmentManager.popBackStack()
+                }
+            }
+            MagicLinkUiState.Waiting -> hideDialogProgress()
+        }
     }
 
     private fun initUi(view: View) {
@@ -124,18 +126,29 @@ class MagicLinkConfirmationFragment : Fragment() {
     }
 
     private fun showProgressDialog(label: String) {
+        findProgressDialog()?.let {
+            progressDialogFragment = it
+            return
+        }
+
         progressDialogFragment =
             SimplenoteProgressDialogFragment.newInstance(label)
         progressDialogFragment?.setStyle(DialogFragment.STYLE_NO_TITLE, R.style.Simperium)
-        progressDialogFragment?.show(requireFragmentManager(), SimplenoteProgressDialogFragment.TAG)
+        progressDialogFragment?.show(parentFragmentManager, SimplenoteProgressDialogFragment.TAG)
     }
 
     private fun hideDialogProgress() {
-        progressDialogFragment?.let {
+        findProgressDialog()?.let {
             if (!it.isHidden) {
                 it.dismiss()
-                progressDialogFragment = null
             }
         }
+        progressDialogFragment = null
     }
+
+    // A progress dialog retained across a configuration change outlives this fragment's field.
+    private fun findProgressDialog(): SimplenoteProgressDialogFragment? =
+        progressDialogFragment
+            ?: parentFragmentManager.findFragmentByTag(SimplenoteProgressDialogFragment.TAG)
+                as? SimplenoteProgressDialogFragment
 }

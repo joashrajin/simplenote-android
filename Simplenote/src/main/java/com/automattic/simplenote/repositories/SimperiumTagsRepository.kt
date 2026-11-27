@@ -13,10 +13,13 @@ import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectNameInvalid
 import com.simperium.client.Query
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
@@ -68,14 +71,12 @@ class SimperiumTagsRepository @Inject constructor(
     }
 
     private fun deleteTagFromNotes(tag: Tag) {
-        val cursor = tag.findNotes(notesBucket, tag.name)
-
-        while (cursor.moveToNext()) {
-            val note = cursor.getObject()
-            note.removeTag(tag.name)
+        tag.findNotes(notesBucket, tag.name).use { cursor ->
+            while (cursor.moveToNext()) {
+                val note = cursor.getObject()
+                note.removeTag(tag.name)
+            }
         }
-
-        cursor.close()
     }
 
     override suspend fun tagsChanged(): Flow<Boolean> = callbackFlow {
@@ -96,11 +97,44 @@ class SimperiumTagsRepository @Inject constructor(
         }
     }.flowOn(ioDispatcher)
 
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun navigationTags(sortAlphabetically: Boolean): Flow<List<Tag>> = callbackFlow {
+        val callbackOnSaveObject = Bucket.OnSaveObjectListener<Tag> { _, _ -> trySend(Unit).isSuccess }
+        val callbackOnDeleteObject = Bucket.OnDeleteObjectListener<Tag> { _, _ -> trySend(Unit).isSuccess }
+        val callbackOnNetworkChange = Bucket.OnNetworkChangeListener<Tag> { _, _, _ -> trySend(Unit).isSuccess }
+
+        tagsBucket.addOnSaveObjectListener(callbackOnSaveObject)
+        tagsBucket.addOnDeleteObjectListener(callbackOnDeleteObject)
+        tagsBucket.addOnNetworkChangeListener(callbackOnNetworkChange)
+        AppLog.add(AppLog.Type.SYNC, "Added tag bucket listeners (NotesActivity)")
+        trySend(Unit)
+
+        awaitClose {
+            tagsBucket.removeOnSaveObjectListener(callbackOnSaveObject)
+            tagsBucket.removeOnDeleteObjectListener(callbackOnDeleteObject)
+            tagsBucket.removeOnNetworkChangeListener(callbackOnNetworkChange)
+            AppLog.add(AppLog.Type.SYNC, "Removed tag bucket listeners (NotesActivity)")
+        }
+    }.conflate().mapLatest {
+        withContext(ioDispatcher) {
+            val query = if (sortAlphabetically) {
+                Tag.allSortedAlphabetically(tagsBucket)
+            } else {
+                Tag.allWithName(tagsBucket)
+            }
+            query.execute().use { cursor ->
+                buildList {
+                    while (cursor.moveToNext()) {
+                        add(cursor.`object`)
+                    }
+                }
+            }
+        }
+    }
+
     override suspend fun allTags(): List<TagItem> = withContext(ioDispatcher) {
         val tagQuery = Tag.all(tagsBucket).reorder().orderByKey().include(Tag.NOTE_COUNT_INDEX_NAME)
-        val cursor = tagQuery.execute()
-
-        return@withContext cursorToTagItems(cursor)
+        tagQuery.execute().use { cursor -> cursorToTagItems(cursor) }
     }
 
     override suspend fun searchTags(query: String): List<TagItem> = withContext(ioDispatcher) {
@@ -108,9 +142,7 @@ class SimperiumTagsRepository @Inject constructor(
                 .where(Tag.NAME_PROPERTY, Query.ComparisonType.LIKE, "%$query%")
                 .orderByKey().include(Tag.NOTE_COUNT_INDEX_NAME)
                 .reorder()
-        val cursor = tags.execute()
-
-        return@withContext cursorToTagItems(cursor)
+        tags.execute().use { cursor -> cursorToTagItems(cursor) }
     }
 
     override suspend fun suggestTags(query: String): List<String> = withContext(ioDispatcher) {

@@ -4728,10 +4728,13 @@ HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$noteChanges$
 Lcom/automattic/simplenote/repositories/SimperiumNotesRepository$noteChanges$1$$ExternalSyntheticLambda3;
 HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$noteChanges$1$$ExternalSyntheticLambda3;-><init>(Lcom/automattic/simplenote/repositories/SimperiumNotesRepository;Lcom/simperium/client/Bucket$OnNetworkChangeListener;Lcom/simperium/client/Bucket$OnSaveObjectListener;Lcom/simperium/client/Bucket$OnDeleteObjectListener;)V
 HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$noteChanges$1$$ExternalSyntheticLambda3;->invoke()Ljava/lang/Object;
-Lcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$2;
-HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$2;-><init>(Lcom/automattic/simplenote/repositories/SimperiumNotesRepository;Lcom/automattic/simplenote/search/NoteSearchRequest;Lkotlin/coroutines/Continuation;)V
-HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$2;->create(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Lkotlin/coroutines/Continuation;
-HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$2;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
+Lcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$1;
+HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$1;-><init>(Lcom/automattic/simplenote/repositories/SimperiumNotesRepository;Lkotlin/coroutines/Continuation;)V
+HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
+Lcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$result$1;
+HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$result$1;-><init>(Lcom/automattic/simplenote/repositories/SimperiumNotesRepository;Lcom/automattic/simplenote/search/NoteSearchRequest;Lkotlin/jvm/internal/Ref$ObjectRef;Lkotlin/coroutines/Continuation;)V
+HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$result$1;->create(Ljava/lang/Object;Lkotlin/coroutines/Continuation;)Lkotlin/coroutines/Continuation;
+HSPLcom/automattic/simplenote/repositories/SimperiumNotesRepository$search$result$1;->invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;
 Lcom/automattic/simplenote/repositories/SimperiumPreferencesRepository;
 HSPLcom/automattic/simplenote/repositories/SimperiumPreferencesRepository;-><clinit>()V
 HSPLcom/automattic/simplenote/repositories/SimperiumPreferencesRepository;-><init>(Lcom/simperium/client/Bucket;Landroid/content/SharedPreferences;Lkotlinx/coroutines/CoroutineDispatcher;)V

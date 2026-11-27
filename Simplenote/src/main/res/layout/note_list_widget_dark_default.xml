@@ -2,7 +2,6 @@
 
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/widget_layout"
     android:background="@drawable/note_widget_background_dark"
@@ -54,8 +53,9 @@
         android:focusable="true"
         android:padding="@dimen/padding_medium"
         android:src="@drawable/ic_new_note_24dp"
-        app:tint="@color/gray_100"
+        android:tint="@color/gray_100"
         android:visibility="gone"
+        tools:ignore="UseAppTint"
         tools:visibility="visible"></ImageView>
 
 </RelativeLayout>

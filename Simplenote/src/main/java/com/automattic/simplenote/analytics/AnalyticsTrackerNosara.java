@@ -10,6 +10,7 @@ import com.automattic.android.tracks.TracksClient;
 
 import org.json.JSONObject;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -74,7 +75,7 @@ public class AnalyticsTrackerNosara implements AnalyticsTracker.Tracker {
             return;
         }
 
-        String eventName = stat.name().toLowerCase();
+        String eventName = stat.name().toLowerCase(Locale.ROOT);
 
         final String user;
         final TracksClient.NosaraUserType userType;

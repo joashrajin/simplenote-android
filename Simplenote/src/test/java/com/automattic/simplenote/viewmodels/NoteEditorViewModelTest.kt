@@ -1,6 +1,8 @@
 package com.automattic.simplenote.viewmodels
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.testing.TestLifecycleOwner
 import com.automattic.simplenote.CoroutineTestRule
 import com.automattic.simplenote.models.Note
 import com.automattic.simplenote.repositories.SimperiumCollaboratorsRepository
@@ -11,6 +13,7 @@ import com.automattic.simplenote.viewmodels.NoteEditorViewModel.NoteEditorEvent
 import com.simperium.client.Bucket
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
@@ -102,6 +105,31 @@ class NoteEditorViewModelTest {
 
         assertEquals(listOf("tag1", "tag2", "name@test.com"), note.tags)
         assertEquals(NoteEditorEvent.InvalidTag, viewModel.event.value)
+    }
+
+    @Test
+    fun eventIsNotReplayedToReplacementLifecycleOwner() = runTest {
+        val firstEvents = mutableListOf<NoteEditorEvent>()
+        val firstOwner = TestLifecycleOwner(Lifecycle.State.STARTED, UnconfinedTestDispatcher(testScheduler))
+        viewModel.event.observe(firstOwner) { firstEvents.add(it) }
+
+        viewModel.addTag("test test1", note)
+
+        assertEquals(listOf(NoteEditorEvent.InvalidTag), firstEvents)
+        firstOwner.currentState = Lifecycle.State.DESTROYED
+
+        val replacementEvents = mutableListOf<NoteEditorEvent>()
+        val replacementOwner = TestLifecycleOwner(Lifecycle.State.STARTED, UnconfinedTestDispatcher(testScheduler))
+        viewModel.event.observe(replacementOwner) { replacementEvents.add(it) }
+
+        assertEquals(emptyList<NoteEditorEvent>(), replacementEvents)
+
+        viewModel.addTag("name@email.com", note)
+
+        assertEquals(
+            listOf(NoteEditorEvent.TagAsCollaborator("name@email.com")),
+            replacementEvents
+        )
     }
 
     @Test

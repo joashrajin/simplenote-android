@@ -25,7 +25,8 @@ public class BrowserUtils {
 
     public static boolean isWebViewInstalled(Context context) {
         try {
-            new WebView(context);
+            WebView webView = new WebView(context);
+            webView.destroy();
             return true;
         } catch (Exception exception) {
             return false;

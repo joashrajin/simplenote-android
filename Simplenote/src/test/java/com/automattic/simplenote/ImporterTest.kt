@@ -83,13 +83,35 @@ class ImporterTest {
     }
 
     @Test
-    fun jsonImportWithNeitherNotesArrayIsAnEmptySuccess() {
-        // An export carrying neither activeNotes nor trashedNotes imports nothing and must not
-        // surface as a ParseError toast.
-        importer.dispatchFileImport("json", "{}")
+    fun jsonImportWithNeitherNotesArrayThrowsParseError() {
+        val exception = assertThrows(Importer.ImportException::class.java) {
+            importer.dispatchFileImport("json", "{}")
+        }
 
+        assertEquals(Importer.FailureReason.ParseError, exception.reason)
         verifyNoInteractions(notesRepository)
         verifyNoInteractions(tagsRepository)
+    }
+
+    @Test
+    fun jsonImportWithOnlyActiveNotesSucceeds() {
+        val active = noteWithTags()
+        whenever(notesRepository.noteForImport(any<JSONObject>())).thenReturn(active)
+
+        importer.dispatchFileImport("json", """{"activeNotes":[{"content":"a"}]}""")
+
+        verify(notesRepository).saveImportedNote(active)
+    }
+
+    @Test
+    fun jsonImportWithOnlyTrashedNotesSucceeds() {
+        val trashed = noteWithTags()
+        whenever(notesRepository.noteForImport(any<JSONObject>())).thenReturn(trashed)
+
+        importer.dispatchFileImport("json", """{"trashedNotes":[{"content":"a"}]}""")
+
+        verify(trashed).setDeleted(true)
+        verify(notesRepository).saveImportedNote(trashed)
     }
 
     @Test

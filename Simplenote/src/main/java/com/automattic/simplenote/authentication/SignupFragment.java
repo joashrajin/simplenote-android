@@ -191,16 +191,18 @@ public class SignupFragment extends Fragment {
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) {
-                Activity activity = getActivity();
-                if (activity != null) {
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            hideDialogProgress();
-                            DisplayUtils.hideKeyboard(getView());
-                            showConfirmationScreen(email);
-                        }
-                    });
+                try (Response ignored = response) {
+                    Activity activity = getActivity();
+                    if (activity != null) {
+                        activity.runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                hideDialogProgress();
+                                DisplayUtils.hideKeyboard(getView());
+                                showConfirmationScreen(email);
+                            }
+                        });
+                    }
                 }
             }
         };

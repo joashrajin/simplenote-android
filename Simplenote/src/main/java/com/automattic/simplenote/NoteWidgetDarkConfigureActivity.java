@@ -229,7 +229,7 @@ public class NoteWidgetDarkConfigureActivity extends AppCompatActivity {
                     intent.putExtras(arguments);
                     intent.putExtra(KEY_WIDGET_CLICK, NOTE_WIDGET_NOTE_TAPPED);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    PendingIntent pendingIntent = PendingIntent.getActivity(context, mAppWidgetId, intent, PendingIntent.FLAG_IMMUTABLE);
+                    PendingIntent pendingIntent = PendingIntent.getActivity(context, mAppWidgetId, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
                     // Body is everything after the title line; title text is never searched for
                     String title = note.getTitle();

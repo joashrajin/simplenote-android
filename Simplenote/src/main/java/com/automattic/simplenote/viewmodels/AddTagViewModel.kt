@@ -2,6 +2,7 @@ package com.automattic.simplenote.viewmodels
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import com.automattic.simplenote.R
 import com.automattic.simplenote.repositories.TagsRepository
@@ -12,7 +13,8 @@ import javax.inject.Inject
 @HiltViewModel
 class AddTagViewModel @Inject constructor(
     private val tagsRepository: TagsRepository,
-    private val validateTagUseCase: ValidateTagUseCase
+    private val validateTagUseCase: ValidateTagUseCase,
+    private val savedStateHandle: SavedStateHandle
 ) : ViewModel() {
     private val _uiState = MutableLiveData<UiState>()
     val uiState: LiveData<UiState> = _uiState
@@ -45,6 +47,9 @@ class AddTagViewModel @Inject constructor(
     }
 
     fun start() {
+        if (savedStateHandle.get<Boolean>(KEY_STARTED) == true) return
+
+        savedStateHandle[KEY_STARTED] = true
         // Show keyboard at startup
         _uiState.value = UiState("")
         _event.postValue(Event.START)
@@ -61,5 +66,9 @@ class AddTagViewModel @Inject constructor(
         CLOSE,
         FINISH,
         SHOW_ERROR
+    }
+
+    private companion object {
+        const val KEY_STARTED = "started"
     }
 }

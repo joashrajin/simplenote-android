@@ -103,6 +103,10 @@ public class Importer {
         JSONArray activeNotes = export.optJSONArray("activeNotes");
         JSONArray trashedNotes = export.optJSONArray("trashedNotes");
 
+        if (activeNotes == null && trashedNotes == null) {
+            throw new JSONException("Neither activeNotes nor trashedNotes array is present");
+        }
+
         ArrayList<Note> notesList = new ArrayList<>();
 
         for (int i = 0; activeNotes != null && i < activeNotes.length(); i++) {

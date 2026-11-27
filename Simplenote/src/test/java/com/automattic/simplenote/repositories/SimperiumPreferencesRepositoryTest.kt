@@ -127,10 +127,12 @@ class SimperiumPreferencesRepositoryTest {
     }
 
     @Test
-    fun recentSearchesReadsTheStoredList() = runTest {
-        storedPreferences().setRecentSearches(listOf("alpha", "beta"))
+    fun recentSearchesOmitsStoredBlankValuesWithoutSaving() = runTest {
+        val preferences = storedPreferences()
+        preferences.setRecentSearches(listOf("alpha", " \t", "\u00A0", "\u2003", " beta "))
 
-        assertEquals(listOf("alpha", "beta"), repository().recentSearches())
+        assertEquals(listOf("alpha", " beta "), repository().recentSearches())
+        verify(preferencesBucket, never()).sync(preferences)
     }
 
     @Test
@@ -152,6 +154,30 @@ class SimperiumPreferencesRepositoryTest {
         repository().addRecentSearch("alpha")
 
         assertEquals(listOf("alpha", "beta", "gamma"), preferences.recentSearches)
+        verify(preferencesBucket).sync(preferences)
+    }
+
+    @Test
+    fun addBlankRecentSearchDoesNotCreatePreferencesObject() = runTest {
+        whenever(preferencesBucket.get(PREFERENCES_OBJECT_KEY)).thenThrow(BucketObjectMissingException())
+        val created = preferencesObject()
+        whenever(preferencesBucket.newObject(PREFERENCES_OBJECT_KEY)).thenReturn(created)
+        val repository = repository()
+
+        repository.addRecentSearch(" \t\n")
+
+        verify(preferencesBucket, never()).newObject(PREFERENCES_OBJECT_KEY)
+        verify(preferencesBucket, never()).sync(created)
+    }
+
+    @Test
+    fun addRecentSearchDropsStoredBlanksBeforeApplyingTheLimit() = runTest {
+        val preferences = storedPreferences()
+        preferences.setRecentSearches(listOf("one", "\t", "two", "three", "four"))
+
+        repository().addRecentSearch("zero")
+
+        assertEquals(listOf("zero", "one", "two", "three", "four"), preferences.recentSearches)
         verify(preferencesBucket).sync(preferences)
     }
 
@@ -214,6 +240,19 @@ class SimperiumPreferencesRepositoryTest {
 
         assertEquals(1, repository().removeRecentSearch("beta"))
         assertEquals(listOf("alpha", "gamma"), preferences.recentSearches)
+    }
+
+    @Test
+    fun removeAndRestoreRecentSearchUsesTheVisibleIndex() = runTest {
+        val preferences = storedPreferences()
+        preferences.setRecentSearches(listOf("\t", "alpha", "\u00A0", "beta"))
+        val repository = repository()
+
+        val removedIndex = repository.removeRecentSearch("beta")
+        assertEquals(1, removedIndex)
+        assertEquals(listOf("alpha"), preferences.recentSearches)
+        repository.addRecentSearch("beta", removedIndex)
+        assertEquals(listOf("alpha", "beta"), preferences.recentSearches)
     }
 
     @Test

@@ -7,9 +7,8 @@ import android.text.TextUtils;
 
 import com.automattic.simplenote.widgets.SimplenoteEditText;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
@@ -19,8 +18,6 @@ import java.util.regex.Pattern;
 public class MatchOffsetHighlighter implements Runnable {
     public  static final int MATCH_INDEX_COUNT = 4;
     public  static final int MATCH_INDEX_START = 2;
-
-    private static final String CHARSET = "UTF-8";
 
     protected static OnMatchListener sListener = new DefaultMatcher();
     private static List<Object> mMatchedSpans = Collections.synchronizedList(new ArrayList<>());
@@ -72,6 +69,7 @@ public class MatchOffsetHighlighter implements Runnable {
         if (TextUtils.isEmpty(matches)) return;
 
         Scanner scanner = new Scanner(matches);
+        byte[] plainTextBytes = plainTextContent.getBytes(StandardCharsets.UTF_8);
 
         // TODO: keep track of offsets and last index so we don't have to recalculate the entire byte length for every match which is pretty memory intensive
         while (scanner.hasNext()) {
@@ -88,12 +86,13 @@ public class MatchOffsetHighlighter implements Runnable {
                 continue;
             }
 
-            if (plainTextContent.length() < start) {
+            if (start < 0 || plainTextBytes.length < start) {
                 continue;
             }
 
             // Adjust for amount of checklist items before the match
-            String textUpToMatch = plainTextContent.substring(0, start);
+            int characterStart = new String(plainTextBytes, 0, start, StandardCharsets.UTF_8).length();
+            String textUpToMatch = plainTextContent.substring(0, characterStart);
             Pattern pattern = Pattern.compile(ChecklistUtils.CHECKLIST_REGEX_LINES, Pattern.MULTILINE);
             Matcher matcher = pattern.matcher(textUpToMatch);
             int matchCount = 0;
@@ -142,9 +141,8 @@ public class MatchOffsetHighlighter implements Runnable {
     // indices and lengths in bytes. See: https://www.sqlite.org/fts3.html#offsets
     protected static int getByteOffset(Spannable text, int start, int end) {
         String source = text.toString();
-        byte[] sourceBytes = source.getBytes();
+        byte[] sourceBytes = source.getBytes(StandardCharsets.UTF_8);
 
-        String substring;
         int length = sourceBytes.length;
 
         // starting index cannot be negative
@@ -152,22 +150,18 @@ public class MatchOffsetHighlighter implements Runnable {
             start = 0;
         }
 
-        if (start > length - 1) {
+        if (start >= length) {
             // if start is past the end of string
             return 0;
-        } else if (end > length - 1) {
-            // end is past the end of the string, so cap at string's end
-            substring = new String(Arrays.copyOfRange(sourceBytes, start, length - 1));
-        } else {
-            // start and end are both valid indices
-            substring = new String(Arrays.copyOfRange(sourceBytes, start, end));
         }
 
-        try {
-            return substring.length() - substring.getBytes(CHARSET).length;
-        } catch (UnsupportedEncodingException e) {
+        end = Math.min(end, length);
+        if (end < start) {
             return 0;
         }
+
+        String substring = new String(sourceBytes, start, end - start, StandardCharsets.UTF_8);
+        return substring.length() - (end - start);
     }
 
     @Override

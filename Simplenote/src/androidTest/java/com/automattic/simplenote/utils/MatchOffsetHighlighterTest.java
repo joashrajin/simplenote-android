@@ -107,6 +107,55 @@ public class MatchOffsetHighlighterTest {
     }
 
     @Test
+    public void testHighlightingMatchEndingInMultibyteCharacter() {
+        SpannableString text = new SpannableString("prefix café");
+
+        MatchOffsetHighlighter.highlightMatches(text, "1 0 7 5", text.toString(), 1, sHighlighter);
+        Object[] spans = text.getSpans(0, text.length(), Object.class);
+
+        assertThat(spans, arrayWithSize(1));
+        assertThat(text.getSpanStart(spans[0]), is(7));
+        assertThat(text.getSpanEnd(spans[0]), is(11));
+    }
+
+    @Test
+    public void testHighlightingAsciiMatchAfterMultibytePrefix() {
+        SpannableString text = new SpannableString("ééééé tail");
+
+        MatchOffsetHighlighter.highlightMatches(text, "1 0 11 4", text.toString(), 1, sHighlighter);
+        Object[] spans = text.getSpans(0, text.length(), Object.class);
+
+        assertThat(spans, arrayWithSize(1));
+        assertThat(text.getSpanStart(spans[0]), is(6));
+        assertThat(text.getSpanEnd(spans[0]), is(10));
+    }
+
+    @Test
+    public void testHighlightingAsciiMatchAfterAstralCharacter() {
+        SpannableString text = new SpannableString("😀 tail");
+
+        MatchOffsetHighlighter.highlightMatches(text, "1 0 5 4", text.toString(), 1, sHighlighter);
+        Object[] spans = text.getSpans(0, text.length(), Object.class);
+
+        assertThat(spans, arrayWithSize(1));
+        assertThat(text.getSpanStart(spans[0]), is(3));
+        assertThat(text.getSpanEnd(spans[0]), is(7));
+    }
+
+    @Test
+    public void testHighlightingMultibyteMatchAfterCollapsedChecklist() {
+        String plainText = "é\n- [ ] café";
+        SpannableString text = new SpannableString("é\n\u00a0 café");
+
+        MatchOffsetHighlighter.highlightMatches(text, "1 0 9 5", plainText, 1, sHighlighter);
+        Object[] spans = text.getSpans(0, text.length(), Object.class);
+
+        assertThat(spans, arrayWithSize(1));
+        assertThat(text.getSpanStart(spans[0]), is(4));
+        assertThat(text.getSpanEnd(spans[0]), is(8));
+    }
+
+    @Test
     public void testOutOfBoundsOffset() {
         // start plus length exceeds bounds
         SpannableString text = new SpannableString("short");

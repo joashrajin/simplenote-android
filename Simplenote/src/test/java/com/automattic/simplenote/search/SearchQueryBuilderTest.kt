@@ -12,12 +12,7 @@ import org.junit.Test
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.whenever
 
-/**
- * Characterization tests pinning SearchQueryBuilder to the exact query shapes that
- * NoteListFragment.queryNotes, NoteListFragment.queryNotesForSearch, and
- * PrefUtils.sortNoteQuery build today. A failure here means the built query no longer
- * matches the legacy note list behavior.
- */
+/** Pins the exact note-list and search query shapes produced by SearchQueryBuilder. */
 class SearchQueryBuilderTest {
 
     private lateinit var bucket: Bucket<Note>
@@ -169,10 +164,11 @@ class SearchQueryBuilderTest {
     }
 
     @Test
-    fun whitespaceSearchStillAddsFullTextMatch() {
+    fun whitespaceSearchOmitsFullTextMatch() {
         val query = build(rawSearch = "   ")
 
-        assertEquals(listOf("deleted NOT_EQUAL_TO true", fullTextMatch("   ")), conditionsOf(query))
+        assertEquals(listOf("deleted NOT_EQUAL_TO true"), conditionsOf(query))
+        assertEquals(listOf("title", "contentPreview", "pinned"), includesOf(query))
     }
 
     // tag: extraction, as NoteListFragment.queryTags performs it.
@@ -208,6 +204,14 @@ class SearchQueryBuilderTest {
     @Test
     fun tagOnlySearchOmitsFullTextMatch() {
         val query = build(rawSearch = "tag:work", pinnedFirst = false)
+
+        assertEquals(listOf("deleted NOT_EQUAL_TO true", "tags LIKE work"), conditionsOf(query))
+        assertEquals(listOf("title", "contentPreview"), includesOf(query))
+    }
+
+    @Test
+    fun tagOnlySearchWithTrailingWhitespaceOmitsFullTextMatch() {
+        val query = build(rawSearch = "tag:work  ", pinnedFirst = false)
 
         assertEquals(listOf("deleted NOT_EQUAL_TO true", "tags LIKE work"), conditionsOf(query))
         assertEquals(listOf("title", "contentPreview"), includesOf(query))

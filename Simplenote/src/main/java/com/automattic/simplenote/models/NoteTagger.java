@@ -4,16 +4,23 @@ import android.util.Log;
 
 import com.automattic.simplenote.utils.TagUtils;
 import com.simperium.client.Bucket;
+import com.simperium.client.BucketObjectMissingException;
 import com.simperium.client.BucketObjectNameInvalid;
 
+import org.json.JSONArray;
+
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Listens to the notes bucket and creates tags for any non-existent tags in the tags bucket.
  */
 public class NoteTagger implements Bucket.Listener<Note> {
-    private Bucket<Tag> mTagsBucket;
+    private final Bucket<Tag> mTagsBucket;
+    private final Map<String, Set<String>> mTagsBeforeUpdate = new ConcurrentHashMap<>();
 
     public NoteTagger(Bucket<Tag> tagsBucket) {
         mTagsBucket = tagsBucket;
@@ -42,11 +49,37 @@ public class NoteTagger implements Bucket.Listener<Note> {
     }
 
     @Override
-    public void onNetworkChange(Bucket<Note> note, Bucket.ChangeType changeType, String key) {
+    public void onNetworkChange(Bucket<Note> notesBucket, Bucket.ChangeType changeType, String key) {
+        if (changeType == Bucket.ChangeType.RESET) {
+            mTagsBeforeUpdate.clear();
+            return;
+        }
+
+        if (key == null) {
+            return;
+        }
+
+        Set<String> previousTags = mTagsBeforeUpdate.remove(key);
+
+        if (changeType == Bucket.ChangeType.INSERT) {
+            Set<String> currentTags = getStoredTags(notesBucket, key);
+            if (currentTags != null && !currentTags.isEmpty()) {
+                refreshTagObservers();
+            }
+        } else if (changeType == Bucket.ChangeType.MODIFY && previousTags != null) {
+            Set<String> currentTags = getStoredTags(notesBucket, key);
+            if (currentTags != null && !previousTags.equals(currentTags)) {
+                refreshTagObservers();
+            }
+        }
     }
 
     @Override
     public void onBeforeUpdateObject(Bucket<Note> bucket, Note object) {
+        String key = object.getSimperiumKey();
+        if (key != null) {
+            mTagsBeforeUpdate.put(key, getTags(object));
+        }
     }
 
     @Override
@@ -57,5 +90,34 @@ public class NoteTagger implements Bucket.Listener<Note> {
     @Override
     public void onSyncObject(Bucket<Note> bucket, String key) {
 
+    }
+
+    private Set<String> getStoredTags(Bucket<Note> notesBucket, String key) {
+        try {
+            return getTags(notesBucket.getObject(key));
+        } catch (BucketObjectMissingException exception) {
+            return null;
+        }
+    }
+
+    private Set<String> getTags(Note note) {
+        Set<String> tags = new HashSet<>();
+        Object storedTags = note.getProperty(Note.TAGS_PROPERTY);
+        if (!(storedTags instanceof JSONArray)) {
+            return tags;
+        }
+
+        JSONArray tagsArray = (JSONArray) storedTags;
+        for (int index = 0; index < tagsArray.length(); index++) {
+            String tag = tagsArray.optString(index);
+            if (!tag.isEmpty()) {
+                tags.add(tag);
+            }
+        }
+        return tags;
+    }
+
+    private void refreshTagObservers() {
+        mTagsBucket.notifyOnNetworkChangeListeners(Bucket.ChangeType.INDEX);
     }
 }

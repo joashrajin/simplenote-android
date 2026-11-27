@@ -22,6 +22,27 @@ public class SearchTokenizerHyphenTest {
     }
 
     @Test
+    public void testPhraseStartsAtCurrentTermWhenEarlierTermSharesTheLastCharacter() {
+        assertEquals("note* \"state-of-the-art*\"", new SearchTokenizer("note state-of-the-art").toString());
+    }
+
+    @Test
+    public void testRepeatedCompoundTermsUseIndependentPhrases() {
+        assertEquals(
+            "\"state-of-the-art*\" \"state-of-the-art*\"",
+            new SearchTokenizer("state-of-the-art state-of-the-art").toString()
+        );
+    }
+
+    @Test
+    public void testEarlierStrictTermDoesNotCaptureTheCompoundPhrase() {
+        assertEquals(
+            "\"note\" \"state-of-the-art*\"",
+            new SearchTokenizer("\"note\" state-of-the-art").toString()
+        );
+    }
+
+    @Test
     public void testSingleHyphenRetainsPhraseQuery() {
         assertEquals("\"16-3*\"", new SearchTokenizer("16-3").toString());
     }

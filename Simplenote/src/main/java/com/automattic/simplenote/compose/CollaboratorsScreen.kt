@@ -375,6 +375,7 @@ private fun CollaboratorRow(
                     // actionBarItemBackground in the View row: an unbounded ripple.
                     indication = ripple(bounded = false, radius = 24.dp),
                     role = Role.Button,
+                    onClickLabel = stringResource(R.string.remove_collaborator),
                     onLongClick = onRemoveLongClick,
                     onClick = { onRemoveClick(collaborator) },
                 ),

@@ -26,10 +26,9 @@ import kotlinx.coroutines.withContext
  * Owns the note list refresh path that NoteListFragment.RefreshListTask, PinNotesTask,
  * TrashNotesTask, and RefreshListForSearchTask used to run on AsyncTask executors, plus the
  * search state ([searchString]/[isSearching]) and the suggestion feeds the fragment used to
- * compute inline. The fragment still renders: it swaps the delivered cursor into its
- * CursorAdapter (closing the previous one, exactly as changeCursor always has), keeps snippet
- * rendering keyed to the delivered search snapshot, and runs the legacy post-refresh callback
- * chain.
+ * compute inline. The ViewModel owns delivered cursor lifetime while the fragment renders the
+ * current cursor through its CursorAdapter, keeps snippet rendering keyed to the delivered
+ * search snapshot, and runs the legacy post-refresh callback chain.
  */
 @HiltViewModel
 class NoteListViewModel @Inject constructor(
@@ -74,13 +73,17 @@ class NoteListViewModel @Inject constructor(
     }
 
     /**
-     * Replaces RefreshListTask. Reproduces queryNotes: the selected filter, the live search
-     * string (tag: extraction and the FTS include block live in SearchQueryBuilder), pinned
-     * ordering first, then the preferred sort.
+     * Replaces RefreshListTask. Outside search mode, reproduces queryNotes: the selected filter,
+     * pinned ordering first, then the preferred sort. While search mode is active, callbacks
+     * preserve the global, unpinned query shape established by [refreshListForSearch].
      */
     fun refreshList(filter: NoteFilter, fromNavSelect: Boolean) {
         this.filter = filter
-        launchRefresh(filter, pinnedFirst = true, fromNavSelect = fromNavSelect)
+        if (isSearching) {
+            refreshListForSearch()
+        } else {
+            launchRefresh(filter, pinnedFirst = true, fromNavSelect = fromNavSelect)
+        }
     }
 
     /**
@@ -116,11 +119,12 @@ class NoteListViewModel @Inject constructor(
         }
     }
 
-    // A replaced update that never reached the adapter still owns its cursor.
+    // CursorAdapter borrows the current cursor; the ViewModel closes every replaced instance.
     private fun deliver(update: NoteListUpdate) {
-        val previous = _noteList.value
-        if (previous != null && previous.sideEffectsPending) {
-            (previous.result as? NoteQueryResult.Notes)?.cursor?.close()
+        val previousCursor = (_noteList.value?.result as? NoteQueryResult.Notes)?.cursor
+        val nextCursor = (update.result as? NoteQueryResult.Notes)?.cursor
+        if (previousCursor !== nextCursor) {
+            previousCursor?.close()
         }
         _noteList.value = update
     }
@@ -250,8 +254,8 @@ class NoteListViewModel @Inject constructor(
     }
 
     override fun onCleared() {
-        // The UI outlives every delivered cursor swap except the last: nothing is left to close
-        // the adapter's final cursor once the activity is gone for good.
+        refreshSequence++
+        // Every replacement is closed in deliver; the last cursor remains until this owner dies.
         (_noteList.value?.result as? NoteQueryResult.Notes)?.cursor?.close()
     }
 }
@@ -264,9 +268,6 @@ class NoteListViewModel @Inject constructor(
  */
 class NoteListUpdate(val result: NoteQueryResult, val isFromNavSelect: Boolean) {
     private val sideEffectsConsumed = AtomicBoolean(false)
-
-    val sideEffectsPending: Boolean
-        get() = !sideEffectsConsumed.get()
 
     fun consumeSideEffects(): Boolean = !sideEffectsConsumed.getAndSet(true)
 }

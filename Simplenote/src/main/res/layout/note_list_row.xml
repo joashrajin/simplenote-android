@@ -37,7 +37,7 @@
 
         <ImageView
             android:id="@+id/note_pinned"
-            android:contentDescription="@string/published"
+            android:contentDescription="@string/pin"
             android:clickable="false"
             android:focusable="false"
             android:layout_height="@dimen/icon_status"

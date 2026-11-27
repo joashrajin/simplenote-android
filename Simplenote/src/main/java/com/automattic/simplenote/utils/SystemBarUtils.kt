@@ -95,6 +95,32 @@ object SystemBarUtils {
     }
 
     /**
+     * Pads [view] clear of the system bars and display cutout on every edge, on top of its own
+     * padding, for screens whose layout has no toolbar/content split (e.g. the Simperium-owned
+     * authentication landing). IME insets pass through.
+     */
+    @JvmStatic
+    fun applySystemBarAndCutoutPadding(view: View?) {
+        view ?: return
+        val initialLeft = view.paddingLeft
+        val initialTop = view.paddingTop
+        val initialRight = view.paddingRight
+        val initialBottom = view.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(view) { v, windowInsets ->
+            val insets = windowInsets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()
+            )
+            v.setPadding(
+                initialLeft + insets.left,
+                initialTop + insets.top,
+                initialRight + insets.right,
+                initialBottom + insets.bottom
+            )
+            windowInsets.inset(insets)
+        }
+    }
+
+    /**
      * Bottom sheet windows are separate from the activity, so they reproduce the deleted sheet
      * themes' navigation bar directly: a bar in the sheet's own surface color
      * (colorSurfaceContainerLow, the Material 3 modal sheet container color, resolved from the

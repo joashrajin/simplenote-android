@@ -11,9 +11,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.appcompat.app.AlertDialog;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -71,21 +68,9 @@ public class SimplenoteAuthenticationActivity extends AuthenticationActivity {
         // Android 15+, where the platform enforces it anyway.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
             SystemBarUtils.applyEdgeToEdge(this);
-
-            // Apply navigation bar insets to avoid button overlap with 3-button navigation
-            ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content), (v, windowInsets) -> {
-                Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
-
-                // Apply bottom padding to avoid navigation bar overlap
-                v.setPadding(
-                    v.getPaddingLeft(),
-                    v.getPaddingTop(),
-                    v.getPaddingRight(),
-                    systemBars.bottom
-                );
-
-                return WindowInsetsCompat.CONSUMED;
-            });
+            SystemBarUtils.applySystemBarAndCutoutPadding(
+                findViewById(com.simperium.R.id.activity_authentication_root)
+            );
         }
 
         final Intent intent = getIntent();

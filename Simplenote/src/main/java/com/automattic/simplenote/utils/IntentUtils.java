@@ -4,6 +4,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 
+import com.automattic.simplenote.NotesActivity;
+
 public class IntentUtils {
     public static String getMainActivityClassName(Context context) {
         String packageName = context.getPackageName();
@@ -13,7 +15,7 @@ public class IntentUtils {
             return componentName.getClassName();
         }
 
-        return "com.simplenote.automattic.NotesActivity";
+        return NotesActivity.class.getName();
     }
 
     public static Intent maybeAliasedIntent(Context context) {

@@ -56,6 +56,8 @@ import androidx.recyclerview.widget.DiffUtil;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import javax.inject.Inject;
+
 import com.automattic.simplenote.analytics.AnalyticsTracker;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Suggestion;
@@ -101,6 +103,7 @@ import dagger.hilt.android.AndroidEntryPoint;
  */
 @AndroidEntryPoint
 public class NoteListFragment extends ListFragment implements AdapterView.OnItemLongClickListener, AbsListView.MultiChoiceModeListener {
+    @Inject protected Bucket<Note> mNotesBucket;
     /**
      * The preferences key representing the activated item position. Only used on tablets.
      */
@@ -740,9 +743,7 @@ public class NoteListFragment extends ListFragment implements AdapterView.OnItem
         }
 
         // Create & save new note
-        Simplenote simplenote = (Simplenote) requireActivity().getApplication();
-        Bucket<Note> notesBucket = simplenote.getNotesBucket();
-        final Note note = notesBucket.newObject();
+        final Note note = mNotesBucket.newObject();
         note.setContent(title);
         note.setCreationDate(Calendar.getInstance());
         note.setModificationDate(note.getCreationDate());

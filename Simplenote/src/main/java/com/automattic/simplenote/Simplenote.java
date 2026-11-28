@@ -174,28 +174,8 @@ public class Simplenote extends Application implements HeartbeatListener {
         return device + "\n" + system + "\n" + app + "\n\n";
     }
 
-    public Simperium getSimperium() {
-        return mSimperium;
-    }
-
-    public Bucket<Note> getNotesBucket() {
-        return mBuckets.getNotes();
-    }
-
     public SyncTimes<Note> getNoteSyncTimes() {
         return mBuckets.getNoteSyncTimes();
-    }
-
-    public Bucket<Tag> getTagsBucket() {
-        return mBuckets.getTags();
-    }
-
-    public Bucket<Preferences> getPreferencesBucket() {
-        return mBuckets.getPreferences();
-    }
-
-    public Bucket<Account> getAccountBucket() {
-        return mBuckets.getAccount();
     }
 
     // For callers that can run during application field injection, before mBuckets is assigned —
@@ -207,10 +187,6 @@ public class Simplenote extends Application implements HeartbeatListener {
 
     public boolean isInBackground() {
         return mIsInBackground;
-    }
-
-    public boolean isLoggedIn() {
-        return AccountStreams.accountRepository(this).isLoggedIn();
     }
 
     public String getUserEmail() {

@@ -3,7 +3,9 @@ package com.automattic.simplenote.screenshottest
 import com.automattic.simplenote.SimperiumBuckets
 import com.automattic.simplenote.SyncTimes
 import com.automattic.simplenote.di.DataModule
+import com.automattic.simplenote.models.Account
 import com.automattic.simplenote.models.Note
+import com.automattic.simplenote.models.Preferences
 import com.automattic.simplenote.models.Tag
 import com.automattic.simplenote.repositories.AccountRepository
 import com.automattic.simplenote.repositories.CollaboratorsRepository
@@ -55,6 +57,12 @@ object ScreenshotDataModule {
 
     @Provides
     fun providesNotesBucket(): Bucket<Note> = mock()
+
+    @Provides
+    fun providesPreferencesBucket(): Bucket<Preferences> = mock()
+
+    @Provides
+    fun providesAccountBucket(): Bucket<Account> = mock()
 
     // The widget configure activities read the session straight off Simperium; it is signed out,
     // matching ScreenshotAccountRepository.

@@ -16,10 +16,12 @@ import com.automattic.simplenote.NoteEditorFragment;
 import com.automattic.simplenote.NoteEditorStreams;
 import com.automattic.simplenote.NotesActivity;
 import com.automattic.simplenote.R;
-import com.automattic.simplenote.Simplenote;
+import com.automattic.simplenote.di.AppEntryPoint;
 import com.automattic.simplenote.models.Note;
 import com.simperium.client.Bucket;
 import com.simperium.client.BucketObjectMissingException;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 import java.util.regex.Pattern;
 
@@ -68,7 +70,10 @@ public class SimplenoteLinkify {
             return;
         }
 
-        Bucket<Note> bucket = ((Simplenote) activity.getApplication()).getNotesBucket();
+        Bucket<Note> bucket = EntryPointAccessors.fromApplication(
+            activity.getApplicationContext(),
+            AppEntryPoint.class
+        ).notesBucket();
 
         try {
             openLoadedNote(activity, bucket.get(id));

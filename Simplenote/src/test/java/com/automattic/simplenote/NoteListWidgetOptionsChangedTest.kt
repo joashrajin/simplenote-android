@@ -3,13 +3,19 @@ package com.automattic.simplenote
 import android.app.Application
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
-import android.content.Context
-import android.content.ContextWrapper
 import android.os.Bundle
 import android.widget.RemoteViews
 import androidx.test.core.app.ApplicationProvider
+import com.automattic.simplenote.di.AppEntryPoint
+import com.automattic.simplenote.models.Account
+import com.automattic.simplenote.models.Note
+import com.automattic.simplenote.models.Preferences
+import com.automattic.simplenote.models.Tag
 import com.simperium.Simperium
+import com.simperium.client.Bucket
 import com.simperium.client.User
+import dagger.hilt.internal.GeneratedComponent
+import dagger.hilt.internal.GeneratedComponentManager
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.kotlin.any
@@ -29,10 +35,10 @@ import org.robolectric.annotation.Config
  * its item click template, and the widget's click intents.
  */
 @RunWith(RobolectricTestRunner::class)
-@Config(application = Application::class, sdk = [35])
+@Config(application = NoteListWidgetOptionsChangedTest.SignedInApplication::class, sdk = [35])
 class NoteListWidgetOptionsChangedTest {
     private val appWidgetManager: AppWidgetManager = mock()
-    private val context = SignedInContext(ApplicationProvider.getApplicationContext())
+    private val context = ApplicationProvider.getApplicationContext<Application>()
     private val resizedOptions = Bundle().apply {
         putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_WIDTH, 400)
         putInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 400)
@@ -56,13 +62,20 @@ class NoteListWidgetOptionsChangedTest {
         verifyNoMoreInteractions(appWidgetManager)
     }
 
-    /** The providers reach Simperium through the application context cast to [Simplenote]. */
-    private class SignedInContext(base: Context) : ContextWrapper(base) {
+    /** The providers reach Simperium through the application context via [AppEntryPoint]. */
+    class SignedInApplication : Application(), GeneratedComponentManager<Any> {
         private val signedInUser = mock<User> { on { status } doReturn User.Status.AUTHORIZED }
-        private val simperium = mock<Simperium> { on { user } doReturn signedInUser }
-        private val app = mock<Simplenote> { on { getSimperium() } doReturn simperium }
+        private val simperiumMock = mock<Simperium> { on { user } doReturn signedInUser }
 
-        override fun getApplicationContext(): Context = app
+        private val component = object : GeneratedComponent, AppEntryPoint {
+            override fun simperium(): Simperium = simperiumMock
+            override fun notesBucket(): Bucket<Note> = mock()
+            override fun tagsBucket(): Bucket<Tag> = mock()
+            override fun preferencesBucket(): Bucket<Preferences> = mock()
+            override fun accountBucket(): Bucket<Account> = mock()
+        }
+
+        override fun generatedComponent(): Any = component
     }
 
     private companion object {

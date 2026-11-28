@@ -362,7 +362,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     }
 
     private void showAlreadyLoggedInDialog() {
-        String email = ((Simplenote) getApplication()).getSimperium().getUser().getEmail();
+        String email = mSimperium.getUser().getEmail();
         Spanned alreadyLoggedInText = Html.fromHtml(getString(
             R.string.dialog_already_logged_in_message,
             "<b>" + email + "</b>"
@@ -373,7 +373,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             .setPositiveButton(R.string.log_out, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
-                    AuthUtils.logOut((Simplenote) getApplication());
+                    AuthUtils.logOut(NotesActivity.this);
                     finish();
                 }
             })
@@ -806,9 +806,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
      * @return true if user has invalid authorization
      */
     private boolean userAuthenticationIsInvalid() {
-        Simplenote currentApp = (Simplenote) getApplication();
-        Simperium simperium = currentApp.getSimperium();
-        User user = simperium.getUser();
+        User user = mSimperium.getUser();
         boolean isNotAuthorized = user.getStatus().equals(User.Status.NOT_AUTHORIZED);
         if (user.hasAccessToken() && isNotAuthorized) {
             AppLog.add(Type.ACCOUNT, "Access token not authorized");
@@ -822,8 +820,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
     }
 
     public boolean userIsUnauthorized() {
-        Simplenote currentApp = (Simplenote) getApplication();
-        return currentApp.getSimperium().getUser().getStatus() == User.Status.NOT_AUTHORIZED;
+        return mSimperium.getUser().getStatus() == User.Status.NOT_AUTHORIZED;
     }
 
     public void setCurrentNote(Note note) {
@@ -1365,7 +1362,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
 
     public void startLoginActivity() {
         // Clear account-specific data
-        AuthUtils.logOut((Simplenote) getApplication());
+        AuthUtils.logOut(this);
 
         Intent intent = new Intent(NotesActivity.this, SimplenoteAuthenticationActivity.class);
         startActivityForResult(intent, Simperium.SIGNUP_SIGNIN_REQUEST);
@@ -1411,8 +1408,7 @@ public class NotesActivity extends ThemedAppCompatActivity implements NoteListFr
             case Simperium.SIGNUP_SIGNIN_REQUEST:
                 invalidateOptionsMenu();
 
-                Simplenote app = (Simplenote) getApplication();
-                AnalyticsTracker.refreshMetadata(app.getSimperium().getUser().getEmail());
+                AnalyticsTracker.refreshMetadata(mSimperium.getUser().getEmail());
 
                 AnalyticsTracker.track(
                     USER_SIGNED_IN,

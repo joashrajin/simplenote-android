@@ -20,6 +20,7 @@ import android.view.View;
 import android.widget.RemoteViews;
 
 import com.automattic.simplenote.analytics.AnalyticsTracker;
+import com.automattic.simplenote.di.AppEntryPoint;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.repositories.NotesRepository;
 import com.automattic.simplenote.utils.ChecklistUtils;
@@ -28,6 +29,8 @@ import com.automattic.simplenote.utils.NoteUtils;
 import com.automattic.simplenote.utils.PrefUtils;
 import com.simperium.Simperium;
 import com.simperium.client.User;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 public class NoteWidgetDark extends AppWidgetProvider {
     public static final String KEY_WIDGET_IDS_DARK = "key_widget_ids_dark";
@@ -108,8 +111,7 @@ public class NoteWidgetDark extends AppWidgetProvider {
         resizeWidget(appWidgetOptions, views);
 
         // Verify user authentication
-        Simplenote currentApp = (Simplenote) context.getApplicationContext();
-        Simperium simperium = currentApp.getSimperium();
+        Simperium simperium = EntryPointAccessors.fromApplication(context.getApplicationContext(), AppEntryPoint.class).simperium();
         User user = simperium.getUser();
 
         if (user.getStatus().equals(User.Status.NOT_AUTHORIZED)) {

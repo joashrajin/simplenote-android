@@ -12,6 +12,7 @@ import androidx.work.ListenableWorker;
 import androidx.work.WorkerParameters;
 
 import com.automattic.simplenote.Simplenote;
+import com.automattic.simplenote.di.AppEntryPoint;
 import com.automattic.simplenote.models.Account;
 import com.automattic.simplenote.models.Note;
 import com.automattic.simplenote.models.Preferences;
@@ -19,6 +20,8 @@ import com.automattic.simplenote.models.Tag;
 import com.automattic.simplenote.utils.AppLog.Type;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.simperium.client.Bucket;
+
+import dagger.hilt.android.EntryPointAccessors;
 
 import static com.automattic.simplenote.Simplenote.TEN_SECONDS_MILLIS;
 
@@ -30,11 +33,14 @@ public class SyncWorker extends ListenableWorker {
 
     public SyncWorker(@NonNull Context context, @NonNull WorkerParameters params) {
         super(context, params);
-        Simplenote application = (Simplenote) context.getApplicationContext();
-        mBucketNote = application.getNotesBucket();
-        mBucketTag = application.getTagsBucket();
-        mBucketPreference = application.getPreferencesBucket();
-        mBucketAccount = application.getAccountBucket();
+        AppEntryPoint entryPoint = EntryPointAccessors.fromApplication(
+            context.getApplicationContext(),
+            AppEntryPoint.class
+        );
+        mBucketNote = entryPoint.notesBucket();
+        mBucketTag = entryPoint.tagsBucket();
+        mBucketPreference = entryPoint.preferencesBucket();
+        mBucketAccount = entryPoint.accountBucket();
     }
 
     @Override

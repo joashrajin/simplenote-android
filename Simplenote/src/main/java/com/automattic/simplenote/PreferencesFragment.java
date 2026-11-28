@@ -89,7 +89,8 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
     private static final int REQUEST_EXPORT_UNSYNCED = 9002;
     private static final int REQUEST_IMPORT_DATA = 9003;
 
-    private Bucket<Preferences> mPreferencesBucket;
+    @Inject protected Bucket<Preferences> mPreferencesBucket;
+    @Inject protected Simperium mSimperium;
     private SwitchPreferenceCompat mAnalyticsSwitch;
     private SimplenoteProgressDialogFragment mProgressDialogFragment;
     private Job mUnsyncedNotesCheck;
@@ -111,14 +112,11 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
         super.onActivityCreated(savedInstanceState);
 
         Preference authenticatePreference = findPreference("pref_key_authenticate");
-        Simplenote currentApp = (Simplenote) getActivity().getApplication();
-        Simperium simperium = currentApp.getSimperium();
-        simperium.setUserStatusChangeListener(this);
-        simperium.setOnUserCreatedListener(this);
-        mPreferencesBucket = currentApp.getPreferencesBucket();
+        mSimperium.setUserStatusChangeListener(this);
+        mSimperium.setOnUserCreatedListener(this);
 
-        authenticatePreference.setSummary(currentApp.getSimperium().getUser().getEmail());
-        if (simperium.needsAuthorization()) {
+        authenticatePreference.setSummary(mSimperium.getUser().getEmail());
+        if (mSimperium.needsAuthorization()) {
             authenticatePreference.setTitle(R.string.log_in);
         } else {
             authenticatePreference.setTitle(R.string.log_out);
@@ -131,8 +129,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                     return false;
                 }
 
-                Simplenote currentApp = (Simplenote) getActivity().getApplication();
-                if (currentApp.getSimperium().needsAuthorization()) {
+                if (mSimperium.needsAuthorization()) {
                     Intent loginIntent = new Intent(getActivity(), SimplenoteAuthenticationActivity.class);
                     startActivityForResult(loginIntent, Simperium.SIGNUP_SIGNIN_REQUEST);
                 } else {
@@ -410,9 +407,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
 
         final DeleteAccountRequestHandler deleteAccountHandler = new DeleteAccountRequestHandlerImpl(this);
 
-        Simplenote currentApp = (Simplenote) requireActivity().getApplication();
-        Simperium simperium = currentApp.getSimperium();
-        String userEmail = simperium.getUser().getEmail();
+        String userEmail = mSimperium.getUser().getEmail();
         final AlertDialog dialogDeleteAccount =
                 new MaterialAlertDialogBuilder(context, R.style.ThemeOverlay_Simplestyle_Dialog_Destructive)
                 .setTitle(R.string.delete_account)
@@ -434,7 +429,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                             try {
                                 if (NetworkUtils.isNetworkAvailable(requireContext())) {
                                     AppLog.add(Type.ACCOUNT, "Making request to delete account");
-                                    String userToken = simperium.getUser().getAccessToken();
+                                    String userToken = mSimperium.getUser().getAccessToken();
                                     AccountNetworkUtils.makeDeleteAccountRequest(
                                             userEmail,
                                             userToken,
@@ -499,9 +494,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
             return;
         }
 
-        Simplenote currentApp = (Simplenote) activity.getApplication();
-        Simperium simperium = currentApp.getSimperium();
-        String userEmail = simperium.getUser().getEmail();
+        String userEmail = mSimperium.getUser().getEmail();
 
         AlertDialog dialogDeleteAccountConfirmation = new MaterialAlertDialogBuilder(activity)
                 .setTitle(R.string.request_received)
@@ -601,8 +594,7 @@ public class PreferencesFragment extends PreferenceFragmentCompat implements Use
                 }
             });
 
-            Simplenote app = (Simplenote) getActivity().getApplication();
-            AnalyticsTracker.refreshMetadata(app.getSimperium().getUser().getEmail());
+            AnalyticsTracker.refreshMetadata(mSimperium.getUser().getEmail());
 
             AnalyticsTracker.track(
                     AnalyticsTracker.Stat.USER_SIGNED_IN,

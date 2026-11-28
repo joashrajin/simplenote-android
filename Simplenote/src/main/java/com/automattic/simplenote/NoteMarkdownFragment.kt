@@ -38,10 +38,13 @@ import com.automattic.simplenote.utils.markdown.SimplenoteMarkdownFlavorDescript
 import com.google.android.material.snackbar.Snackbar
 import com.simperium.client.Bucket
 import com.simperium.client.BucketObjectMissingException
+import dagger.hilt.android.AndroidEntryPoint
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 import java.lang.ref.SoftReference
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
 
     companion object {
@@ -70,7 +73,7 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
         }
     }
 
-    private var mNotesBucket: Bucket<Note>? = null
+    @Inject lateinit var mNotesBucket: Bucket<Note>
     private var mNote: Note? = null
     private var mPreferences: SharedPreferences? = null
     private var mCss: String? = null
@@ -111,7 +114,6 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         AppLog.add(Type.SCREEN, "Created (NoteMarkdownFragment)")
-        mNotesBucket = (requireActivity().application as Simplenote).notesBucket
         mPreferences = requireContext().getSharedPreferences(SCROLL_POSITION_PREFERENCES, Context.MODE_PRIVATE)
 
         // Load note if we were passed an ID.
@@ -356,14 +358,11 @@ class NoteMarkdownFragment : Fragment(), Bucket.Listener<Note> {
 
         override fun doInBackground(vararg args: String): Void? {
             val fragment = mNoteMarkdownFragmentReference.get() ?: return null
-            val activity = fragment.activity ?: return null
 
             val noteID = args[0]
-            val application = activity.application as Simplenote
-            val notesBucket = application.notesBucket
 
             try {
-                fragment.mNote = notesBucket.get(noteID)
+                fragment.mNote = fragment.mNotesBucket.get(noteID)
             } catch (exception: BucketObjectMissingException) {
                 // TODO: Handle a missing note
             }

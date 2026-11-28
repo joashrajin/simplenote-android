@@ -137,7 +137,9 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
     @Inject CrashLogging mCrashLogging;
     private Note mNote;
     private final Runnable mAutoSaveRunnable = this::saveAndSyncNote;
-    private Bucket<Note> mNotesBucket;
+    @Inject protected Bucket<Note> mNotesBucket;
+    @Inject protected Bucket<Tag> mTagsBucket;
+    @Inject NotesRepository notesRepository;
     private View mRootView;
     private View mTagPadding;
     private SimplenoteEditText mContentEditText;
@@ -187,7 +189,6 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
 
     private NoteEditorViewModel viewModel;
 
-    @Inject NotesRepository notesRepository;
     private NoteEditorStreams mNoteEditorStreams;
 
     // Hides the history bottom sheet if no revisions are loaded
@@ -335,9 +336,6 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         mShareBottomSheet = new ShareBottomSheetDialog(this, this);
         mHistoryBottomSheet = new HistoryBottomSheetDialog(this, this);
 
-        Simplenote currentApp = (Simplenote) requireActivity().getApplication();
-        mNotesBucket = currentApp.getNotesBucket();
-
         viewModel = new ViewModelProvider(this).get(NoteEditorViewModel.class);
         setObservers();
 
@@ -378,10 +376,8 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
 
             @Override
             public Cursor runQueryOnBackgroundThread(CharSequence filter) {
-                Activity activity = getActivity();
-                if (activity == null) return null;
-                Simplenote application = (Simplenote) activity.getApplication();
-                Query<Tag> query = application.getTagsBucket().query();
+                if (getActivity() == null || mTagsBucket == null) return null;
+                Query<Tag> query = mTagsBucket.query();
                 // make the tag name available to the cursor
                 query.include(Tag.NAME_PROPERTY);
                 // sort the tags by their names
@@ -473,7 +469,7 @@ public class NoteEditorFragment extends Fragment implements Bucket.OnBeforeUpdat
         mContentEditText.setDropDownBackgroundResource(R.drawable.bg_list_popup);
         mContentEditText.setAdapter(mLinkAutocompleteAdapter);
         mTagInput = mRootView.findViewById(R.id.tag_input);
-        mTagInput.setBucketTag(((Simplenote) requireActivity().getApplication()).getTagsBucket());
+        mTagInput.setBucketTag(mTagsBucket);
         mTagInput.setDropDownBackgroundResource(R.drawable.bg_list_popup);
         mTagInput.setTokenizer(new SpaceTokenizer());
         mTagInput.setAdapter(mTagAutocompleteAdapter);
